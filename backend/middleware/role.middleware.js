@@ -1,0 +1,1 @@
+export const roleMiddleware = (role) => (req, res, next) => next();
