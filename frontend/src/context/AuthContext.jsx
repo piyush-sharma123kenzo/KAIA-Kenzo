@@ -35,6 +35,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await axiosInstance.post('/auth/login', { email, password });
       if (res.data.success) {
+        if (res.data.token) {
+          localStorage.setItem('kaia_token', res.data.token);
+        }
         setUser(res.data.user);
         // Refresh full profile to load associated brand details for brand operators
         const meRes = await axiosInstance.get('/auth/me');
@@ -81,6 +84,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await axiosInstance.post('/auth/verify-otp', { email, otp, purpose });
       if (res.data.success && res.data.user) {
+        if (res.data.token) {
+          localStorage.setItem('kaia_token', res.data.token);
+        }
         // Signup verification auto-signs in the user
         setUser(res.data.user);
       }
@@ -144,6 +150,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       setBrand(null);
+      localStorage.removeItem('kaia_token');
       localStorage.removeItem('cart');
     }
   };
