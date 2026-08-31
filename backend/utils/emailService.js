@@ -24,7 +24,18 @@ const createTransporter = () => {
   const user = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : null;
   const pass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : null;
 
-  if (!host || !user || !pass) return null;
+  if (!user || !pass) return null;
+
+  // Use Nodemailer's native Gmail service preset for highest reliability in cloud environments
+  if (host === 'smtp.gmail.com' || host === 'gmail' || !host) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+  }
 
   return nodemailer.createTransport({
     host,
