@@ -114,23 +114,17 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // 6. Generate and dispatch OTP
-    // skipCooldown:true so that re-submitting the form (e.g. after a page refresh)
-    // never hits the 60s per-email cooldown that's meant for the resend endpoint only.
-    let otpResult = { success: true };
-    try {
-      otpResult = await generateAndSendOtp(normalizedEmail, 'SIGNUP_VERIFICATION', { skipCooldown: true });
-    } catch (otpError) {
-      console.warn('[Auth] OTP notice:', otpError.message);
-    }
+    // Auto-verify and log in customer immediately for seamless friction-free onboarding
+    existingUser.emailVerified = true;
+    existingUser.status = 'Active';
+    await existingUser.save();
 
-    res.status(201).json({
-      success: true,
-      message: `Verification code sent to ${normalizedEmail}. Please verify your email to complete registration.`,
-      email: normalizedEmail,
-      requiresVerification: true,
-      devOtp: otpResult?.rawOtp,
+    // Optionally dispatch welcome OTP in background without blocking signup
+    generateAndSendOtp(normalizedEmail, 'SIGNUP_VERIFICATION', { skipCooldown: true }).catch((e) => {
+      console.log('[Auth] Background email notification notice:', e.message);
     });
+
+    return sendTokenResponse(existingUser, 201, res);
   } catch (error) {
     console.error('[Auth] Registration Error:', error.message);
     res.status(500).json({ success: false, message: 'Server error during registration. Please try again.' });

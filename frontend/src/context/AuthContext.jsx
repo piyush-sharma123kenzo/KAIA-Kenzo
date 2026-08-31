@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register handler — returns { requiresVerification, email } so UI can redirect to OTP page
+  // Register handler — returns user and signs in immediately
   const register = async (name, email, password, confirmPassword, role, phone) => {
     setError(null);
     try {
@@ -70,6 +70,12 @@ export const AuthProvider = ({ children }) => {
         role,
         phone,
       });
+      if (res.data.success && res.data.user) {
+        if (res.data.token) {
+          localStorage.setItem('kaia_token', res.data.token);
+        }
+        setUser(res.data.user);
+      }
       return res.data;
     } catch (err) {
       const errMsg = err.response?.data?.message || 'Registration failed.';
