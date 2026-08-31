@@ -19,10 +19,10 @@ const isProduction = () => process.env.NODE_ENV === 'production';
  * Returns null if credentials are missing (dev-only fallback path).
  */
 const createTransporter = () => {
-  const host = process.env.EMAIL_HOST;
+  const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
   const port = parseInt(process.env.EMAIL_PORT || '587', 10);
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS;
+  const user = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : null;
+  const pass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : null;
 
   if (!host || !user || !pass) return null;
 
@@ -31,9 +31,10 @@ const createTransporter = () => {
     port,
     secure: port === 465, // SSL for 465, STARTTLS for 587
     auth: { user, pass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     tls: {
-      // In production, always validate TLS certificates.
-      // In development, allow self-signed certs for local SMTP servers.
       rejectUnauthorized: isProduction(),
     },
   });
