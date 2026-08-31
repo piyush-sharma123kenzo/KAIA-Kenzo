@@ -13,7 +13,7 @@ const Image = ({
   const [error, setError] = useState(false);
 
   return (
-    <div className={`relative overflow-hidden w-full bg-brand-gray-50 border border-brand-gray-100 ${aspectRatio} ${className}`}>
+    <div className={`relative overflow-hidden w-full bg-[#F8FAFC] rounded-xl p-3 border border-slate-100 flex items-center justify-center ${aspectRatio} ${className}`}>
       
       {/* Loading Shimmer */}
       {loading && (
@@ -30,7 +30,7 @@ const Image = ({
           setLoading(false);
           setError(true);
         }}
-        className={`w-full h-full transition-opacity duration-300 ${objectFit} ${
+        className={`w-full h-full max-w-full max-h-full transition-opacity duration-300 ${objectFit} object-center ${
           loading ? 'opacity-0' : 'opacity-100'
         }`}
         {...props}

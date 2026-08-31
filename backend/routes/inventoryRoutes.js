@@ -1,13 +1,25 @@
 import express from 'express';
-import { getMyInventory, getMySerials, addSerialNumber } from '../controllers/inventoryController.js';
+import {
+  getBrandInventory,
+  getBrandSerials,
+  createBrandSerial,
+  importBrandSerials,
+  getBrandFulfillmentQueue,
+  assignOrderSerial,
+  packSellerOrder,
+} from '../controllers/inventoryController.js';
 import { protect, checkBrandApproval } from '../middleware/auth.js';
 
 const router = express.Router();
 
 router.use(protect, checkBrandApproval); // Require Brand approval
 
-router.get('/', getMyInventory);
-router.get('/serials', getMySerials);
-router.post('/serials', addSerialNumber);
+router.get('/', getBrandInventory);
+router.get('/serials', getBrandSerials);
+router.post('/serials', createBrandSerial);
+router.post('/serials/import', importBrandSerials);
+router.get('/fulfillment', getBrandFulfillmentQueue);
+router.post('/fulfillment/:orderId/assign-serial', assignOrderSerial);
+router.post('/fulfillment/:orderId/pack', packSellerOrder);
 
 export default router;

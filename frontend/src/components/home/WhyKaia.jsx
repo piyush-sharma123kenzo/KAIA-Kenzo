@@ -11,7 +11,7 @@ const WhyKaia = () => {
     },
     {
       title: 'Split Order Checkout',
-      desc: 'Purchase Apple and ASUS items together. We automatically split child orders for separate brand fulfillment.',
+      desc: 'Purchase Samsung and ASUS items together. We automatically split child orders for separate brand fulfillment.',
       icon: Truck
     },
     {

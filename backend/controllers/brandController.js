@@ -1,5 +1,6 @@
 import Brand from '../models/Brand.js';
 import User from '../models/User.js';
+import Product from '../models/Product.js';
 
 // @desc    Register a brand profile
 // @route   POST /api/brands/register
@@ -42,13 +43,36 @@ export const registerBrand = async (req, res) => {
   }
 };
 
-// @desc    Get all approved brands
+// @desc    Get all approved brands with active product counts
 // @route   GET /api/brands
 // @access  Public
 export const getBrands = async (req, res) => {
   try {
-    const brands = await Brand.find({ status: 'Approved' });
-    res.status(200).json({ success: true, brands });
+    const brands = await Brand.find({
+      $or: [{ status: 'Approved' }, { isApproved: true }],
+      isActive: true,
+    }).lean();
+
+    // Attach dynamic product counts
+    const brandIds = brands.map((b) => b._id);
+    const productCounts = await Product.aggregate([
+      { $match: { brand: { $in: brandIds }, isActive: true, status: { $in: ['Approved', 'published'] } } },
+      { $group: { _id: '$brand', count: { $sum: 1 } } },
+    ]);
+
+    const countMap = {};
+    productCounts.forEach((pc) => {
+      countMap[pc._id.toString()] = pc.count;
+    });
+
+    const enrichedBrands = brands.map((b) => ({
+      ...b,
+      id: b._id,
+      productCount: countMap[b._id.toString()] || 0,
+      verified: true,
+    }));
+
+    res.status(200).json({ success: true, brands: enrichedBrands, data: enrichedBrands });
   } catch (error) {
     console.error('Error fetching brands:', error);
     res.status(500).json({ message: 'Server error fetching brands.' });
@@ -62,11 +86,41 @@ export const getBrandBySlug = async (req, res) => {
   const { slug } = req.params;
 
   try {
-    const brand = await Brand.findOne({ slug, status: 'Approved' });
+    const brand = await Brand.findOne({
+      slug,
+      $or: [{ status: 'Approved' }, { isApproved: true }],
+      isActive: true,
+    }).lean();
+
     if (!brand) {
       return res.status(404).json({ message: 'Brand not found' });
     }
-    res.status(200).json({ success: true, brand });
+
+    // Count products and get categories for this brand
+    const brandProducts = await Product.find({
+      brand: brand._id,
+      isActive: true,
+      status: { $in: ['Approved', 'published'] },
+    }).populate('category', 'name slug').lean();
+
+    const catMap = {};
+    brandProducts.forEach((p) => {
+      if (p.category?.slug) {
+        catMap[p.category.slug] = p.category.name;
+      }
+    });
+
+    const categoriesList = Object.keys(catMap);
+
+    const enrichedBrand = {
+      ...brand,
+      id: brand._id,
+      productCount: brandProducts.length,
+      categories: categoriesList,
+      verified: true,
+    };
+
+    res.status(200).json({ success: true, brand: enrichedBrand, data: enrichedBrand });
   } catch (error) {
     console.error('Error fetching brand details:', error);
     res.status(500).json({ message: 'Server error fetching brand details.' });

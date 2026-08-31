@@ -2,19 +2,30 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { 
   ShieldCheck, Truck, CreditCard, ChevronRight, CheckCircle, 
-  Smartphone, Building, MapPin, Plus, AlertCircle, Landmark, X 
+  Smartphone, Building, MapPin, Plus, AlertCircle, Landmark, X, 
+  Edit3, Navigation, CheckCircle2
 } from 'lucide-react';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useLocationContext } from '../../context/LocationContext';
 import axiosInstance from '../../api/axiosInstance';
 import Container from '../../components/ui/Container';
 import Button from '../../components/ui/Button';
+import PaymentCheckout from '../../components/payment/PaymentCheckout';
+import PaymentMethodSelector from '../../components/payment/PaymentMethodSelector';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useContext(AuthContext);
   const { cart, getCartTotals, clearCart } = useContext(CartContext);
+  const { 
+    deliveryLocation, 
+    savedAddresses, 
+    openLocationModal, 
+    selectDeliveryAddress,
+    saveNewAddress 
+  } = useLocationContext();
 
   const passedCoupon = location.state?.couponCode || '';
 
@@ -23,17 +34,17 @@ const Checkout = () => {
   const [checkoutPayload, setCheckoutPayload] = useState(null);
 
   // Address Selection States
-  const [savedAddresses, setSavedAddresses] = useState([]);
-  const [selectedAddressIndex, setSelectedAddressIndex] = useState(null);
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState(0);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [newAddress, setNewAddress] = useState({
-    fullName: '',
-    phone: '',
-    line1: '',
-    line2: '',
+    fullName: user?.name || '',
+    phone: user?.phone || '',
+    addressLine1: '',
+    addressLine2: '',
+    landmark: '',
     city: '',
     state: '',
-    pinCode: '',
+    postalCode: '',
     country: 'India',
     type: 'Home',
     isDefault: false
@@ -69,61 +80,56 @@ const Checkout = () => {
     }
   }, [user, navigate]);
 
-  // Load saved addresses from localstorage
+  // Sync active address index from LocationContext or savedAddresses
   useEffect(() => {
-    const cached = localStorage.getItem('kaia_addresses');
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        setSavedAddresses(parsed);
-        // Pre-select default address
-        const defIndex = parsed.findIndex(a => a.isDefault);
-        if (defIndex !== -1) {
-          setSelectedAddressIndex(defIndex);
-        } else if (parsed.length > 0) {
-          setSelectedAddressIndex(0);
-        }
-      } catch (e) {
-        setSavedAddresses([]);
+    if (savedAddresses && savedAddresses.length > 0) {
+      const idx = savedAddresses.findIndex(
+        (a) => a._id === deliveryLocation?._id || (a.addressLine1 === deliveryLocation?.addressLine1 && a.postalCode === deliveryLocation?.postalCode)
+      );
+      if (idx !== -1) {
+        setSelectedAddressIndex(idx);
+      } else {
+        setSelectedAddressIndex(0);
       }
     }
-  }, []);
+  }, [savedAddresses, deliveryLocation]);
 
-  const handleAddNewAddress = (e) => {
+  const handleAddNewAddress = async (e) => {
     e.preventDefault();
-    if (!newAddress.fullName || !newAddress.line1 || !newAddress.city || !newAddress.state || !newAddress.pinCode) {
+    if (!newAddress.fullName || !newAddress.addressLine1 || !newAddress.city || !newAddress.state || !newAddress.postalCode) {
       alert('Please fill out all required address fields.');
       return;
     }
 
-    const updated = [...savedAddresses];
-    const itemToAdd = { ...newAddress, isDefault: updated.length === 0 };
-    updated.push(itemToAdd);
-
-    setSavedAddresses(updated);
-    localStorage.setItem('kaia_addresses', JSON.stringify(updated));
-    setSelectedAddressIndex(updated.length - 1);
-    setShowNewAddressForm(false);
-    setNewAddress({
-      fullName: '',
-      phone: '',
-      line1: '',
-      line2: '',
-      city: '',
-      state: '',
-      pinCode: '',
-      country: 'India',
-      type: 'Home',
-      isDefault: false
-    });
+    try {
+      await saveNewAddress(newAddress);
+      setShowNewAddressForm(false);
+      setNewAddress({
+        fullName: user?.name || '',
+        phone: user?.phone || '',
+        addressLine1: '',
+        addressLine2: '',
+        landmark: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: 'India',
+        type: 'Home',
+        isDefault: false
+      });
+    } catch (err) {
+      alert(err.message || 'Error saving address.');
+    }
   };
 
   const handleAddressSubmit = (e) => {
     e.preventDefault();
-    if (selectedAddressIndex === null || !savedAddresses[selectedAddressIndex]) {
+    const currentAddr = savedAddresses[selectedAddressIndex] || deliveryLocation;
+    if (!currentAddr || (!currentAddr.addressLine1 && !currentAddr.street)) {
       alert('Please select or configure a delivery address.');
       return;
     }
+    selectDeliveryAddress(currentAddr);
     setStep(2);
   };
 
@@ -162,17 +168,24 @@ const Checkout = () => {
 
   const handleInitiateOrderDraft = async () => {
     setLoading(true);
-    const selectedAddress = savedAddresses[selectedAddressIndex];
+    const chosen = savedAddresses[selectedAddressIndex] || deliveryLocation;
     
-    // Adapt payload to match backend draft checks
+    // Complete Snapshot Payload preserving all delivery fields
     const targetAddress = {
-      name: selectedAddress.fullName,
-      street: selectedAddress.line1 + (selectedAddress.line2 ? `, ${selectedAddress.line2}` : ''),
-      city: selectedAddress.city,
-      state: selectedAddress.state,
-      postalCode: selectedAddress.pinCode,
-      country: selectedAddress.country,
-      phone: selectedAddress.phone,
+      name: chosen.fullName || chosen.name || chosen.recipientName || user?.name || 'Customer',
+      fullName: chosen.fullName || chosen.name || chosen.recipientName || user?.name || 'Customer',
+      phone: chosen.phone || user?.phone || '9999999999',
+      street: chosen.addressLine1 || chosen.street || 'Address Line 1',
+      addressLine1: chosen.addressLine1 || chosen.street || 'Address Line 1',
+      addressLine2: chosen.addressLine2 || '',
+      landmark: chosen.landmark || '',
+      city: chosen.city || 'Delhi',
+      state: chosen.state || 'Delhi',
+      postalCode: chosen.postalCode || chosen.pinCode || '110001',
+      country: chosen.country || 'India',
+      latitude: chosen.latitude || null,
+      longitude: chosen.longitude || null,
+      type: chosen.type || chosen.label || 'Home',
     };
 
     try {
@@ -194,179 +207,194 @@ const Checkout = () => {
     }
   };
 
-  const handleProcessOrderPayment = () => {
+  const handleProcessOrderPayment = async () => {
     if (paymentMethod === 'COD') {
-      // Direct success for COD simulation
       setPaymentProcessing(true);
-      setTimeout(() => {
-        setPaymentProcessing(false);
-        clearCart();
-        navigate('/order-success', {
-          state: {
-            order: {
-              orderId: checkoutPayload?.order?.orderId || 'KAIA-' + Math.floor(100000 + Math.random() * 900000),
-              finalAmount: totals.total - (passedCoupon ? 1000 : 0),
-              shippingAddress: savedAddresses[selectedAddressIndex]
-            }
-          }
+      try {
+        const res = await axiosInstance.post('/payments/cod', {
+          orderId: checkoutPayload?.order?.orderId,
         });
-      }, 1500);
+        if (res.data?.success) {
+          clearCart();
+          navigate('/order-success', {
+            state: {
+              orderId: checkoutPayload?.order?.orderId,
+              paymentStatus: 'pending_cod',
+            },
+          });
+        }
+      } catch (err) {
+        alert(err.response?.data?.message || 'Error processing Cash on Delivery order.');
+      } finally {
+        setPaymentProcessing(false);
+      }
     } else {
       setShowPaymentModal(true);
     }
   };
 
-  const handleConfirmMockGateway = () => {
-    setPaymentProcessing(true);
-    setTimeout(async () => {
-      try {
-        const orderId = checkoutPayload.order.orderId;
-        const mockPaymentId = `pay_mock_${Math.random().toString(36).substring(2, 11)}`;
-        const mockSignature = `sig_mock_${Math.random().toString(36).substring(2, 11)}`;
-
-        // Call backend payment verify endpoint
-        const res = await axiosInstance.post('/payments/verify', {
-          orderId,
-          paymentId: mockPaymentId,
-          signature: mockSignature,
-        });
-
-        if (res.data.success) {
-          clearCart();
-          navigate('/order-success', {
-            state: {
-              order: {
-                orderId,
-                finalAmount: checkoutPayload.order.finalAmount,
-                shippingAddress: savedAddresses[selectedAddressIndex]
-              }
-            }
-          });
-        }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Mock payment confirmation failed.');
-      } finally {
-        setPaymentProcessing(false);
-        setShowPaymentModal(false);
+  const handleRazorpaySuccess = (verificationData) => {
+    clearCart();
+    setShowPaymentModal(false);
+    setPaymentProcessing(false);
+    navigate('/order-success', {
+      state: {
+        orderId: checkoutPayload?.order?.orderId,
+        paymentStatus: 'paid',
       }
-    }, 2000);
+    });
   };
 
+  const handleRazorpayFailure = (errorMessage) => {
+    setShowPaymentModal(false);
+    setPaymentProcessing(false);
+    navigate('/payment-failed', {
+      state: { orderId: checkoutPayload?.order?.orderId }
+    });
+  };
+
+  const activeAddress = savedAddresses[selectedAddressIndex] || deliveryLocation;
+
   return (
-    <Container className="py-10 space-y-8 select-none text-left">
+    <Container className="py-8 space-y-8 select-none text-left font-sans">
       
       {/* Steps indicators */}
-      <div className="flex justify-between items-center max-w-xl mx-auto border-b pb-6 select-none">
+      <div className="flex justify-between items-center max-w-xl mx-auto border-b border-slate-100 pb-6 select-none">
         {[
-          { num: 1, name: 'Address' },
-          { num: 2, name: 'GST Details' },
-          { num: 3, name: 'Summary' },
+          { num: 1, name: 'Delivery Location' },
+          { num: 2, name: 'B2B GST Details' },
+          { num: 3, name: 'Review Items' },
           { num: 4, name: 'Payment' }
         ].map((s) => (
           <div key={s.num} className="flex items-center space-x-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-              step >= s.num ? 'bg-brand-accent text-white' : 'bg-brand-gray-200 text-brand-gray-500'
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+              step >= s.num ? 'bg-amber-500 text-slate-950 shadow-sm' : 'bg-slate-100 text-slate-400'
             }`}>
-              {s.num}
+              {step > s.num ? <CheckCircle2 className="w-4 h-4" /> : s.num}
             </div>
-            <span className={`text-xs font-semibold ${step >= s.num ? 'text-brand-gray-900' : 'text-brand-gray-400'}`}>
+            <span className={`text-xs font-semibold hidden sm:inline ${
+              step >= s.num ? 'text-slate-900 font-bold' : 'text-slate-400'
+            }`}>
               {s.name}
             </span>
-            {s.num < 4 && <ChevronRight className="w-4 h-4 text-brand-gray-300" />}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Step details panels */}
-        <div className="lg:col-span-8 bg-white border border-brand-gray-200 p-8 rounded-sm shadow-premium min-h-[400px]">
+        {/* Left 2 Cols: Step Forms */}
+        <div className="lg:col-span-2 space-y-6">
           
-          {/* STEP 1: Address selection */}
+          {/* ================================================================= */}
+          {/* STEP 1: DELIVERY ADDRESS SELECTION                                */}
+          {/* ================================================================= */}
           {step === 1 && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">Select Delivery Address</h2>
-              
+            <div className="space-y-6 bg-white p-7 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.05)]">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Select Delivery Address</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Choose where your genuine electronics should be delivered</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openLocationModal}
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm flex items-center space-x-1.5 transition-all"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Use Map / Search</span>
+                </button>
+              </div>
+
               {showNewAddressForm ? (
-                <form onSubmit={handleAddNewAddress} className="space-y-4 bg-brand-light p-6 rounded border text-xs font-semibold">
-                  <h3 className="font-extrabold text-brand-gray-900 uppercase">New Address Details</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-650">Recipient Full Name *</label>
+                <form onSubmit={handleAddNewAddress} className="space-y-4 bg-slate-50/80 p-6 rounded-xl border border-slate-200 text-xs">
+                  <h3 className="font-bold text-slate-900 text-sm">Add New Delivery Location</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Recipient Full Name *</label>
                       <input
                         type="text"
                         required
                         value={newAddress.fullName}
                         onChange={(e) => setNewAddress({ ...newAddress, fullName: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
+                        className="w-full bg-white border border-slate-200 p-2.5 rounded-lg focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-650">Phone Number *</label>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Phone Number *</label>
                       <input
-                        type="text"
+                        type="tel"
                         required
                         value={newAddress.phone}
                         onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
+                        className="w-full bg-white border border-slate-200 p-2.5 rounded-lg font-mono focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="text-brand-gray-650">Address Line 1 *</label>
+                    <div className="col-span-2">
+                      <label className="font-semibold text-slate-700 block mb-1">Flat / House No. / Building *</label>
                       <input
                         type="text"
                         required
-                        value={newAddress.line1}
-                        onChange={(e) => setNewAddress({ ...newAddress, line1: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
+                        value={newAddress.addressLine1}
+                        onChange={(e) => setNewAddress({ ...newAddress, addressLine1: e.target.value })}
+                        className="w-full bg-white border border-slate-200 p-2.5 rounded-lg focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="text-brand-gray-650">Address Line 2</label>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Street / Area</label>
                       <input
                         type="text"
-                        value={newAddress.line2}
-                        onChange={(e) => setNewAddress({ ...newAddress, line2: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
+                        value={newAddress.addressLine2}
+                        onChange={(e) => setNewAddress({ ...newAddress, addressLine2: e.target.value })}
+                        className="w-full bg-white border border-slate-200 p-2.5 rounded-lg focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-655">City *</label>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Landmark</label>
+                      <input
+                        type="text"
+                        value={newAddress.landmark}
+                        onChange={(e) => setNewAddress({ ...newAddress, landmark: e.target.value })}
+                        className="w-full bg-white border border-slate-200 p-2.5 rounded-lg focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">City *</label>
                       <input
                         type="text"
                         required
                         value={newAddress.city}
                         onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
+                        className="w-full bg-white border border-slate-200 p-2.5 rounded-lg focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-655">State *</label>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">State *</label>
                       <input
                         type="text"
                         required
                         value={newAddress.state}
                         onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
+                        className="w-full bg-white border border-slate-200 p-2.5 rounded-lg focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-655">PIN Code *</label>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">PIN Code *</label>
                       <input
                         type="text"
                         required
                         maxLength={6}
-                        value={newAddress.pinCode}
-                        onChange={(e) => setNewAddress({ ...newAddress, pinCode: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
+                        value={newAddress.postalCode}
+                        onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })}
+                        className="w-full bg-white border border-slate-200 p-2.5 rounded-lg font-mono focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-655">Label Type</label>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Address Type</label>
                       <select
                         value={newAddress.type}
                         onChange={(e) => setNewAddress({ ...newAddress, type: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
+                        className="w-full bg-white border border-slate-200 p-2.5 rounded-lg focus:outline-none focus:border-amber-500"
                       >
                         <option value="Home">Home</option>
                         <option value="Work">Work</option>
@@ -374,163 +402,219 @@ const Checkout = () => {
                       </select>
                     </div>
                   </div>
-                  <div className="flex space-x-3 pt-2">
-                    <Button type="submit" variant="primary" className="text-xs uppercase font-bold tracking-wider">Save Address</Button>
-                    <Button variant="secondary" onClick={() => setShowNewAddressForm(false)} className="text-xs uppercase font-bold tracking-wider">Cancel</Button>
+                  <div className="flex space-x-2.5 pt-2">
+                    <button type="submit" className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2 px-4 rounded-lg shadow-sm transition-all">
+                      Save & Select
+                    </button>
+                    <button type="button" onClick={() => setShowNewAddressForm(false)} className="bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs py-2 px-4 rounded-lg border border-slate-200 transition-all">
+                      Cancel
+                    </button>
                   </div>
                 </form>
-              ) : savedAddresses.length === 0 ? (
-                <div className="text-center py-10 space-y-4">
-                  <MapPin className="w-12 h-12 text-brand-gray-300 mx-auto" />
-                  <p className="text-xs text-brand-gray-500 italic">No saved delivery addresses found.</p>
-                  <Button variant="primary" onClick={() => setShowNewAddressForm(true)} className="text-xs uppercase font-bold tracking-wider">
-                    Add delivery address
-                  </Button>
-                </div>
               ) : (
                 <form onSubmit={handleAddressSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold text-brand-gray-650">
-                    {savedAddresses.map((addr, idx) => (
-                      <label 
-                        key={idx} 
-                        className={`flex items-start space-x-3 p-4 border rounded-sm cursor-pointer hover:bg-brand-gray-50 transition-all ${
-                          selectedAddressIndex === idx ? 'border-brand-accent bg-brand-accent/5' : 'border-brand-gray-200'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="checkout_address"
-                          checked={selectedAddressIndex === idx}
-                          onChange={() => setSelectedAddressIndex(idx)}
-                          className="text-brand-accent focus:ring-brand-accent mt-0.5 w-4 h-4"
-                        />
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="bg-brand-dark text-white px-2 py-0.5 rounded text-[8px] uppercase tracking-wider font-extrabold">{addr.type}</span>
-                            {addr.isDefault && <span className="text-[8px] text-brand-accent uppercase font-black">Default</span>}
+                  
+                  {/* Saved addresses cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    {savedAddresses.map((addr, idx) => {
+                      const isSelected = selectedAddressIndex === idx;
+                      return (
+                        <label 
+                          key={idx} 
+                          className={`flex items-start space-x-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-amber-500 bg-amber-50/50 shadow-sm ring-1 ring-amber-500'
+                              : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="checkout_address"
+                            checked={isSelected}
+                            onChange={() => {
+                              setSelectedAddressIndex(idx);
+                              selectDeliveryAddress(addr);
+                            }}
+                            className="text-amber-500 focus:ring-amber-400 mt-1 w-4 h-4"
+                          />
+                          <div className="space-y-1 flex-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-slate-900 text-xs">{addr.fullName || addr.name}</span>
+                              <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                                {addr.type || addr.label || 'Home'}
+                              </span>
+                            </div>
+                            <p className="text-slate-600 leading-relaxed">
+                              {addr.addressLine1 || addr.street}
+                              {addr.addressLine2 ? `, ${addr.addressLine2}` : ''}
+                              {addr.landmark ? `, Near ${addr.landmark}` : ''}
+                            </p>
+                            <p className="text-slate-500 font-medium">
+                              {addr.city}, {addr.state} - <span className="font-mono font-bold text-slate-800">{addr.postalCode || addr.pinCode}</span>
+                            </p>
+                            <p className="text-[11px] text-slate-400 font-mono">Phone: {addr.phone}</p>
                           </div>
-                          <p className="font-extrabold text-brand-gray-900 mt-1">{addr.fullName}</p>
-                          <p className="font-medium text-brand-gray-550 leading-relaxed">
-                            {addr.line1}, {addr.city}, {addr.state} - {addr.pinCode}
-                          </p>
-                          <p className="text-[10px] text-brand-gray-400">Phone: {addr.phone}</p>
-                        </div>
-                      </label>
-                    ))}
+                        </label>
+                      );
+                    })}
                   </div>
 
-                  <div className="flex justify-between items-center pt-4 border-t">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setShowNewAddressForm(true)}
-                      className="text-xs font-bold text-brand-accent hover:underline flex items-center space-x-1 uppercase tracking-wider"
+                      className="text-xs font-bold text-amber-700 hover:text-amber-800 hover:underline flex items-center space-x-1"
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Configure New Address</span>
+                      <span>Add New Delivery Address</span>
                     </button>
-                    <Button type="submit" variant="primary" className="text-xs uppercase font-bold tracking-wider">
-                      Proceed to GST Details
-                    </Button>
+                    <button
+                      type="submit"
+                      className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2.5 px-6 rounded-lg shadow-sm transition-all flex items-center space-x-2"
+                    >
+                      <span>Proceed to GST Details</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </form>
               )}
             </div>
           )}
 
-          {/* STEP 2: GST Configuration */}
+          {/* ================================================================= */}
+          {/* STEP 2: GST B2B DETAILS                                           */}
+          {/* ================================================================= */}
           {step === 2 && (
-            <form onSubmit={handleGstSubmit} className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">GST / Business Details</h2>
-              
-              <label className="flex items-start space-x-3 p-4 bg-brand-light border border-brand-gray-250 rounded-sm cursor-pointer hover:bg-brand-gray-150">
+            <form onSubmit={handleGstSubmit} className="space-y-6 bg-white p-7 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.05)] text-xs">
+              <div className="border-b border-slate-100 pb-4">
+                <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Business Purchase & GST Invoicing</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Claim up to 28% Input Tax Credit with genuine OEM tax invoices</p>
+              </div>
+
+              {/* Delivery brief */}
+              <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-4 flex justify-between items-center">
+                <div className="space-y-0.5">
+                  <div className="flex items-center space-x-2 text-slate-900 font-bold">
+                    <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Delivering to: {activeAddress.fullName || activeAddress.name}</span>
+                  </div>
+                  <p className="text-slate-500 text-[11px]">
+                    {activeAddress.addressLine1 || activeAddress.street}, {activeAddress.city}, {activeAddress.state} - {activeAddress.postalCode || activeAddress.pinCode}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-amber-700 hover:underline">
+                  Change
+                </button>
+              </div>
+
+              <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 flex items-start space-x-3">
                 <input
                   type="checkbox"
+                  id="gst_claim_box"
                   checked={isBusiness}
                   onChange={(e) => setIsBusiness(e.target.checked)}
-                  className="rounded text-brand-accent focus:ring-brand-accent w-4.5 h-4.5 mt-0.5"
+                  className="mt-1 w-4 h-4 text-amber-500 focus:ring-amber-400 rounded"
                 />
-                <div>
-                  <span className="font-extrabold text-xs text-brand-gray-900 uppercase block">Buying for a business?</span>
-                  <span className="text-[10px] text-brand-gray-500 leading-relaxed block mt-1">
-                    Toggle this to register your corporate GSTIN details. We will apply invoice tax coordinates on all split orders.
+                <label htmlFor="gst_claim_box" className="cursor-pointer">
+                  <span className="font-bold text-slate-900 block text-xs">I am buying for a registered business entity</span>
+                  <span className="text-[11px] text-slate-500 leading-relaxed block mt-0.5">
+                    Generate standard B2B tax invoice mapped with your GSTIN for tax credit claims.
                   </span>
-                </div>
-              </label>
+                </label>
+              </div>
 
               {isBusiness && (
-                <div className="space-y-4 text-xs font-semibold">
-                  <div className="space-y-1.5">
-                    <label className="text-brand-gray-650">Corporate GSTIN *</label>
+                <div className="space-y-3.5 p-4 bg-amber-50/50 rounded-xl border border-amber-200">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Company GSTIN Number (15 Digits) *</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. 07AAAAA1111A1Z1"
                       value={gstin}
                       onChange={(e) => setGstin(e.target.value)}
-                      className="w-full bg-brand-light border-brand-gray-250 p-2.5 rounded-sm uppercase tracking-wider font-extrabold"
+                      className="w-full bg-white border border-slate-200 p-2.5 rounded-lg uppercase font-mono font-bold focus:outline-none focus:border-amber-500"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-brand-gray-655">Business / Legal Trade Name *</label>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Registered Trade / Business Name *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. KAIA Enterprises Ltd"
+                      placeholder="e.g. Acme Technologies Private Limited"
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
-                      className="w-full bg-brand-light border-brand-gray-250 p-2.5 rounded-sm"
+                      className="w-full bg-white border border-slate-200 p-2.5 rounded-lg focus:outline-none focus:border-amber-500"
                     />
                   </div>
-                  <p className="text-[10px] text-brand-gray-400 font-medium">
-                    * GST details will be verified during order processing.
-                  </p>
-                  {gstError && <p className="text-xs text-red-500 font-bold">{gstError}</p>}
+                  {gstError && <p className="text-xs text-red-600 font-bold">{gstError}</p>}
                 </div>
               )}
 
-              <div className="flex space-x-4 pt-4 border-t">
-                <Button type="button" variant="secondary" onClick={() => setStep(1)} className="flex-1 text-xs uppercase font-bold tracking-wider">
+              <div className="flex space-x-3 pt-4 border-t border-slate-100">
+                <button type="button" onClick={() => setStep(1)} className="bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs py-2.5 px-5 rounded-lg border border-slate-200 transition-all">
                   Back to Address
-                </Button>
-                <Button type="submit" variant="primary" className="flex-1 text-xs uppercase font-bold tracking-wider">
-                  Proceed to Review
-                </Button>
+                </button>
+                <button type="submit" className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2.5 px-6 rounded-lg shadow-sm transition-all flex items-center space-x-2">
+                  <span>Proceed to Review</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </form>
           )}
 
-          {/* STEP 3: Order Review */}
+          {/* ================================================================= */}
+          {/* STEP 3: ORDER ITEMS & MULTI-BRAND SPLIT REVIEW                    */}
+          {/* ================================================================= */}
           {step === 3 && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">Review Order Items</h2>
-              
-              {/* Shipping brief */}
-              <div className="bg-brand-light border border-brand-gray-250 rounded p-4 text-xs font-semibold text-brand-gray-650 space-y-2">
-                <h4 className="font-extrabold text-brand-gray-900 uppercase">Fulfillment Destination</h4>
-                <p>{savedAddresses[selectedAddressIndex]?.fullName}</p>
-                <p>{savedAddresses[selectedAddressIndex]?.line1}, {savedAddresses[selectedAddressIndex]?.city}, {savedAddresses[selectedAddressIndex]?.state} - {savedAddresses[selectedAddressIndex]?.pinCode}</p>
-                <p>Phone: {savedAddresses[selectedAddressIndex]?.phone}</p>
-                {isBusiness && <p className="text-brand-accent font-extrabold">GST Claim Registration: {gstin.toUpperCase()} ({businessName})</p>}
+            <div className="space-y-6 bg-white p-7 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.05)] text-xs">
+              <div className="border-b border-slate-100 pb-4">
+                <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Review Order Items & Shipping</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Multi-brand fulfillment directly from manufacturer depots</p>
               </div>
 
-              {/* Split products list */}
+              {/* Delivery destination card with mini map pin */}
+              <div className="bg-slate-50/90 border border-slate-200/80 rounded-xl p-5 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center space-x-2 text-slate-900 font-bold text-xs">
+                    <MapPin className="w-4 h-4 text-amber-600" />
+                    <span>Delivering To: {activeAddress.fullName || activeAddress.name}</span>
+                  </div>
+                  <button onClick={() => setStep(1)} className="text-xs font-bold text-amber-700 hover:underline">
+                    Edit Address
+                  </button>
+                </div>
+                <p className="text-slate-600 leading-relaxed">
+                  {activeAddress.addressLine1 || activeAddress.street}
+                  {activeAddress.addressLine2 ? `, ${activeAddress.addressLine2}` : ''}
+                  {activeAddress.landmark ? `, Near ${activeAddress.landmark}` : ''}, {activeAddress.city}, {activeAddress.state} - {activeAddress.postalCode || activeAddress.pinCode}
+                </p>
+                <p className="text-[11px] text-slate-400 font-mono">Contact Phone: {activeAddress.phone}</p>
+                {isBusiness && (
+                  <p className="text-amber-800 font-bold bg-amber-100/70 p-2 rounded-lg text-[11px] mt-2">
+                    GST Claim Registered: {gstin.toUpperCase()} ({businessName})
+                  </p>
+                )}
+              </div>
+
+              {/* Brand Split Items List */}
               <div className="space-y-4">
-                <h3 className="font-extrabold text-xs text-brand-gray-400 uppercase tracking-wider">Split Shipments</h3>
-                <div className="space-y-4 border rounded-sm p-6 bg-white shadow-premium">
+                <h3 className="font-extrabold text-xs text-slate-400 uppercase tracking-wider">Split Shipments</h3>
+                <div className="space-y-4 border border-slate-100 rounded-xl p-5 bg-white shadow-sm">
                   {Object.keys(brandSplitItems).map((brandName, index) => (
-                    <div key={index} className="space-y-3 pb-4 border-b last:border-none last:pb-0">
-                      <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-brand-accent">
-                        <span>Fulfillments: {brandName} Depot</span>
-                        <span className="text-brand-gray-500 font-semibold lowercase">Estimated delivery: 2–5 business days</span>
+                    <div key={index} className="space-y-3 pb-4 border-b border-slate-100 last:border-none last:pb-0">
+                      <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                        <span>Fulfillment: {brandName} Depot</span>
+                        <span className="text-slate-500 font-normal lowercase">Fast courier tracking included</span>
                       </div>
                       
                       {brandSplitItems[brandName].map((item, itemIdx) => (
-                        <div key={itemIdx} className="flex justify-between items-center text-xs font-semibold">
+                        <div key={itemIdx} className="flex justify-between items-center text-xs">
                           <div className="space-y-0.5">
-                            <p className="text-brand-gray-900 font-extrabold">{item.product.name}</p>
-                            <p className="text-[10px] text-brand-gray-450">Quantity: {item.quantity}</p>
+                            <p className="text-slate-900 font-bold">{item.product.name}</p>
+                            <p className="text-[11px] text-slate-400">Qty: {item.quantity}</p>
                           </div>
-                          <span className="font-extrabold text-brand-gray-950">₹{(item.product.sellingPrice * item.quantity).toLocaleString()}</span>
+                          <span className="font-extrabold text-slate-900">₹{(item.product.sellingPrice * item.quantity).toLocaleString('en-IN')}</span>
                         </div>
                       ))}
                     </div>
@@ -538,233 +622,121 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* Marketplace notice info */}
-              <div className="bg-blue-50/50 border border-blue-200 text-blue-800 text-[10px] font-semibold leading-relaxed p-4 rounded flex items-start space-x-2">
-                <AlertCircle className="w-4.5 h-4.5 shrink-0 text-blue-600 mt-0.5" />
-                <p>
-                  Your order may contain products from multiple brands. KAIA Technologies coordinates the marketplace checkout while each brand fulfills its own products.
-                </p>
-              </div>
-
-              <div className="flex space-x-4 pt-4 border-t">
-                <Button type="button" variant="secondary" onClick={() => setStep(2)} className="flex-1 text-xs uppercase font-bold tracking-wider">
-                  Back to GST Details
-                </Button>
-                <Button 
+              <div className="flex space-x-3 pt-4 border-t border-slate-100">
+                <button type="button" onClick={() => setStep(2)} className="bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs py-2.5 px-5 rounded-lg border border-slate-200 transition-all">
+                  Back
+                </button>
+                <button 
                   type="button" 
-                  variant="primary" 
                   disabled={loading}
-                  onClick={handleInitiateOrderDraft} 
-                  className="flex-1 text-xs uppercase font-bold tracking-wider bg-brand-accent hover:bg-brand-accentHover border-none text-white flex items-center justify-center space-x-2"
+                  onClick={handleInitiateOrderDraft}
+                  className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2.5 px-6 rounded-lg shadow-sm transition-all flex items-center space-x-2"
                 >
-                  <span>{loading ? 'Initiating Checkout...' : 'Proceed to Payment Selector'}</span>
-                </Button>
+                  <span>{loading ? 'Creating Order...' : 'Proceed to Payment'}</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
-
             </div>
           )}
 
-          {/* STEP 4: Payment Selector */}
+          {/* ================================================================= */}
+          {/* STEP 4: PAYMENT PORTAL                                            */}
+          {/* ================================================================= */}
           {step === 4 && checkoutPayload && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">Select Payment Method</h2>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold text-brand-gray-650">
-                {[
-                  { name: 'UPI', desc: 'Secure local UPI application callback / QR Code' },
-                  { name: 'Net Banking', desc: 'Pre-selected list of Indian banking portals' },
-                  { name: 'Card', desc: 'Credit / Debit Visa, Mastercard, RuPay' },
-                  { name: 'COD', desc: 'Cash on delivery sandbox payments' }
-                ].map((m) => (
-                  <label key={m.name} className={`flex items-start space-x-3 p-4 border rounded-sm cursor-pointer hover:bg-brand-gray-50 transition-all ${
-                    paymentMethod === m.name ? 'border-brand-accent bg-brand-accent/5' : 'border-brand-gray-250'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="payment_method_radio"
-                      value={m.name}
-                      checked={paymentMethod === m.name}
-                      onChange={() => setPaymentMethod(m.name)}
-                      className="text-brand-accent focus:ring-brand-accent mt-0.5 w-4.5 h-4.5"
-                    />
-                    <div>
-                      <span className="font-extrabold text-brand-gray-900 block">{m.name}</span>
-                      <span className="text-[10px] text-brand-gray-500 block mt-1">{m.desc}</span>
-                    </div>
-                  </label>
-                ))}
+            <div className="space-y-6 bg-white p-7 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.05)] text-xs">
+              <div className="border-b border-slate-100 pb-4">
+                <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Select Payment Method</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Order ID: <span className="font-mono font-bold text-slate-900">{checkoutPayload?.order?.orderId}</span></p>
               </div>
 
-              {/* Payment sub-panels based on choice */}
-              {paymentMethod === 'UPI' && (
-                <div className="bg-brand-light p-6 rounded border border-brand-gray-250 space-y-4 text-xs font-semibold">
-                  <h4 className="font-extrabold text-brand-gray-900 uppercase">UPI Address Config</h4>
-                  <div className="space-y-1.5 max-w-sm">
-                    <label className="text-brand-gray-655">Enter UPI VPA Address</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. piyush@hdfc"
-                      value={upiId}
-                      onChange={(e) => setUpiId(e.target.value)}
-                      className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                    />
-                  </div>
-                </div>
-              )}
+              <PaymentMethodSelector
+                selectedMethod={paymentMethod}
+                onSelectMethod={setPaymentMethod}
+                upiId={upiId}
+                setUpiId={setUpiId}
+                netbankBank={netbankBank}
+                setNetbankBank={setNetbankBank}
+                cardNumber={cardNumber}
+                setCardNumber={setCardNumber}
+              />
 
-              {paymentMethod === 'Net Banking' && (
-                <div className="bg-brand-light p-6 rounded border border-brand-gray-250 space-y-4 text-xs font-semibold">
-                  <h4 className="font-extrabold text-brand-gray-900 uppercase font-sans">Select Banking Institution</h4>
-                  <select
-                    value={netbankBank}
-                    onChange={(e) => setNetbankBank(e.target.value)}
-                    className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                  >
-                    <option value="HDFC Bank">HDFC Bank Retail</option>
-                    <option value="ICICI Bank">ICICI Bank Corporate</option>
-                    <option value="State Bank of India">State Bank of India</option>
-                    <option value="Axis Bank">Axis Bank</option>
-                  </select>
-                </div>
-              )}
-
-              {paymentMethod === 'Card' && (
-                <div className="bg-brand-light p-6 rounded border border-brand-gray-250 space-y-4 text-xs font-semibold max-w-sm">
-                  <h4 className="font-extrabold text-brand-gray-900 uppercase">Debit / Credit Card Details</h4>
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-650">Card Number</label>
-                      <input
-                        type="text"
-                        placeholder="4111 2222 3333 4444"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex space-x-4 pt-4 border-t">
-                <Button type="button" variant="secondary" onClick={() => setStep(3)} className="flex-1 text-xs uppercase font-bold tracking-wider">
-                  Back to Review
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="primary" 
-                  disabled={paymentProcessing}
-                  onClick={handleProcessOrderPayment} 
-                  className="flex-1 text-xs uppercase font-bold tracking-wider bg-brand-dark hover:bg-brand-gray-850 border-none text-white"
+              <div className="flex space-x-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs py-2.5 px-5 rounded-lg border border-slate-200 transition-all"
                 >
-                  <span>{paymentProcessing ? 'Processing Transaction...' : paymentMethod === 'COD' ? 'Place Order (COD)' : 'Proceed to Payment'}</span>
-                </Button>
+                  Back
+                </button>
+                <button
+                  type="button"
+                  disabled={paymentProcessing}
+                  onClick={handleProcessOrderPayment}
+                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-3 px-6 rounded-lg shadow-md transition-all flex items-center justify-center space-x-2"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>
+                    {paymentProcessing
+                      ? 'Confirming Order...'
+                      : paymentMethod === 'COD'
+                      ? `Confirm Cash On Delivery (₹${checkoutPayload?.order?.finalAmount?.toLocaleString('en-IN')})`
+                      : `Pay ₹${checkoutPayload?.order?.finalAmount?.toLocaleString('en-IN')} Securely`}
+                  </span>
+                </button>
               </div>
-
             </div>
           )}
 
         </div>
 
-        {/* Right Side: Price Details Card */}
-        <div className="lg:col-span-4 bg-white border border-brand-gray-200 p-6 rounded-sm shadow-premium space-y-4 select-none">
-          <h3 className="font-extrabold text-brand-gray-900 text-xs tracking-wider uppercase border-b pb-3">Checkout Summary</h3>
-          <div className="space-y-3 text-xs font-semibold text-brand-gray-650">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>₹{totals.subtotal.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Tax (GST Components):</span>
-              <span>₹{totals.tax.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Shipping Charges:</span>
-              <span>{totals.shipping > 0 ? `₹${totals.shipping.toLocaleString()}` : 'FREE'}</span>
-            </div>
-            {passedCoupon && (
-              <div className="flex justify-between text-green-600 font-bold">
-                <span>Coupon Applied:</span>
-                <span>- ₹1,000</span>
+        {/* Right 1 Col: Summary Sidebar */}
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.05)] space-y-4 text-xs font-semibold">
+            <h3 className="font-extrabold text-sm text-slate-900 tracking-tight border-b border-slate-100 pb-3">
+              Order Pricing Breakdown
+            </h3>
+
+            <div className="space-y-2 text-slate-600">
+              <div className="flex justify-between">
+                <span>Cart Subtotal</span>
+                <span className="font-bold text-slate-900">₹{totals.subtotal.toLocaleString('en-IN')}</span>
               </div>
-            )}
-            <div className="border-t pt-3 flex justify-between font-black text-sm text-brand-gray-900">
-              <span>Final Total Amount:</span>
-              <span>₹{Math.max(0, totals.total - (passedCoupon ? 1000 : 0)).toLocaleString()}</span>
+              <div className="flex justify-between">
+                <span>Estimated GST (18%)</span>
+                <span className="font-bold text-slate-900">₹{totals.tax.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Logistics & Shipping</span>
+                <span className="font-bold text-emerald-700">{totals.shipping === 0 ? 'FREE' : `₹${totals.shipping}`}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-3 flex justify-between items-baseline">
+              <span className="font-extrabold text-slate-900 text-sm">Final Amount</span>
+              <span className="text-xl font-black text-slate-900">₹{totals.total.toLocaleString('en-IN')}</span>
+            </div>
+
+            <div className="pt-2 text-[11px] text-slate-500 space-y-1.5 border-t border-slate-100">
+              <div className="flex items-center space-x-1.5 text-emerald-700 font-bold">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>100% Genuine Serial Allocation</span>
+              </div>
+              <p>Direct manufacturer warehouse dispatch with verified warranty certificate.</p>
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* UPI/Bank Mock Verification Dialog */}
+      {/* Razorpay Checkout Modal for online payment */}
       {showPaymentModal && checkoutPayload && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-brand-dark text-white max-w-md w-full border border-brand-gray-800 rounded-sm shadow-premiumDark overflow-hidden text-left">
-            
-            {/* Modal Header */}
-            <div className="bg-brand-surface px-6 py-4 border-b border-brand-gray-850 flex justify-between items-center text-xs font-semibold">
-              <div className="flex flex-col">
-                <span className="text-sm font-extrabold tracking-tight text-white uppercase">KAIA Technologies Gateway</span>
-                <span className="text-[9px] uppercase tracking-wider text-brand-accent mt-0.5 font-bold">Secure Local Sandbox</span>
-              </div>
-              <span className="text-brand-gray-400">Order: {checkoutPayload.order.orderId}</span>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-6 text-center">
-              <div className="space-y-2">
-                <p className="text-xs text-brand-gray-400">Secure Payment Amount</p>
-                <h3 className="text-2xl font-black tracking-tight text-white">
-                  ₹{checkoutPayload.order.finalAmount.toLocaleString()}
-                </h3>
-              </div>
-
-              {paymentMethod === 'UPI' ? (
-                <div className="bg-brand-surface p-6 border border-brand-gray-850 rounded-sm space-y-4 flex flex-col items-center">
-                  <div className="w-36 h-36 bg-white p-2 rounded flex items-center justify-center select-none">
-                    <div className="w-full h-full border-2 border-brand-dark flex flex-col items-center justify-center p-4 text-brand-dark">
-                      <Building className="w-10 h-10 text-brand-accent mb-2" />
-                      <span className="text-[9px] font-bold uppercase tracking-wider">UPI SCAN CODE</span>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-brand-gray-450 leading-relaxed max-w-xs font-bold">
-                    Scan using your UPI app. Address: <strong>{upiId || 'piyush@kaia'}</strong>. Sandbox callback will verify details.
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-brand-surface p-6 border border-brand-gray-850 rounded-sm text-left space-y-3 text-xs font-semibold text-brand-gray-400">
-                  <p>Netbanking Gateway: {netbankBank}</p>
-                  <p className="text-[10px] leading-relaxed">
-                    Click authorize to complete the bank settlement verification loop.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex space-x-4">
-                <button
-                  disabled={paymentProcessing}
-                  onClick={() => {
-                    setShowPaymentModal(false);
-                    setPaymentProcessing(false);
-                  }}
-                  className="flex-1 border border-brand-gray-850 py-3 rounded text-xs font-bold hover:bg-brand-gray-850 disabled:opacity-40 uppercase tracking-wider"
-                >
-                  Cancel
-                </button>
-                <button
-                  disabled={paymentProcessing}
-                  onClick={handleConfirmMockGateway}
-                  className="flex-1 bg-brand-accent hover:bg-brand-accentHover text-white py-3 rounded text-xs font-bold transition-colors flex items-center justify-center space-x-2 disabled:opacity-40 uppercase tracking-wider"
-                >
-                  <span>{paymentProcessing ? 'Authorizing Sandbox...' : 'Authorize Payment'}</span>
-                </button>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
+        <PaymentCheckout
+          order={checkoutPayload.order}
+          razorpayOrder={checkoutPayload.razorpayOrder}
+          onSuccess={handleRazorpaySuccess}
+          onFailure={handleRazorpayFailure}
+          onClose={() => setShowPaymentModal(false)}
+        />
       )}
 
     </Container>

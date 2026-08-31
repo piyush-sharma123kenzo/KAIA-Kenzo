@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
 import connectDB from './config/db.js';
+import { rawBodyPreserver } from './middleware/webhookMiddleware.js';
 
 // Load route definitions
 import authRoutes from './routes/authRoutes.js';
@@ -23,6 +24,13 @@ import warrantyRoutes from './routes/warrantyRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
+import brandSellerRoutes from './routes/brandSellerRoutes.js';
+import shippingRoutes from './routes/shipping.routes.js';
+import invoiceRoutes from './routes/invoiceRoutes.js';
+import returnRoutes from './routes/returnRoutes.js';
+import accountRoutes from './routes/accountRoutes.js';
+import addressRoutes from './routes/addressRoutes.js';
+import wishlistRoutes from './routes/wishlist.routes.js';
 
 // Load dotenv pointing to parent directory if .env is at root
 dotenv.config({ path: '../.env' });
@@ -42,7 +50,8 @@ const allowedOrigins = [
   'https://kaia-kenzo.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
-];
+  process.env.FRONTEND_URL,
+].filter(Boolean); // Remove undefined entries
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -60,7 +69,11 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Handle preflight options requests
 
-app.use(express.json());
+// Parse JSON and preserve raw body for webhook signature verification
+// The rawBodyPreserver captures the raw Buffer before parsing, required by Razorpay webhook verification.
+app.use(express.json({
+  verify: rawBodyPreserver,
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
@@ -87,6 +100,32 @@ app.use('/api/warranties', warrantyRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/brand', brandSellerRoutes);
+app.use('/api/shipping', shippingRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/returns', returnRoutes);
+app.use('/api/account', accountRoutes);
+app.use('/api/addresses', addressRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+
+// Health check endpoints for monitoring and container orchestrators
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'KAIA Technologies Marketplace API',
+    uptime: process.uptime(),
+  });
+});
+
+app.get('/health/db', (req, res) => {
+  const isConnected = connectDB.isConnected ? connectDB.isConnected() : true;
+  res.status(200).json({
+    status: 'healthy',
+    database: isConnected ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Root route welcome message
 app.get('/', (req, res) => {
@@ -114,6 +153,18 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`KAIA API Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
+
+// Graceful shutdown
+const handleShutdown = (signal) => {
+  console.log(`Received ${signal}. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('HTTP server closed.');
+    process.exit(0);
+  });
+};
+
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+process.on('SIGINT', () => handleShutdown('SIGINT'));

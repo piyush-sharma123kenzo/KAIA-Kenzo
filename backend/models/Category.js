@@ -12,10 +12,13 @@ const categorySchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
+      index: true,
     },
     description: {
       type: String,
       trim: true,
+      default: '',
     },
     image: {
       type: String,
@@ -25,6 +28,12 @@ const categorySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
       default: null,
+      index: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
     },
     baseCommission: {
       type: Number,
@@ -37,5 +46,5 @@ const categorySchema = new mongoose.Schema(
   }
 );
 
-const Category = mongoose.model('Category', categorySchema);
+const Category = mongoose.models.Category || mongoose.model('Category', categorySchema);
 export default Category;

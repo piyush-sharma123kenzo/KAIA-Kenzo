@@ -75,21 +75,25 @@ const Cart = () => {
     }
   };
 
-  const handleMoveToWishlist = (item) => {
-    // Add to local wishlist storage
-    const history = localStorage.getItem('kaia_wishlist');
-    let parsed = history ? JSON.parse(history) : [];
-    if (!Array.isArray(parsed)) parsed = [];
-
-    // Check if already in wishlist
-    if (!parsed.some(w => w._id === item.product._id)) {
-      parsed.push(item.product);
-      localStorage.setItem('kaia_wishlist', JSON.stringify(parsed));
+  const handleMoveToWishlist = async (item) => {
+    try {
+      if (user) {
+        await axiosInstance.post('/account/wishlist', { productId: item.product._id });
+      } else {
+        const history = localStorage.getItem('kaia_wishlist');
+        let parsed = history ? JSON.parse(history) : [];
+        if (!Array.isArray(parsed)) parsed = [];
+        if (!parsed.some((w) => w._id === item.product._id)) {
+          parsed.push(item.product);
+          localStorage.setItem('kaia_wishlist', JSON.stringify(parsed));
+        }
+      }
+      // Remove from cart
+      await removeFromCart(item.product._id, item.selectedSpecs);
+      alert('Item moved to Wishlist.');
+    } catch (err) {
+      console.error('Error moving to wishlist:', err);
     }
-
-    // Remove from cart
-    removeFromCart(item.product._id, item.selectedSpecs);
-    alert('Item moved to Wishlist.');
   };
 
   if (cart.items.length === 0) {
@@ -143,26 +147,28 @@ const Cart = () => {
 
                 {/* Items */}
                 <div className="divide-y divide-brand-gray-200">
-                  {group.items.map((item) => {
-                    const availableStock = item.product.stock ? (item.product.stock.quantity - item.product.stock.reservedQuantity) : 5;
+                  {group.items.map((item, idx) => {
+                    const prod = item.product || {};
+                    const sellingPrice = Number(prod.sellingPrice ?? prod.price ?? 0);
+                    const availableStock = prod.stock ? (prod.stock.quantity - prod.stock.reservedQuantity) : 5;
                     const isLimitHit = item.quantity >= availableStock;
 
                     return (
-                      <div key={item.product._id} className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs font-semibold">
+                      <div key={prod._id || prod.id || `cart-item-${idx}`} className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs font-semibold">
                         <div className="flex items-center space-x-4 flex-1">
                           <div className="w-16 h-16 rounded-sm bg-brand-light border p-2 flex items-center justify-center shrink-0">
-                            <img src={item.product.images?.[0]?.url || 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=100'} alt="" className="object-contain max-h-full max-w-full" />
+                            <img src={prod.images?.[0]?.url || 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=100'} alt="" className="object-contain max-h-full max-w-full" />
                           </div>
                           <div className="space-y-1">
                             <h3 className="font-extrabold text-sm text-brand-gray-900 leading-tight">
-                              {item.product.name}
+                              {prod.name || 'Product'}
                             </h3>
                             {item.selectedSpecs && Object.keys(item.selectedSpecs).length > 0 && (
                               <p className="text-[10px] text-brand-accent uppercase font-bold">
                                 Variant: {Object.values(item.selectedSpecs).join(' / ')}
                               </p>
                             )}
-                            <p className="text-[10px] text-brand-gray-450 font-bold">Unit Price: ₹{item.product.sellingPrice.toLocaleString()}</p>
+                            <p className="text-[10px] text-brand-gray-450 font-bold">Unit Price: ₹{sellingPrice.toLocaleString()}</p>
                           </div>
                         </div>
 
@@ -172,7 +178,7 @@ const Cart = () => {
                             <div className="flex items-center border border-brand-gray-250 rounded bg-brand-light">
                               <button
                                 disabled={item.quantity <= 1}
-                                onClick={() => updateQuantity(item.product._id, item.quantity - 1, item.selectedSpecs)}
+                                onClick={() => updateQuantity(prod._id, item.quantity - 1, item.selectedSpecs)}
                                 className="p-1.5 hover:bg-brand-gray-200 disabled:opacity-40"
                               >
                                 <Minus className="w-3.5 h-3.5" />
@@ -180,7 +186,7 @@ const Cart = () => {
                               <span className="px-3 text-xs font-bold text-brand-gray-800">{item.quantity}</span>
                               <button
                                 disabled={isLimitHit}
-                                onClick={() => updateQuantity(item.product._id, item.quantity + 1, item.selectedSpecs)}
+                                onClick={() => updateQuantity(prod._id, item.quantity + 1, item.selectedSpecs)}
                                 className="p-1.5 hover:bg-brand-gray-200 disabled:opacity-40"
                               >
                                 <Plus className="w-3.5 h-3.5" />
@@ -193,7 +199,7 @@ const Cart = () => {
 
                           <div className="text-right w-24">
                             <p className="font-extrabold text-sm text-brand-gray-950">
-                              ₹{(item.product.sellingPrice * item.quantity).toLocaleString()}
+                              ₹{(sellingPrice * item.quantity).toLocaleString()}
                             </p>
                           </div>
 
@@ -207,7 +213,7 @@ const Cart = () => {
                             </button>
                             <button
                               onClick={() => {
-                                removeFromCart(item.product._id, item.selectedSpecs);
+                                removeFromCart(prod._id, item.selectedSpecs);
                                 alert('Item removed from cart.');
                               }}
                               className="p-1.5 text-brand-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"

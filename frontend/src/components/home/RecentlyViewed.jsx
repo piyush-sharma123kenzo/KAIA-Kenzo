@@ -12,7 +12,8 @@ const RecentlyViewed = () => {
       try {
         const parsed = JSON.parse(list);
         if (Array.isArray(parsed)) {
-          setProducts(parsed.slice(0, 4)); // Only show top 4
+          const valid = parsed.filter(item => item && (item._id || item.id || item.name));
+          setProducts(valid.slice(0, 4)); // Only show top 4
         }
       } catch (err) {
         console.error('Error parsing recently viewed:', err);

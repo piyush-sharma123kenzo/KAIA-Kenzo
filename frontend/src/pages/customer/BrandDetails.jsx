@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, ShieldCheck, ArrowRight, ShieldAlert, Landmark, Truck, Headphones } from 'lucide-react';
-import axiosInstance from '../../api/axiosInstance';
-import { brandsData } from '../../constants/brands';
+import brandService from '../../services/brandService';
+import productService from '../../services/productService';
 
 // UI components
 import Container from '../../components/ui/Container';
 import ProductGrid from '../../components/product/ProductGrid';
-import { ProductSkeleton } from '../../components/feedback/Skeleton';
+import { ProductSkeleton, Skeleton } from '../../components/feedback/Skeleton';
 import StatusBadge from '../../components/ui/StatusBadge';
 
 const BrandDetails = () => {
@@ -17,33 +17,64 @@ const BrandDetails = () => {
   // Selected category state from query param
   const activeCategory = searchParams.get('category') || '';
 
+  const [brandInfo, setBrandInfo] = useState(null);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingBrand, setLoadingBrand] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
-  // Match local static brand metadata
-  const brandInfo = brandsData.find(b => b.slug === slug);
+  // 1. Fetch Brand Profile from API
+  useEffect(() => {
+    const fetchBrand = async () => {
+      setLoadingBrand(true);
+      try {
+        const res = await brandService.getBrandBySlug(slug);
+        if (res.success) {
+          setBrandInfo(res.brand || res.data);
+        } else {
+          setBrandInfo(null);
+        }
+      } catch (err) {
+        console.error('Error fetching brand profile:', err);
+        setBrandInfo(null);
+      } finally {
+        setLoadingBrand(false);
+      }
+    };
+    fetchBrand();
+  }, [slug]);
 
+  // 2. Fetch Brand Products from API
   useEffect(() => {
     const fetchBrandProducts = async () => {
-      setLoading(true);
+      setLoadingProducts(true);
       try {
-        const query = activeCategory ? `&category=${activeCategory}` : '';
-        const res = await axiosInstance.get(`/products?brand=${slug}${query}&limit=12`);
-        if (res.data.success) {
-          // Explicit filter to enforce 100% brand grouping safety:
-          const brandFiltered = res.data.products.filter(
-            p => p.brand?.slug === slug || p.brandSlug === slug || (p.brand && p.brand._id === brandInfo?.id)
-          );
-          setProducts(brandFiltered);
+        const res = await productService.getProducts({
+          brand: slug,
+          category: activeCategory || '',
+          limit: 16,
+        });
+        if (res.success) {
+          setProducts(res.products || []);
         }
       } catch (err) {
         console.error('Error fetching brand products:', err);
       } finally {
-        setLoading(false);
+        setLoadingProducts(false);
       }
     };
     fetchBrandProducts();
-  }, [slug, activeCategory, brandInfo]);
+  }, [slug, activeCategory]);
+
+  if (loadingBrand) {
+    return (
+      <Container className="py-16 animate-pulse space-y-8">
+        <Skeleton className="h-48 w-full rounded" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          {Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)}
+        </div>
+      </Container>
+    );
+  }
 
   if (!brandInfo) {
     return (
@@ -122,26 +153,28 @@ const BrandDetails = () => {
       </section>
 
       {/* Brand category filters */}
-      <Container className="space-y-4">
-        <h3 className="font-extrabold text-xs text-brand-gray-900 uppercase tracking-wider pb-2 border-b">
-          Filter by Category
-        </h3>
-        <div className="flex flex-wrap gap-3">
-          {brandInfo.categories.map((catSlug) => (
-            <button
-              key={catSlug}
-              onClick={() => handleToggleCategory(catSlug)}
-              className={`px-4 py-2 text-xs font-bold rounded-sm border transition-all uppercase tracking-wider ${
-                activeCategory === catSlug
-                  ? 'border-brand-accent bg-brand-accent/5 text-brand-accent font-black'
-                  : 'bg-white border-brand-gray-250 text-brand-gray-650 hover:border-brand-gray-400'
-              }`}
-            >
-              {catSlug.replace('-', ' ')}
-            </button>
-          ))}
-        </div>
-      </Container>
+      {brandInfo.categories && brandInfo.categories.length > 0 && (
+        <Container className="space-y-4">
+          <h3 className="font-extrabold text-xs text-brand-gray-900 uppercase tracking-wider pb-2 border-b">
+            Filter by Category
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {brandInfo.categories.map((catSlug) => (
+              <button
+                key={catSlug}
+                onClick={() => handleToggleCategory(catSlug)}
+                className={`px-4 py-2 text-xs font-bold rounded-sm border transition-all uppercase tracking-wider ${
+                  activeCategory === catSlug
+                    ? 'border-brand-accent bg-brand-accent/5 text-brand-accent font-black'
+                    : 'bg-white border-brand-gray-250 text-brand-gray-650 hover:border-brand-gray-400'
+                }`}
+              >
+                {catSlug.replace(/-/g, ' ')}
+              </button>
+            ))}
+          </div>
+        </Container>
+      )}
 
       {/* Products Grid */}
       <Container className="space-y-6">
@@ -152,7 +185,7 @@ const BrandDetails = () => {
           </div>
         </div>
 
-        {loading ? (
+        {loadingProducts ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
             {Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)}
           </div>

@@ -14,11 +14,11 @@ const ProductGrid = ({
       className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 ${className}`}
       {...props}
     >
-      {products.map((prod) => (
+      {products.map((prod, index) => (
         <ProductCard
-          key={prod._id}
+          key={prod?._id || prod?.id || prod?.slug || `prod-${index}`}
           product={prod}
-          isWishlisted={wishlistIds.includes(prod._id)}
+          isWishlisted={wishlistIds.includes(prod?._id)}
           onToggleWishlist={onToggleWishlist}
           onQuickView={onQuickView}
         />

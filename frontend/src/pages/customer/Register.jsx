@@ -1,7 +1,49 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ShieldAlert, Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
+
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+const PasswordStrengthBar = ({ password }) => {
+  const checks = [
+    { label: 'At least 8 characters', pass: password.length >= 8 },
+    { label: 'One uppercase letter', pass: /[A-Z]/.test(password) },
+    { label: 'One lowercase letter', pass: /[a-z]/.test(password) },
+    { label: 'One number', pass: /\d/.test(password) },
+  ];
+  const strength = checks.filter(c => c.pass).length;
+  const colors = ['', 'bg-red-500', 'bg-orange-400', 'bg-yellow-400', 'bg-emerald-500'];
+  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+
+  if (!password) return null;
+
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex gap-1 h-1">
+        {[1,2,3,4].map(i => (
+          <div key={i} className={`flex-1 rounded-full ${i <= strength ? colors[strength] : 'bg-brand-gray-200'} transition-all`} />
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={`text-[10px] font-bold ${strength === 4 ? 'text-emerald-600' : 'text-brand-gray-500'}`}>
+          {labels[strength]}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+        {checks.map((c) => (
+          <div key={c.label} className="flex items-center space-x-1">
+            {c.pass
+              ? <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+              : <XCircle className="w-3 h-3 text-brand-gray-300 shrink-0" />
+            }
+            <span className={`text-[10px] ${c.pass ? 'text-emerald-600' : 'text-brand-gray-400'}`}>{c.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const Register = () => {
   const navigate = useNavigate();
@@ -11,44 +53,57 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [validationError, setValidationError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Clear errors initially
-  useEffect(() => {
-    clearError();
-  }, []);
-
-  // Redirect if logged in
+  useEffect(() => { clearError(); }, []);
   useEffect(() => {
     if (user) {
-      navigate('/account');
+      if (user.role === 'ADMIN') navigate('/admin/dashboard');
+      else if (user.role === 'BRAND') navigate('/brand/dashboard');
+      else navigate('/account');
     }
   }, [user, navigate]);
+
+  // Inline confirm password validation
+  const confirmPasswordError = confirmPassword && password !== confirmPassword
+    ? 'Passwords do not match.' : '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setValidationError('');
 
-    if (!acceptTerms) {
-      setValidationError('You must agree to the Terms & Conditions and Privacy Policy.');
-      return;
+    if (!name.trim()) return setValidationError('Full name is required.');
+    if (!email.trim()) return setValidationError('Email address is required.');
+    if (!phone.trim()) return setValidationError('Mobile phone number is required.');
+
+    if (!PASSWORD_REGEX.test(password)) {
+      return setValidationError('Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one number.');
     }
 
-    // Password strength check (Min 8 chars, upper, lower, number)
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (!strongPasswordRegex.test(password)) {
-      setValidationError('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.');
-      return;
+    if (password !== confirmPassword) {
+      return setValidationError('Passwords do not match.');
+    }
+
+    if (!acceptTerms) {
+      return setValidationError('You must agree to the Terms & Conditions and Privacy Policy.');
     }
 
     setLoading(true);
     try {
-      await register(name, email, password, 'CUSTOMER', phone);
+      const result = await register(name.trim(), email.trim(), password, confirmPassword, 'CUSTOMER', phone.trim());
+      if (result?.requiresVerification) {
+        // Redirect to OTP verification page, passing email and purpose via state
+        navigate('/verify-otp', {
+          state: { email: result.email, purpose: 'SIGNUP_VERIFICATION' },
+        });
+      }
     } catch (err) {
-      // Error handled in context
+      // Error is displayed via context error state
     } finally {
       setLoading(false);
     }
@@ -57,127 +112,173 @@ const Register = () => {
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-left space-y-8">
-        
+
         {/* Header */}
         <div className="text-center space-y-2">
           <Link to="/" className="flex flex-col items-center select-none">
             <span className="text-2xl font-extrabold tracking-tight text-brand-gray-900 leading-none">
-              KAIA<span className="text-brand-accent">.</span>
+              KAIA
             </span>
             <span className="text-[9px] uppercase tracking-[0.2em] font-medium text-brand-gray-500 mt-1">
               TECHNOLOGIES
             </span>
           </Link>
-          <h2 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">Create Customer Account</h2>
+          <h1 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">Create Customer Account</h1>
+          <p className="text-xs text-brand-gray-500">A 6-digit verification code will be sent to your email.</p>
         </div>
 
         {/* Error notification */}
-        {error && (
+        {(error || validationError) && (
           <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-sm flex items-start space-x-2">
             <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
-            <span className="font-semibold">{error}</span>
+            <span className="font-semibold">{error || validationError}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-brand-gray-655">Full Name:</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  placeholder="Piyush Sharma"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-brand-light border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm"
-                />
-                <User className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-gray-450" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-brand-gray-655">Email Address:</label>
-              <div className="relative">
-                <input
-                  type="email"
-                  required
-                  placeholder="piyush@domain.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-brand-light border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm"
-                />
-                <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-gray-450" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-brand-gray-655">Mobile Phone:</label>
-              <div className="relative">
-                <input
-                  type="tel"
-                  required
-                  placeholder="9876543210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-brand-light border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm"
-                />
-                <Phone className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-gray-450" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-brand-gray-655">Security Password:</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-brand-light border-brand-gray-250 pl-10 pr-10 py-2.5 rounded-sm text-sm"
-                />
-                <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-gray-455" />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3.5 top-3.5 text-brand-gray-400 hover:text-brand-gray-600 focus:outline-none"
-                >
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
-                    {showPassword ? 'Hide' : 'Show'}
-                  </span>
-                </button>
-              </div>
-              <p className="text-[9px] text-brand-gray-450 leading-relaxed pt-1">
-                Must be at least 8 characters, with 1 uppercase, 1 lowercase, and 1 number.
-              </p>
-            </div>
-
-            {/* Terms checkbox */}
-            <label className="flex items-start space-x-2.5 cursor-pointer pt-2">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {/* Full Name */}
+          <div className="space-y-1.5">
+            <label htmlFor="reg-name" className="text-xs font-semibold text-brand-gray-655">Full Name:</label>
+            <div className="relative">
               <input
-                type="checkbox"
-                checked={acceptTerms}
-                onChange={(e) => setAcceptTerms(e.target.checked)}
-                className="rounded text-brand-accent focus:ring-brand-accent w-4 h-4 mt-0.5"
+                id="reg-name"
+                type="text"
+                required
+                autoComplete="name"
+                placeholder="Piyush Sharma"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
               />
-              <span className="text-[10px] text-brand-gray-500 font-semibold leading-relaxed">
-                I agree to the Terms & Conditions and Privacy Policy.
-              </span>
-            </label>
+              <User className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+            </div>
+          </div>
 
-            {validationError && (
-              <p className="text-[10px] text-red-500 font-bold">{validationError}</p>
+          {/* Email */}
+          <div className="space-y-1.5">
+            <label htmlFor="reg-email" className="text-xs font-semibold text-brand-gray-655">Email Address:</label>
+            <div className="relative">
+              <input
+                id="reg-email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="piyush@domain.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
+              />
+              <Mail className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+            </div>
+          </div>
+
+          {/* Phone */}
+          <div className="space-y-1.5">
+            <label htmlFor="reg-phone" className="text-xs font-semibold text-brand-gray-655">Mobile Number:</label>
+            <div className="relative">
+              <input
+                id="reg-phone"
+                type="tel"
+                required
+                autoComplete="tel"
+                placeholder="9876543210"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
+              />
+              <Phone className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div className="space-y-1.5">
+            <label htmlFor="reg-password" className="text-xs font-semibold text-brand-gray-655">Password:</label>
+            <div className="relative">
+              <input
+                id="reg-password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                autoComplete="new-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-14 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
+              />
+              <Lock className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-3 top-2.5 text-brand-gray-400 hover:text-brand-gray-700 focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <PasswordStrengthBar password={password} />
+          </div>
+
+          {/* Confirm Password */}
+          <div className="space-y-1.5">
+            <label htmlFor="reg-confirm" className="text-xs font-semibold text-brand-gray-655">Confirm Password:</label>
+            <div className="relative">
+              <input
+                id="reg-confirm"
+                type={showConfirmPassword ? 'text' : 'password'}
+                required
+                autoComplete="new-password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={`w-full bg-brand-light border pl-10 pr-14 py-2.5 rounded-sm text-sm focus:outline-none ${
+                  confirmPasswordError ? 'border-red-400 focus:border-red-500' : 'border-brand-gray-250 focus:border-brand-accent'
+                }`}
+              />
+              <Lock className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                className="absolute right-3 top-2.5 text-brand-gray-400 hover:text-brand-gray-700 focus:outline-none"
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {confirmPasswordError && (
+              <p className="text-[10px] text-red-500 font-bold flex items-center space-x-1">
+                <XCircle className="w-3 h-3" />
+                <span>{confirmPasswordError}</span>
+              </p>
+            )}
+            {confirmPassword && !confirmPasswordError && (
+              <p className="text-[10px] text-emerald-600 font-bold flex items-center space-x-1">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>Passwords match.</span>
+              </p>
             )}
           </div>
 
+          {/* Terms */}
+          <label className="flex items-start space-x-2.5 cursor-pointer pt-1">
+            <input
+              type="checkbox"
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              className="rounded text-brand-accent focus:ring-brand-accent w-4 h-4 mt-0.5 shrink-0"
+            />
+            <span className="text-[10px] text-brand-gray-500 font-semibold leading-relaxed">
+              I agree to the{' '}
+              <Link to="/terms" className="text-brand-accent hover:underline">Terms & Conditions</Link>
+              {' '}and{' '}
+              <Link to="/privacy" className="text-brand-accent hover:underline">Privacy Policy</Link>.
+            </span>
+          </label>
+
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-brand-dark hover:bg-brand-gray-850 text-white font-semibold py-3 rounded-sm text-sm transition-colors flex items-center justify-center space-x-2"
+            disabled={loading || !!confirmPasswordError}
+            className="w-full bg-brand-dark hover:bg-brand-gray-850 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-sm text-sm transition-colors flex items-center justify-center space-x-2"
           >
-            <span>{loading ? 'Submitting Registration...' : 'Create Account'}</span>
+            <span>{loading ? 'Creating Account...' : 'Create Account & Send OTP'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

@@ -1,11 +1,42 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+const addressSchema = new mongoose.Schema(
+  {
+    fullName: { type: String, trim: true },
+    name: { type: String, trim: true },
+    phone: { type: String, required: true, trim: true },
+    addressLine1: { type: String, required: true, trim: true },
+    addressLine2: { type: String, default: '', trim: true },
+    landmark: { type: String, default: '', trim: true },
+    city: { type: String, required: true, trim: true },
+    state: { type: String, required: true, trim: true },
+    postalCode: { type: String, required: true, trim: true },
+    country: { type: String, default: 'India', trim: true },
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    type: { type: String, enum: ['Home', 'Work', 'Other'], default: 'Home' },
+    label: { type: String, enum: ['Home', 'Work', 'Other'], default: 'Home' },
+    isDefault: { type: Boolean, default: false },
+  },
+  {
+    timestamps: true,
+  }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
+      trim: true,
+    },
+    firstName: {
+      type: String,
+      trim: true,
+    },
+    lastName: {
+      type: String,
       trim: true,
     },
     email: {
@@ -14,6 +45,7 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      index: true,
     },
     password: {
       type: String,
@@ -23,11 +55,17 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['CUSTOMER', 'BRAND', 'ADMIN'],
       default: 'CUSTOMER',
+      index: true,
     },
     phone: {
       type: String,
       trim: true,
     },
+    avatar: {
+      type: String,
+      default: '',
+    },
+    addresses: [addressSchema],
     gstin: {
       type: String,
       trim: true,
@@ -37,6 +75,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['Active', 'Suspended'],
       default: 'Active',
+      index: true,
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -47,7 +90,7 @@ const userSchema = new mongoose.Schema(
 // Encrypt password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
@@ -58,5 +101,5 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 export default User;

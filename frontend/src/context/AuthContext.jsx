@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
       const res = await axiosInstance.post('/auth/login', { email, password });
       if (res.data.success) {
         setUser(res.data.user);
-        // Refresh full profiles to load associated brand details if brand operator
+        // Refresh full profile to load associated brand details for brand operators
         const meRes = await axiosInstance.get('/auth/me');
         if (meRes.data.success) {
           setBrand(meRes.data.brand);
@@ -45,22 +45,91 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       const errMsg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      const requiresVerification = err.response?.data?.requiresVerification;
+      const email = err.response?.data?.email;
+      setError(errMsg);
+      const error = new Error(errMsg);
+      error.requiresVerification = requiresVerification;
+      error.email = email;
+      throw error;
+    }
+  };
+
+  // Register handler — returns { requiresVerification, email } so UI can redirect to OTP page
+  const register = async (name, email, password, confirmPassword, role, phone) => {
+    setError(null);
+    try {
+      const res = await axiosInstance.post('/auth/register', {
+        name,
+        email,
+        password,
+        confirmPassword,
+        role,
+        phone,
+      });
+      return res.data;
+    } catch (err) {
+      const errMsg = err.response?.data?.message || 'Registration failed.';
       setError(errMsg);
       throw new Error(errMsg);
     }
   };
 
-  // Register handler
-  const register = async (name, email, password, role, phone) => {
+  // Verify OTP handler
+  const verifyOtp = async (email, otp, purpose) => {
     setError(null);
     try {
-      const res = await axiosInstance.post('/auth/register', { name, email, password, role, phone });
-      if (res.data.success) {
+      const res = await axiosInstance.post('/auth/verify-otp', { email, otp, purpose });
+      if (res.data.success && res.data.user) {
+        // Signup verification auto-signs in the user
         setUser(res.data.user);
-        return res.data;
       }
+      return res.data;
     } catch (err) {
-      const errMsg = err.response?.data?.message || 'Registration failed.';
+      const errMsg = err.response?.data?.message || 'OTP verification failed.';
+      setError(errMsg);
+      throw new Error(errMsg);
+    }
+  };
+
+  // Resend OTP handler
+  const resendOtp = async (email, purpose) => {
+    setError(null);
+    try {
+      const res = await axiosInstance.post('/auth/resend-otp', { email, purpose });
+      return res.data;
+    } catch (err) {
+      const errMsg = err.response?.data?.message || 'Failed to resend OTP.';
+      setError(errMsg);
+      throw new Error(errMsg);
+    }
+  };
+
+  // Forgot Password — send OTP
+  const forgotPassword = async (email) => {
+    setError(null);
+    try {
+      const res = await axiosInstance.post('/auth/forgot-password', { email });
+      return res.data;
+    } catch (err) {
+      const errMsg = err.response?.data?.message || 'Failed to process password reset request.';
+      setError(errMsg);
+      throw new Error(errMsg);
+    }
+  };
+
+  // Reset Password — send resetToken (from verify-otp response) and new password
+  const resetPassword = async (email, resetToken, newPassword, confirmPassword) => {
+    setError(null);
+    try {
+      const res = await axiosInstance.post('/auth/reset-password', {
+        resetToken,
+        newPassword,
+        confirmPassword,
+      });
+      return res.data;
+    } catch (err) {
+      const errMsg = err.response?.data?.message || 'Password reset failed.';
       setError(errMsg);
       throw new Error(errMsg);
     }
@@ -75,7 +144,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       setBrand(null);
-      localStorage.removeItem('cart'); // optional clear guest cart on hard logout
+      localStorage.removeItem('cart');
     }
   };
 
@@ -108,6 +177,10 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateProfile,
+        verifyOtp,
+        resendOtp,
+        forgotPassword,
+        resetPassword,
         clearError,
         reloadSession: loadUser,
       }}

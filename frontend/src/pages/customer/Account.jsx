@@ -2,422 +2,599 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { 
   User, ShoppingBag, Award, Landmark, ShieldCheck, Download, Truck, 
-  ExternalLink, FileText, MapPin, Heart, Lock, Trash2, Plus, AlertCircle 
+  ExternalLink, FileText, MapPin, Heart, Lock, Trash2, Plus, AlertCircle, 
+  RotateCcw, MessageSquare, Bell, Star, CheckCircle, Edit, ChevronRight, QrCode,
+  Package, Clock, CheckCircle2, ArrowRight
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
 import axiosInstance from '../../api/axiosInstance';
+import { Skeleton } from '../../components/feedback/Skeleton';
+import Badge from '../../components/ui/Badge';
+import StatusBadge from '../../components/ui/StatusBadge';
 import Button from '../../components/ui/Button';
+import EmptyState from '../../components/ui/EmptyState';
 
 const Account = () => {
   const { user, updateProfile, logout } = useContext(AuthContext);
   const { addToCart } = useContext(CartContext);
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'profile';
+  const activeTab = searchParams.get('tab') || 'overview';
 
-  // Data states
+  // Overview stats & data
+  const [overviewData, setOverviewData] = useState(null);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+
+  // Orders state
   const [orders, setOrders] = useState([]);
-  const [warranties, setWarranties] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+
+  // Warranties state
+  const [warranties, setWarranties] = useState([]);
   const [loadingWarranties, setLoadingWarranties] = useState(false);
+
+  // Invoices state
+  const [invoices, setInvoices] = useState([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+
+  // Returns state
+  const [returns, setReturns] = useState([]);
+  const [loadingReturns, setLoadingReturns] = useState(false);
+
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ productId: '', productName: '', rating: 5, title: '', comment: '' });
+
+  // Notifications state
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // Addresses state
   const [addresses, setAddresses] = useState([]);
   const [showAddressForm, setShowAddressForm] = useState(false);
-  const [editAddressIndex, setEditAddressIndex] = useState(null);
+  const [editAddressId, setEditAddressId] = useState(null);
   const [addressForm, setAddressForm] = useState({
-    fullName: '',
+    name: '',
     phone: '',
-    line1: '',
-    line2: '',
+    addressLine1: '',
+    addressLine2: '',
     city: '',
     state: '',
-    pinCode: '',
+    postalCode: '',
     country: 'India',
-    type: 'Home',
-    isDefault: false
+    label: 'Home',
+    isDefault: false,
   });
 
   // Wishlist state
   const [wishlist, setWishlist] = useState([]);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
 
-  // Security password state
+  // Profile Form state
+  const [profileForm, setProfileForm] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    name: user?.name || '',
+    phone: user?.phone || '',
+    avatar: user?.avatar || '',
+  });
+
+  // Security Form state
   const [securityForm, setSecurityForm] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
-  });
-
-  // Edit profile states
-  const [profileForm, setProfileForm] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
-    gstin: user?.gstin || '',
+    confirmPassword: '',
   });
 
   const [formMsg, setFormMsg] = useState({ type: '', text: '' });
+  const [submitting, setSubmitting] = useState(false);
 
   const tabs = [
-    { id: 'profile', name: 'My Profile', icon: User },
+    { id: 'overview', name: 'Account Overview', icon: User },
     { id: 'orders', name: 'My Orders', icon: ShoppingBag },
+    { id: 'returns', name: 'Returns & Refunds', icon: RotateCcw },
     { id: 'warranties', name: 'My Warranties', icon: Award },
-    { id: 'addresses', name: 'Saved Addresses', icon: MapPin },
+    { id: 'invoices', name: 'Tax Invoices', icon: FileText },
+    { id: 'reviews', name: 'My Reviews', icon: MessageSquare },
     { id: 'wishlist', name: 'My Wishlist', icon: Heart },
-    { id: 'security', name: 'Account Security', icon: Lock },
-    { id: 'gst', name: 'GST Settings', icon: Landmark },
+    { id: 'addresses', name: 'Saved Addresses', icon: MapPin },
+    { id: 'notifications', name: 'Notifications', icon: Bell },
+    { id: 'profile', name: 'Profile Settings', icon: User },
+    { id: 'security', name: 'Security & Password', icon: Lock },
   ];
 
-  // Fetch orders when tab is clicked
+  // Fetch Overview stats
   useEffect(() => {
+    const fetchOverview = async () => {
+      setLoadingOverview(true);
+      try {
+        const res = await axiosInstance.get('/account/overview');
+        if (res.data.success) {
+          setOverviewData(res.data);
+        }
+      } catch (err) {
+        console.error('Error fetching account overview:', err);
+      } finally {
+        setLoadingOverview(false);
+      }
+    };
+    fetchOverview();
+  }, []);
+
+  // Tab-driven data loaders
+  useEffect(() => {
+    setFormMsg({ type: '', text: '' });
+
     if (activeTab === 'orders') {
       const fetchOrders = async () => {
         setLoadingOrders(true);
         try {
           const res = await axiosInstance.get('/orders/customer/my-orders');
-          if (res.data.success) {
-            setOrders(res.data.orders);
-          }
+          if (res.data.success) setOrders(res.data.orders || []);
         } catch (err) {
-          console.error('Error fetching customer orders:', err);
+          console.error('Error loading orders:', err);
         } finally {
           setLoadingOrders(false);
         }
       };
       fetchOrders();
     }
-  }, [activeTab]);
 
-  // Fetch warranties when tab is clicked
-  useEffect(() => {
     if (activeTab === 'warranties') {
       const fetchWarranties = async () => {
         setLoadingWarranties(true);
         try {
-          const res = await axiosInstance.get('/warranties');
-          if (res.data.success) {
-            setWarranties(res.data.warranties);
-          }
+          const res = await axiosInstance.get('/account/warranty');
+          if (res.data.success) setWarranties(res.data.warranties || []);
         } catch (err) {
-          console.error('Error fetching warranties:', err);
+          console.error('Error loading warranties:', err);
         } finally {
           setLoadingWarranties(false);
         }
       };
       fetchWarranties();
     }
-  }, [activeTab]);
 
-  // Load addresses & wishlist from localstorage on mount
-  useEffect(() => {
-    const localAddrs = localStorage.getItem('kaia_addresses');
-    if (localAddrs) {
-      try {
-        setAddresses(JSON.parse(localAddrs));
-      } catch (e) {
-        setAddresses([]);
-      }
+    if (activeTab === 'invoices') {
+      const fetchInvoices = async () => {
+        setLoadingInvoices(true);
+        try {
+          const res = await axiosInstance.get('/account/invoices');
+          if (res.data.success) setInvoices(res.data.invoices || []);
+        } catch (err) {
+          console.error('Error loading invoices:', err);
+        } finally {
+          setLoadingInvoices(false);
+        }
+      };
+      fetchInvoices();
     }
 
-    const localWish = localStorage.getItem('kaia_wishlist');
-    if (localWish) {
-      try {
-        setWishlist(JSON.parse(localWish));
-      } catch (e) {
-        setWishlist([]);
-      }
+    if (activeTab === 'returns') {
+      const fetchReturns = async () => {
+        setLoadingReturns(true);
+        try {
+          const res = await axiosInstance.get('/returns/my-returns');
+          if (res.data.success) setReturns(res.data.returns || []);
+        } catch (err) {
+          console.error('Error loading returns:', err);
+        } finally {
+          setLoadingReturns(false);
+        }
+      };
+      fetchReturns();
+    }
+
+    if (activeTab === 'reviews') {
+      const fetchReviews = async () => {
+        setLoadingReviews(true);
+        try {
+          const res = await axiosInstance.get('/account/reviews');
+          if (res.data.success) setReviews(res.data.reviews || []);
+        } catch (err) {
+          console.error('Error loading reviews:', err);
+        } finally {
+          setLoadingReviews(false);
+        }
+      };
+      fetchReviews();
+    }
+
+    if (activeTab === 'wishlist') {
+      const fetchWishlist = async () => {
+        setLoadingWishlist(true);
+        try {
+          const res = await axiosInstance.get('/account/wishlist');
+          if (res.data.success) setWishlist(res.data.wishlist || []);
+        } catch (err) {
+          console.error('Error loading wishlist:', err);
+        } finally {
+          setLoadingWishlist(false);
+        }
+      };
+      fetchWishlist();
+    }
+
+    if (activeTab === 'addresses') {
+      const fetchAddresses = async () => {
+        try {
+          const res = await axiosInstance.get('/account/addresses');
+          if (res.data.success) setAddresses(res.data.addresses || []);
+        } catch (err) {
+          console.error('Error loading addresses:', err);
+        }
+      };
+      fetchAddresses();
+    }
+
+    if (activeTab === 'notifications') {
+      const fetchNotifications = async () => {
+        setLoadingNotifications(true);
+        try {
+          const res = await axiosInstance.get('/account/notifications');
+          if (res.data.success) setNotifications(res.data.notifications || []);
+        } catch (err) {
+          console.error('Error loading notifications:', err);
+        } finally {
+          setLoadingNotifications(false);
+        }
+      };
+      fetchNotifications();
     }
   }, [activeTab]);
 
+  // Profile Update Submission
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     setFormMsg({ type: '', text: '' });
     try {
-      await updateProfile(profileForm.name, profileForm.phone, profileForm.gstin);
-      setFormMsg({ type: 'success', text: 'Profile updated successfully.' });
-    } catch (err) {
-      setFormMsg({ type: 'error', text: err.message || 'Update failed.' });
-    }
-  };
-
-  const handleClaimWarranty = async (id) => {
-    try {
-      const res = await axiosInstance.post(`/warranties/${id}/claim`);
+      const res = await axiosInstance.patch('/account/profile', profileForm);
       if (res.data.success) {
-        alert(res.data.message);
-        // Refresh warranties
-        const wRes = await axiosInstance.get('/warranties');
-        if (wRes.data.success) setWarranties(wRes.data.warranties);
+        if (updateProfile) updateProfile(res.data.user);
+        setFormMsg({ type: 'success', text: 'Profile details updated successfully.' });
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to file claim.');
+      setFormMsg({ type: 'error', text: err.response?.data?.message || 'Error updating profile.' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDownloadInvoice = (childOrderId) => {
-    const win = window.open(`http://localhost:5000/api/orders/${childOrderId}/invoice`, '_blank');
-    if (win) win.focus();
-  };
-
-  // Saved Addresses Handlers
-  const handleSaveAddress = (e) => {
+  // Password Change Submission
+  const handleChangePassword = async (e) => {
     e.preventDefault();
-    setFormMsg({ type: '', text: '' });
-
-    if (!addressForm.fullName || !addressForm.line1 || !addressForm.city || !addressForm.state || !addressForm.pinCode) {
-      setFormMsg({ type: 'error', text: 'Please fill in all required fields.' });
-      return;
-    }
-
-    let updated = [...addresses];
-
-    // If setting default, unset other defaults
-    if (addressForm.isDefault) {
-      updated = updated.map(addr => ({ ...addr, isDefault: false }));
-    }
-
-    if (editAddressIndex !== null) {
-      // Edit mode
-      updated[editAddressIndex] = addressForm;
-    } else {
-      // Add mode
-      // Auto default if first address
-      const isDefault = updated.length === 0 ? true : addressForm.isDefault;
-      updated.push({ ...addressForm, isDefault });
-    }
-
-    setAddresses(updated);
-    localStorage.setItem('kaia_addresses', JSON.stringify(updated));
-    setShowAddressForm(false);
-    setEditAddressIndex(null);
-    setAddressForm({
-      fullName: '',
-      phone: '',
-      line1: '',
-      line2: '',
-      city: '',
-      state: '',
-      pinCode: '',
-      country: 'India',
-      type: 'Home',
-      isDefault: false
-    });
-    setFormMsg({ type: 'success', text: 'Address saved successfully.' });
-  };
-
-  const handleSetDefaultAddress = (index) => {
-    const updated = addresses.map((addr, idx) => ({
-      ...addr,
-      isDefault: idx === index
-    }));
-    setAddresses(updated);
-    localStorage.setItem('kaia_addresses', JSON.stringify(updated));
-  };
-
-  const handleDeleteAddress = (index) => {
-    const updated = addresses.filter((_, idx) => idx !== index);
-    // If deleted address was default and other addresses exist, set first as default
-    if (addresses[index]?.isDefault && updated.length > 0) {
-      updated[0].isDefault = true;
-    }
-    setAddresses(updated);
-    localStorage.setItem('kaia_addresses', JSON.stringify(updated));
-  };
-
-  // Wishlist Handlers
-  const handleRemoveFromWishlist = (prodId) => {
-    const updated = wishlist.filter(item => item._id !== prodId);
-    setWishlist(updated);
-    localStorage.setItem('kaia_wishlist', JSON.stringify(updated));
-  };
-
-  // Security password handler (Sandbox)
-  const handleSecurityUpdate = (e) => {
-    e.preventDefault();
-    setFormMsg({ type: '', text: '' });
-
     if (securityForm.newPassword !== securityForm.confirmPassword) {
-      setFormMsg({ type: 'error', text: 'Passwords do not match.' });
+      setFormMsg({ type: 'error', text: 'New password and confirmation do not match.' });
       return;
     }
-
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (!strongPasswordRegex.test(securityForm.newPassword)) {
-      setFormMsg({ type: 'error', text: 'New password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.' });
-      return;
+    setSubmitting(true);
+    setFormMsg({ type: '', text: '' });
+    try {
+      const res = await axiosInstance.post('/account/change-password', securityForm);
+      if (res.data.success) {
+        setFormMsg({ type: 'success', text: 'Your password was changed successfully.' });
+        setSecurityForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      }
+    } catch (err) {
+      setFormMsg({ type: 'error', text: err.response?.data?.message || 'Error updating password.' });
+    } finally {
+      setSubmitting(false);
     }
-
-    setFormMsg({ type: 'success', text: 'Security credentials updated (Sandbox).' });
-    setSecurityForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
   };
+
+  // Address CRUD
+  const handleSaveAddress = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      let res;
+      if (editAddressId) {
+        res = await axiosInstance.patch(`/account/addresses/${editAddressId}`, addressForm);
+      } else {
+        res = await axiosInstance.post('/account/addresses', addressForm);
+      }
+      if (res.data.success) {
+        setAddresses(res.data.addresses || []);
+        setShowAddressForm(false);
+        setEditAddressId(null);
+        setAddressForm({ name: '', phone: '', addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '', country: 'India', label: 'Home', isDefault: false });
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error saving address.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteAddress = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this address?')) return;
+    try {
+      const res = await axiosInstance.delete(`/account/addresses/${id}`);
+      if (res.data.success) setAddresses(res.data.addresses || []);
+    } catch (err) {
+      alert('Error deleting address.');
+    }
+  };
+
+  const handleSetDefaultAddress = async (id) => {
+    try {
+      const res = await axiosInstance.post(`/account/addresses/${id}/default`);
+      if (res.data.success) setAddresses(res.data.addresses || []);
+    } catch (err) {
+      alert('Error setting default address.');
+    }
+  };
+
+  // Review Submit
+  const handleSaveReview = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axiosInstance.post('/account/reviews', reviewForm);
+      if (res.data.success) {
+        setReviewModalOpen(false);
+        const rRes = await axiosInstance.get('/account/reviews');
+        if (rRes.data.success) setReviews(rRes.data.reviews || []);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error saving product review.');
+    }
+  };
+
+  const stats = overviewData?.stats || {};
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 text-left select-none">
-      <div className="flex justify-between items-center border-b pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-brand-gray-900 tracking-tight uppercase">Dashboard Workspace</h1>
-          <p className="text-xs text-brand-gray-500 mt-1">Manage credentials, local addresses, warranties, and orders.</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left space-y-8 pb-24 font-sans">
+      
+      {/* ========================================================================= */}
+      {/* 1. PROFILE HEADER CARD (Soft Avatar, Refined Typography, Clean Actions)  */}
+      {/* ========================================================================= */}
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="flex items-center space-x-5">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-800 to-amber-950 text-white font-black text-2xl shadow-md border border-slate-700/50 flex items-center justify-center shrink-0">
+            {user?.name?.charAt(0) || 'K'}
+          </div>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">
+                Hello, {user?.name || 'Customer'}
+              </h1>
+              <div className="inline-flex items-center space-x-1 bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-semibold px-2.5 py-0.5 rounded-full text-[11px]">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Verified Account</span>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 font-normal">{user?.email}</p>
+          </div>
         </div>
-        <button
-          onClick={logout}
-          className="text-xs text-red-500 hover:underline font-bold uppercase tracking-wider flex items-center space-x-1"
-        >
-          <XIcon className="w-4 h-4" />
-          <span>Sign Out</span>
-        </button>
+
+        <div className="flex items-center space-x-3 w-full md:w-auto">
+          <Link to="/cart" className="flex-1 md:flex-initial">
+            <button className="w-full bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs py-2.5 px-4 rounded-lg border border-slate-200 shadow-sm transition-all">
+              View Cart
+            </button>
+          </Link>
+          <Link to="/products" className="flex-1 md:flex-initial">
+            <button className="w-full bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2.5 px-5 rounded-lg shadow-sm hover:shadow transition-all">
+              Browse Catalog
+            </button>
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* ========================================================================= */}
+      {/* 2. MAIN DASHBOARD GRID (Sidebar Nav + Content Panel)                     */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         
-        {/* Left column: Sidebar Tab triggers */}
-        <div className="lg:col-span-3 bg-white border border-brand-gray-200 p-4 rounded-sm shadow-premium space-y-1.5">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setSearchParams({ tab: tab.id });
-                  setFormMsg({ type: '', text: '' });
-                }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-sm text-xs font-bold uppercase tracking-wider transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-brand-dark text-white font-extrabold'
-                    : 'text-brand-gray-650 hover:bg-brand-gray-50 hover:text-brand-gray-900'
-                }`}
-              >
-                <Icon className="w-4.5 h-4.5" />
-                <span>{tab.name}</span>
-              </button>
-            );
-          })}
+        {/* Left Sidebar Navigation */}
+        <div className="lg:col-span-1 space-y-3">
+          <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] overflow-hidden divide-y divide-slate-100/80">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setSearchParams({ tab: tab.id })}
+                  className={`w-full flex items-center justify-between px-4 py-3.5 text-xs font-semibold text-left transition-all ${
+                    active
+                      ? 'bg-amber-50/90 text-amber-900 font-bold border-l-4 border-amber-500 shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-50/80 hover:text-slate-900 hover:translate-x-0.5'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-amber-600' : 'text-slate-400'}`} />
+                    <span>{tab.name}</span>
+                  </div>
+                  {active && <ChevronRight className="w-3.5 h-3.5 text-amber-600" />}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={logout}
+            className="w-full py-3 px-4 bg-red-50/80 text-red-700 hover:bg-red-100 border border-red-200/60 rounded-xl text-xs font-semibold text-center transition-colors shadow-sm"
+          >
+            Sign Out of Account
+          </button>
         </div>
 
-        {/* Right column: Content panels */}
-        <div className="lg:col-span-9 bg-white border border-brand-gray-200 p-8 rounded-sm shadow-premium min-h-[400px]">
+        {/* Right Tab Content Panel */}
+        <div className="lg:col-span-3 space-y-6">
           
-          {/* TAB 1: Profile */}
-          {activeTab === 'profile' && (
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">My Profile Settings</h2>
+          {/* =================================================================== */}
+          {/* TAB 1: OVERVIEW                                                     */}
+          {/* =================================================================== */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
               
-              {formMsg.text && (
-                <div className={`p-3 rounded text-xs font-semibold ${
-                  formMsg.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
-                }`}>
-                  {formMsg.text}
-                </div>
-              )}
+              {/* Elevated Stat Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                {[
+                  { label: 'Total Orders', val: stats.totalOrders || 0, link: '?tab=orders', color: 'text-slate-900' },
+                  { label: 'Active In-Transit', val: stats.activeOrders || 0, link: '?tab=orders', color: 'text-amber-600' },
+                  { label: 'Delivered', val: stats.deliveredOrders || 0, link: '?tab=orders', color: 'text-emerald-600' },
+                  { label: 'RMA Returns', val: stats.totalReturns || 0, link: '?tab=returns', color: 'text-slate-700' },
+                  { label: 'Saved Wishlist', val: stats.wishlistCount || 0, link: '?tab=wishlist', color: 'text-purple-600' },
+                ].map((kpi, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      if (kpi.link.startsWith('?')) {
+                        setSearchParams({ tab: kpi.link.replace('?tab=', '') });
+                      }
+                    }}
+                    className="bg-white border border-slate-100 p-5 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5 text-left transition-all group"
+                  >
+                    <span className="text-[11px] font-medium text-slate-400 group-hover:text-slate-600 transition-colors block">
+                      {kpi.label}
+                    </span>
+                    <p className={`text-2xl font-black mt-1.5 ${kpi.color}`}>
+                      {kpi.val}
+                    </p>
+                  </button>
+                ))}
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
-                <div className="space-y-1.5 col-span-2">
-                  <label className="text-brand-gray-650">Registered Email Address (Cannot change):</label>
-                  <input
-                    type="email"
-                    disabled
-                    value={user?.email || ''}
-                    className="w-full bg-brand-gray-50 border-brand-gray-200 p-2.5 rounded-sm text-brand-gray-500 cursor-not-allowed"
-                  />
+              {/* Recent Orders Overview */}
+              <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Recent Orders
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Track and view your latest purchases</p>
+                  </div>
+                  <button 
+                    onClick={() => setSearchParams({ tab: 'orders' })} 
+                    className="text-xs font-semibold text-amber-700 hover:text-amber-800 hover:underline flex items-center space-x-1"
+                  >
+                    <span>View All Orders</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-brand-gray-650">Full Name:</label>
-                  <input
-                    type="text"
-                    required
-                    value={profileForm.name}
-                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                    className="w-full bg-brand-light border-brand-gray-250 p-2.5 rounded-sm"
+                {!overviewData?.recentOrders || overviewData.recentOrders.length === 0 ? (
+                  <EmptyState
+                    type="orders"
+                    title="Your order history is clean."
+                    description="When you order computing components, smartphones, or accessories, they will appear here with live tracking."
+                    actionText="Browse Marketplace"
+                    onAction={() => window.location.href = '/products'}
+                    className="border-0 shadow-none py-8"
                   />
-                </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {overviewData.recentOrders.map((ord) => (
+                      <div key={ord._id} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2.5">
+                            <span className="font-mono font-bold text-sm text-slate-900">{ord.orderId}</span>
+                            <StatusBadge status={ord.orderStatus} />
+                          </div>
+                          <p className="text-xs text-slate-500 font-normal">
+                            {new Date(ord.createdAt).toLocaleDateString('en-IN')} • {ord.items?.length || 1} Item(s) • Total: ₹{ord.finalAmount?.toLocaleString('en-IN')}
+                          </p>
+                        </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-brand-gray-650">Mobile Number:</label>
-                  <input
-                    type="text"
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    className="w-full bg-brand-light border-brand-gray-250 p-2.5 rounded-sm"
-                  />
+                        <div className="flex items-center space-x-2 w-full sm:w-auto">
+                          <Link to={`/order-details/${ord.orderId || ord._id}/tracking`} className="flex-1 sm:flex-initial">
+                            <button className="w-full bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs py-1.5 px-3 rounded-lg border border-slate-200 shadow-sm transition-all">
+                              Track
+                            </button>
+                          </Link>
+                          <Link to={`/order-details/${ord.orderId || ord._id}`} className="flex-1 sm:flex-initial">
+                            <button className="w-full bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition-all">
+                              Details
+                            </button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* =================================================================== */}
+          {/* TAB 2: MY ORDERS                                                    */}
+          {/* =================================================================== */}
+          {activeTab === 'orders' && (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Order History ({orders.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Direct fulfilled brand orders</p>
                 </div>
               </div>
 
-              <Button type="submit" variant="primary" className="text-xs font-bold uppercase tracking-wider">
-                Save Profile Changes
-              </Button>
-            </form>
-          )}
-
-          {/* TAB 2: Orders */}
-          {activeTab === 'orders' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">My Purchase Orders</h2>
-              
               {loadingOrders ? (
                 <div className="space-y-4">
                   {Array(3).fill(0).map((_, i) => (
-                    <div key={i} className="h-24 bg-brand-light animate-pulse rounded-sm" />
+                    <Skeleton key={i} className="h-20 w-full rounded-xl" />
                   ))}
                 </div>
               ) : orders.length === 0 ? (
-                <p className="text-xs text-brand-gray-500 py-6 italic">You have not placed any orders yet.</p>
+                <EmptyState
+                  type="orders"
+                  title="No orders placed yet"
+                  description="Explore leading electronics brands with genuine warranties and instant B2B tax invoicing."
+                  actionText="Start Shopping"
+                  onAction={() => window.location.href = '/products'}
+                  className="border-0 shadow-none py-10"
+                />
               ) : (
-                <div className="space-y-6">
-                  {orders.map((order) => (
-                    <div key={order._id} className="border rounded-sm overflow-hidden shadow-premium">
-                      <div className="bg-brand-gray-50 px-6 py-4 border-b border-brand-gray-200 flex flex-wrap justify-between items-center text-[10px] text-brand-gray-500 font-bold uppercase tracking-wider gap-4">
+                <div className="divide-y divide-slate-100">
+                  {orders.map((ord) => (
+                    <div key={ord._id} className="py-5 space-y-3.5">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <div>
-                          <p>Order Placed</p>
-                          <p className="text-brand-gray-800 mt-0.5">{new Date(order.createdAt).toLocaleDateString()}</p>
+                          <div className="flex items-center space-x-2.5">
+                            <span className="font-mono font-bold text-sm text-slate-900">{ord.orderId}</span>
+                            <StatusBadge status={ord.orderStatus} />
+                          </div>
+                          <span className="text-xs text-slate-500 font-normal block mt-1">
+                            Placed on {new Date(ord.createdAt).toLocaleDateString('en-IN')} • Payment: {ord.paymentStatus}
+                          </span>
                         </div>
-                        <div>
-                          <p>Total Value</p>
-                          <p className="text-brand-gray-800 mt-0.5">₹{order.totalAmount?.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p>Order ID</p>
-                          <p className="text-brand-gray-800 mt-0.5 font-mono">{order._id}</p>
-                        </div>
-                        <div>
-                          <p>Payment</p>
-                          <span className={`inline-block px-2 py-0.5 rounded text-[9px] mt-0.5 ${
-                            order.paymentStatus === 'Paid' ? 'bg-green-50 text-green-700 border' : 'bg-orange-50 text-orange-700 border'
-                          }`}>
-                            {order.paymentStatus}
+
+                        <div className="text-right">
+                          <span className="font-extrabold text-slate-900 text-base">
+                            ₹{ord.finalAmount?.toLocaleString('en-IN')}
                           </span>
                         </div>
                       </div>
 
-                      {/* Order items lists */}
-                      <div className="p-6 divide-y space-y-4 text-xs font-semibold">
-                        {(order.sellerOrders || []).map((so) => (
-                          <div key={so._id} className="pt-4 first:pt-0 space-y-4">
-                            <div className="flex justify-between items-center text-[10px] uppercase font-bold text-brand-accent">
-                              <span>Brand Group: {so.brand?.name || 'Seller'}</span>
-                              <span className="bg-brand-light px-2 py-0.5 rounded text-brand-gray-700">{so.fulfillmentStatus}</span>
-                            </div>
-
-                            {so.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-start gap-4">
-                                <div className="space-y-1">
-                                  <p className="font-extrabold text-brand-gray-900">{item.productName}</p>
-                                  <p className="text-[10px] text-brand-gray-450">Qty: {item.quantity} • Rate: ₹{item.price?.toLocaleString()}</p>
-                                </div>
-                                <span className="font-extrabold text-brand-gray-950 shrink-0">₹{(item.price * item.quantity).toLocaleString()}</span>
-                              </div>
-                            ))}
-
-                            <div className="flex justify-end space-x-3 pt-2">
-                              <button
-                                onClick={() => handleDownloadInvoice(so._id)}
-                                className="text-[10px] font-bold text-brand-accent hover:underline flex items-center space-x-1 uppercase tracking-wider"
-                              >
-                                <FileText className="w-3.5 h-3.5" />
-                                <span>Invoice PDF</span>
-                              </button>
-                            </div>
+                      {/* Items Strip */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 text-xs">
+                        {ord.items?.map((item, itIdx) => (
+                          <div key={itIdx} className="flex justify-between items-center">
+                            <span className="font-semibold text-slate-800 truncate max-w-[220px]">{item.productName || item.name}</span>
+                            <span className="text-slate-500 font-mono text-[11px]">Qty: {item.quantity || item.qty}</span>
                           </div>
                         ))}
                       </div>
+
+                      {/* Actions */}
+                      <div className="flex justify-end space-x-2.5 pt-1">
+                        <Link to={`/order-details/${ord.orderId || ord._id}/tracking`}>
+                          <button className="bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs py-1.5 px-3.5 rounded-lg border border-slate-200 shadow-sm transition-all">
+                            Live Tracking
+                          </button>
+                        </Link>
+                        <Link to={`/order-details/${ord.orderId || ord._id}`}>
+                          <button className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-1.5 px-3.5 rounded-lg shadow-sm transition-all">
+                            Details & Invoices
+                          </button>
+                        </Link>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -425,46 +602,99 @@ const Account = () => {
             </div>
           )}
 
-          {/* TAB 3: Warranties */}
+          {/* =================================================================== */}
+          {/* TAB 3: RETURNS & REFUNDS                                            */}
+          {/* =================================================================== */}
+          {activeTab === 'returns' && (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Returns & Replacement Claims ({returns.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">RMA resolution requests</p>
+                </div>
+              </div>
+
+              {loadingReturns ? (
+                <div className="space-y-4">
+                  {Array(3).fill(0).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : returns.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400 space-y-2">
+                  <RotateCcw className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="font-semibold text-slate-700">No active return or replacement requests.</p>
+                  <p className="text-slate-400">All purchased hardware is running with active manufacturer coverage.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {returns.map((ret) => (
+                    <div key={ret._id} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono font-bold text-xs text-slate-900">{ret.returnId}</span>
+                          <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200/60 rounded-full">
+                            {ret.status?.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="font-semibold text-xs text-slate-900">{ret.productId?.name || 'Hardware Product'}</p>
+                        <span className="text-xs text-slate-500">Reason: {ret.reason}</span>
+                      </div>
+
+                      <Link to={`/account/returns/${ret._id}`}>
+                        <button className="bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs py-1.5 px-3 rounded-lg border border-slate-200 shadow-sm transition-all">
+                          View RMA Status
+                        </button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* =================================================================== */}
+          {/* TAB 4: WARRANTIES                                                   */}
+          {/* =================================================================== */}
           {activeTab === 'warranties' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">My Active Warranties</h2>
-              
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Registered Product Warranties ({warranties.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Authentic serial & IMEI mapped manufacturer protection</p>
+                </div>
+              </div>
+
               {loadingWarranties ? (
                 <div className="space-y-4">
-                  {Array(2).fill(0).map((_, i) => (
-                    <div key={i} className="h-24 bg-brand-light animate-pulse rounded-sm" />
+                  {Array(3).fill(0).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
                   ))}
                 </div>
               ) : warranties.length === 0 ? (
-                <p className="text-xs text-brand-gray-500 py-6 italic">No warranties registered yet. Warranties lock automatically after dispatches.</p>
+                <div className="py-12 text-center text-xs text-slate-400 space-y-2">
+                  <Award className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="font-semibold text-slate-700">No product warranties registered yet.</p>
+                  <p className="text-slate-400">Purchasing brand items automatically registers your unit with OEM service depots.</p>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {warranties.map((w) => (
-                    <div key={w._id} className="border border-brand-gray-200 p-6 rounded-sm shadow-premium flex flex-col justify-between space-y-4">
-                      <div className="space-y-1.5 text-xs font-semibold">
-                        <span className="font-bold tracking-wider text-brand-accent uppercase block text-[10px]">
-                          {w.brand?.name} Coverage
+                    <div key={w._id} className="bg-slate-50/80 p-4 rounded-xl border border-slate-100 space-y-2 text-xs">
+                      <div className="flex justify-between items-start">
+                        <span className="font-bold text-amber-700 text-xs uppercase">{w.brand?.name}</span>
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full">
+                          {w.status || 'Active'}
                         </span>
-                        <h3 className="font-bold text-sm text-brand-gray-900 line-clamp-1">{w.product?.name}</h3>
-                        <p className="text-brand-gray-400">Serial Code: <span className="text-brand-gray-700">{w.serialNumber}</span></p>
-                        <p className="text-brand-gray-400 font-medium">Expiry Date: <span className="text-brand-gray-750">{new Date(w.endDate).toLocaleDateString()}</span></p>
                       </div>
-
-                      <div className="flex justify-between items-center pt-3 border-t text-xs font-semibold">
-                        <span className={`font-bold px-2 py-0.5 rounded ${
-                          w.status === 'Active' ? 'bg-green-50 text-green-700 border' : 'bg-orange-50 text-orange-700 border'
-                        }`}>
-                          {w.status}
-                        </span>
-                        {w.status === 'Active' && (
-                          <button
-                            onClick={() => handleClaimWarranty(w._id)}
-                            className="bg-brand-dark hover:bg-brand-gray-850 text-white px-3 py-1.5 rounded-sm font-bold uppercase tracking-wider text-[10px]"
-                          >
-                            Claim Service
-                          </button>
-                        )}
+                      <p className="font-bold text-slate-900 truncate">{w.product?.name || 'Hardware'}</p>
+                      <div className="font-mono text-xs text-slate-600 space-y-0.5 pt-1">
+                        <div>Serial: <strong className="text-slate-900">{w.maskedSerialNumber || w.serialNumber}</strong></div>
+                        <div className="text-slate-500">Valid Till: {new Date(w.endDate).toLocaleDateString('en-IN')}</div>
                       </div>
                     </div>
                   ))}
@@ -473,213 +703,316 @@ const Account = () => {
             </div>
           )}
 
-          {/* TAB 4: Saved Addresses */}
-          {activeTab === 'addresses' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center border-b pb-4">
-                <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">Saved Shipping Addresses</h2>
-                {!showAddressForm && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      setEditAddressIndex(null);
-                      setAddressForm({
-                        fullName: '',
-                        phone: '',
-                        line1: '',
-                        line2: '',
-                        city: '',
-                        state: '',
-                        pinCode: '',
-                        country: 'India',
-                        type: 'Home',
-                        isDefault: false
-                      });
-                      setShowAddressForm(true);
-                    }}
-                    className="text-xs flex items-center space-x-1 border-none bg-brand-accent hover:bg-brand-accentHover"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Address</span>
-                  </Button>
-                )}
+          {/* =================================================================== */}
+          {/* TAB 5: TAX INVOICES                                                 */}
+          {/* =================================================================== */}
+          {activeTab === 'invoices' && (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Official GST Tax Invoices ({invoices.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Compliant B2B & B2C documentation</p>
+                </div>
               </div>
 
-              {formMsg.text && activeTab === 'addresses' && (
-                <div className={`p-3 rounded text-xs font-semibold ${
-                  formMsg.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
-                }`}>
-                  {formMsg.text}
+              {loadingInvoices ? (
+                <div className="space-y-4">
+                  {Array(3).fill(0).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : invoices.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400 space-y-2">
+                  <FileText className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="font-semibold text-slate-700">No tax invoices available yet.</p>
+                  <p className="text-slate-400">Invoices are automatically generated upon payment verification.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {invoices.map((inv) => (
+                    <div key={inv._id} className="py-3.5 flex justify-between items-center">
+                      <div>
+                        <p className="font-mono font-bold text-slate-900 text-xs">{inv.invoiceNumber}</p>
+                        <span className="text-xs text-slate-500 font-normal">
+                          {inv.brandId?.name} • ₹{inv.totalAmount?.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+
+                      <a
+                        href={`http://localhost:5000/api/invoices/${inv._id}/download`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center space-x-1.5 text-xs font-semibold text-amber-700 hover:text-amber-800 hover:underline"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>PDF Invoice</span>
+                      </a>
+                    </div>
+                  ))}
                 </div>
               )}
+            </div>
+          )}
 
-              {showAddressForm ? (
-                <form onSubmit={handleSaveAddress} className="space-y-4 text-xs font-semibold bg-brand-light p-6 rounded-sm border border-brand-gray-250">
-                  <h3 className="font-extrabold text-brand-gray-900 uppercase">{editAddressIndex !== null ? 'Edit Address' : 'New Address Details'}</h3>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-650">Recipient Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={addressForm.fullName}
-                        onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                      />
+          {/* =================================================================== */}
+          {/* TAB 6: CUSTOMER REVIEWS                                             */}
+          {/* =================================================================== */}
+          {activeTab === 'reviews' && (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    My Verified Product Reviews ({reviews.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Feedback from authenticated orders</p>
+                </div>
+              </div>
+
+              {loadingReviews ? (
+                <div className="space-y-4">
+                  {Array(3).fill(0).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400 space-y-2">
+                  <MessageSquare className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="font-semibold text-slate-700">You haven't reviewed any purchased products yet.</p>
+                  <p className="text-slate-400">Share your hardware experience on product pages.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {reviews.map((r) => (
+                    <div key={r._id} className="py-3.5 space-y-1">
+                      <div className="flex justify-between items-center">
+                        <p className="font-semibold text-xs text-slate-900">{r.product?.name}</p>
+                        <div className="flex items-center text-amber-500 font-bold text-xs">
+                          <Star className="w-3.5 h-3.5 fill-current mr-1" />
+                          <span>{r.rating}/5</span>
+                        </div>
+                      </div>
+                      {r.title && <p className="font-bold text-xs text-slate-800">{r.title}</p>}
+                      <p className="text-xs text-slate-600 leading-relaxed">{r.comment}</p>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-655">Mobile Phone Number *</label>
-                      <input
-                        type="text"
-                        required
-                        value={addressForm.phone}
-                        onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                      />
-                    </div>
+          {/* =================================================================== */}
+          {/* TAB 7: WISHLIST                                                     */}
+          {/* =================================================================== */}
+          {activeTab === 'wishlist' && (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Saved Wishlist ({wishlist.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Your curated technology items</p>
+                </div>
+                <Link to="/account/wishlist" className="text-xs font-semibold text-amber-700 hover:text-amber-800 hover:underline">
+                  Full View →
+                </Link>
+              </div>
 
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="text-brand-gray-655">Address Line 1 *</label>
-                      <input
-                        type="text"
-                        required
-                        value={addressForm.line1}
-                        onChange={(e) => setAddressForm({ ...addressForm, line1: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 col-span-2">
-                      <label className="text-brand-gray-655">Address Line 2 (Optional)</label>
-                      <input
-                        type="text"
-                        value={addressForm.line2}
-                        onChange={(e) => setAddressForm({ ...addressForm, line2: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-655">City *</label>
-                      <input
-                        type="text"
-                        required
-                        value={addressForm.city}
-                        onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-655">State *</label>
-                      <input
-                        type="text"
-                        required
-                        value={addressForm.state}
-                        onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-655">PIN Code *</label>
-                      <input
-                        type="text"
-                        required
-                        maxLength={6}
-                        value={addressForm.pinCode}
-                        onChange={(e) => setAddressForm({ ...addressForm, pinCode: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-brand-gray-655">Address Label Type</label>
-                      <select
-                        value={addressForm.type}
-                        onChange={(e) => setAddressForm({ ...addressForm, type: e.target.value })}
-                        className="w-full bg-white border border-brand-gray-250 p-2.5 rounded-sm focus:ring-0"
+              {loadingWishlist ? (
+                <div className="space-y-4">
+                  {Array(3).fill(0).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : wishlist.length === 0 ? (
+                <EmptyState
+                  type="wishlist"
+                  title="Your wishlist is empty"
+                  description="Save components, laptops, and peripherals to track prices and availability."
+                  actionText="Explore Marketplace"
+                  onAction={() => window.location.href = '/products'}
+                  className="border-0 shadow-none py-10"
+                />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {wishlist.map((it) => (
+                    <div key={it._id} className="bg-slate-50/80 p-4 rounded-xl border border-slate-100 flex justify-between items-center text-xs">
+                      <div>
+                        <p className="font-semibold text-slate-900 truncate max-w-[190px]">{it.product?.name}</p>
+                        <span className="font-extrabold text-slate-900 mt-0.5 block">₹{it.product?.sellingPrice?.toLocaleString('en-IN')}</span>
+                      </div>
+                      <button 
+                        onClick={() => addToCart(it.product, 1)} 
+                        className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition-all"
                       >
-                        <option value="Home">Home</option>
-                        <option value="Work">Work/Office</option>
-                        <option value="Other">Other</option>
-                      </select>
+                        Add to Cart
+                      </button>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                    <label className="flex items-center space-x-2 cursor-pointer pt-2 col-span-2">
-                      <input
-                        type="checkbox"
-                        checked={addressForm.isDefault}
-                        onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
-                        className="rounded text-brand-accent w-4.5 h-4.5"
-                      />
-                      <span className="text-[11px] text-brand-gray-600">Set as Default Shipping Address</span>
-                    </label>
+          {/* =================================================================== */}
+          {/* TAB 8: SAVED ADDRESSES                                              */}
+          {/* =================================================================== */}
+          {activeTab === 'addresses' && (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Saved Delivery Addresses ({addresses.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Manage residential & business shipping locations</p>
+                </div>
+                <button 
+                  onClick={() => { setShowAddressForm(true); setEditAddressId(null); }} 
+                  className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2 px-3.5 rounded-lg shadow-sm flex items-center space-x-1.5 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Address</span>
+                </button>
+              </div>
+
+              {/* Add/Edit Address Form Modal */}
+              {showAddressForm && (
+                <form onSubmit={handleSaveAddress} className="bg-slate-50/80 p-5 rounded-2xl border border-slate-100 space-y-3.5 text-xs">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Full Name *</label>
+                      <input type="text" required value={addressForm.name} onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Phone Number *</label>
+                      <input type="text" required value={addressForm.phone} onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                    </div>
                   </div>
 
-                  <div className="flex space-x-4 pt-4">
-                    <Button type="submit" variant="primary" className="text-xs font-bold uppercase tracking-wider">
-                      Save Address
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setShowAddressForm(false);
-                        setEditAddressIndex(null);
-                      }}
-                      className="text-xs font-bold uppercase tracking-wider"
-                    >
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Address Line 1 (Flat/House/Building) *</label>
+                    <input type="text" required value={addressForm.addressLine1} onChange={(e) => setAddressForm({ ...addressForm, addressLine1: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Street / Area</label>
+                      <input type="text" value={addressForm.addressLine2} onChange={(e) => setAddressForm({ ...addressForm, addressLine2: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Landmark</label>
+                      <input type="text" placeholder="e.g. Near Unna Enclave" value={addressForm.landmark} onChange={(e) => setAddressForm({ ...addressForm, landmark: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">City *</label>
+                      <input type="text" required value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">State *</label>
+                      <input type="text" required value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">PIN Code *</label>
+                      <input type="text" required value={addressForm.postalCode} onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Address Type</label>
+                    <div className="flex space-x-2">
+                      {['Home', 'Work', 'Other'].map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setAddressForm({ ...addressForm, label: t, type: t })}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                            (addressForm.type === t || addressForm.label === t)
+                              ? 'bg-amber-50 border-amber-500 text-amber-900 font-bold'
+                              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2.5 pt-2">
+                    <button type="button" onClick={() => setShowAddressForm(false)} className="bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs py-2 px-4 rounded-lg border border-slate-200 transition-all">
                       Cancel
-                    </Button>
+                    </button>
+                    <button type="submit" disabled={submitting} className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2 px-4 rounded-lg shadow-sm transition-all">
+                      Save Address
+                    </button>
                   </div>
                 </form>
-              ) : addresses.length === 0 ? (
-                <p className="text-xs text-brand-gray-500 py-6 italic">No shipping addresses configured. Add an address for checkout convenience.</p>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {addresses.map((addr) => (
+                  <div key={addr._id} className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm space-y-2.5 text-xs relative">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-900">{addr.name}</span>
+                      {addr.isDefault ? (
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full">Default</span>
+                      ) : (
+                        <button onClick={() => handleSetDefaultAddress(addr._id)} className="text-[11px] text-amber-700 hover:underline font-medium">Set as Default</button>
+                      )}
+                    </div>
+                    <p className="text-slate-600 leading-relaxed">{addr.addressLine1}, {addr.city}, {addr.state} - {addr.postalCode}</p>
+                    <p className="text-slate-500 font-mono">Phone: {addr.phone}</p>
+                    <div className="pt-2 flex justify-end space-x-2 border-t border-slate-100">
+                      <button onClick={() => handleDeleteAddress(addr._id)} className="text-red-500 hover:text-red-700 text-xs flex items-center space-x-1 font-medium">
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* =================================================================== */}
+          {/* TAB 9: NOTIFICATIONS                                                */}
+          {/* =================================================================== */}
+          {activeTab === 'notifications' && (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Notifications ({notifications.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Order updates & warranty reminders</p>
+                </div>
+              </div>
+
+              {loadingNotifications ? (
+                <div className="space-y-4">
+                  {Array(3).fill(0).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400 space-y-2">
+                  <Bell className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="font-semibold text-slate-700">You're all caught up!</p>
+                  <p className="text-slate-400">Order milestones and warranty renewals will be notified here.</p>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs text-brand-gray-650">
-                  {addresses.map((addr, idx) => (
-                    <div key={idx} className={`border p-6 rounded-sm space-y-4 shadow-sm flex flex-col justify-between ${addr.isDefault ? 'border-brand-accent bg-brand-accent/5' : 'border-brand-gray-200'}`}>
-                      <div className="space-y-1">
-                        <div className="flex justify-between items-start">
-                          <span className="bg-brand-dark text-white px-2 py-0.5 rounded text-[8px] uppercase tracking-wider font-extrabold">{addr.type}</span>
-                          {addr.isDefault && <span className="text-[9px] text-brand-accent font-black uppercase">Default</span>}
-                        </div>
-                        <p className="font-extrabold text-brand-gray-900 mt-2">{addr.fullName}</p>
-                        <p className="font-semibold text-brand-gray-600">{addr.line1}</p>
-                        {addr.line2 && <p className="text-brand-gray-550 font-semibold">{addr.line2}</p>}
-                        <p className="font-semibold text-brand-gray-600">{addr.city}, {addr.state} - {addr.pinCode}</p>
-                        <p className="text-[10px] text-brand-gray-450 font-semibold">Phone: {addr.phone}</p>
+                <div className="divide-y divide-slate-100">
+                  {notifications.map((n) => (
+                    <div key={n._id} className="py-3.5 flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-xs text-slate-900">{n.title}</p>
+                        <p className="text-xs text-slate-600 mt-0.5">{n.message}</p>
+                        <span className="text-[10px] text-slate-400 font-mono">{new Date(n.createdAt).toLocaleString('en-IN')}</span>
                       </div>
-
-                      <div className="flex justify-between items-center pt-3 border-t text-[10px] font-bold uppercase tracking-wider">
-                        {!addr.isDefault ? (
-                          <button onClick={() => handleSetDefaultAddress(idx)} className="text-brand-accent hover:underline">
-                            Set default
-                          </button>
-                        ) : (
-                          <span />
-                        )}
-                        
-                        <div className="flex space-x-3">
-                          <button
-                            onClick={() => {
-                              setEditAddressIndex(idx);
-                              setAddressForm(addr);
-                              setShowAddressForm(true);
-                            }}
-                            className="text-brand-gray-600 hover:text-brand-gray-800"
-                          >
-                            Edit
-                          </button>
-                          <button onClick={() => handleDeleteAddress(idx)} className="text-red-500 hover:text-red-700">
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-
+                      {!n.read && <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />}
                     </div>
                   ))}
                 </div>
@@ -687,157 +1020,102 @@ const Account = () => {
             </div>
           )}
 
-          {/* TAB 5: Wishlist */}
-          {activeTab === 'wishlist' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">My Technology Wishlist</h2>
-              
-              {wishlist.length === 0 ? (
-                <div className="py-12 text-center space-y-4">
-                  <p className="text-xs text-brand-gray-500 italic">Your wishlist is currently waiting for something great.</p>
-                  <Link to="/products" className="inline-block">
-                    <Button variant="primary" size="sm" className="text-xs font-bold uppercase tracking-wider border-none">
-                      Explore Products
-                    </Button>
-                  </Link>
+          {/* =================================================================== */}
+          {/* TAB 10: PROFILE SETTINGS                                            */}
+          {/* =================================================================== */}
+          {activeTab === 'profile' && (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Personal Information
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Update your customer profile details</p>
                 </div>
-              ) : (
-                <div className="divide-y text-xs font-semibold text-brand-gray-600">
-                  {wishlist.map((item) => {
-                    const imageUrl = item.images?.[0]?.url || 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=100';
-                    const inStock = item.stock && (item.stock.quantity - item.stock.reservedQuantity) > 0;
-                    return (
-                      <div key={item._id} className="py-4 flex justify-between items-center gap-6 text-left">
-                        <div className="flex items-center space-x-4">
-                          <img src={imageUrl} alt="" className="w-14 h-14 object-contain bg-brand-light border rounded p-1 shrink-0" />
-                          <div className="space-y-1">
-                            <p className="text-[10px] text-brand-gray-450 uppercase font-bold">{item.brand?.name || 'Authorized Brand'}</p>
-                            <Link to={`/product/${item.slug}`} className="font-extrabold text-brand-gray-900 hover:text-brand-accent transition-colors line-clamp-1">{item.name}</Link>
-                            <p className="font-extrabold text-brand-gray-950">₹{item.sellingPrice?.toLocaleString()}</p>
-                          </div>
-                        </div>
+              </div>
 
-                        <div className="flex items-center space-x-3 shrink-0">
-                          {inStock ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                addToCart(item, 1, {});
-                                handleRemoveFromWishlist(item._id);
-                              }}
-                              className="text-[9px] font-bold uppercase tracking-wider py-1.5"
-                            >
-                              Add To Cart
-                            </Button>
-                          ) : (
-                            <span className="text-[9px] bg-red-50 border text-red-650 px-2 py-1 rounded font-extrabold uppercase">Out of Stock</span>
-                          )}
-
-                          <button
-                            onClick={() => handleRemoveFromWishlist(item._id)}
-                            className="p-1.5 text-brand-gray-450 hover:text-red-500 border rounded-sm"
-                            aria-label="Remove wishlist item"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+              {formMsg.text && (
+                <div className={`p-3.5 rounded-xl text-xs font-semibold ${formMsg.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'}`}>
+                  {formMsg.text}
                 </div>
               )}
+
+              <form onSubmit={handleUpdateProfile} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">First Name</label>
+                    <input type="text" value={profileForm.firstName} onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Last Name</label>
+                    <input type="text" value={profileForm.lastName} onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Email Address</label>
+                    <input type="email" disabled value={user?.email || ''} className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-500 font-mono" />
+                    <span className="text-[10px] text-slate-400 mt-1 block">Email is locked for account safety.</span>
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Phone Number</label>
+                    <input type="text" value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg font-mono focus:outline-none focus:border-amber-500 bg-white" />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-3">
+                  <button type="submit" disabled={submitting} className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2.5 px-5 rounded-lg shadow-sm transition-all">
+                    {submitting ? 'Saving...' : 'Save Profile Changes'}
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 
-          {/* TAB 6: Security */}
+          {/* =================================================================== */}
+          {/* TAB 11: SECURITY & PASSWORD                                         */}
+          {/* =================================================================== */}
           {activeTab === 'security' && (
-            <form onSubmit={handleSecurityUpdate} className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">Security Credentials</h2>
-              
-              {formMsg.text && activeTab === 'security' && (
-                <div className={`p-3 rounded text-xs font-semibold ${
-                  formMsg.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
-                }`}>
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-7 space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Account Password & Security
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Manage your credential credentials</p>
+                </div>
+              </div>
+
+              {formMsg.text && (
+                <div className={`p-3.5 rounded-xl text-xs font-semibold ${formMsg.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'}`}>
                   {formMsg.text}
                 </div>
               )}
 
-              <div className="max-w-md space-y-4 text-xs font-semibold">
-                <div className="space-y-1.5">
-                  <label className="text-brand-gray-655">Current Active Password:</label>
-                  <input
-                    type="password"
-                    required
-                    value={securityForm.currentPassword}
-                    onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })}
-                    className="w-full bg-brand-light border-brand-gray-250 p-2.5 rounded-sm"
-                  />
+              <form onSubmit={handleChangePassword} className="space-y-4 text-xs max-w-md">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Current Password *</label>
+                  <input type="password" required value={securityForm.currentPassword} onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-brand-gray-655">New Security Password:</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Min 8 characters, with 1 uppercase, 1 lowercase, 1 number"
-                    value={securityForm.newPassword}
-                    onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })}
-                    className="w-full bg-brand-light border-brand-gray-250 p-2.5 rounded-sm"
-                  />
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">New Password (Min 8 chars) *</label>
+                  <input type="password" required minLength={8} value={securityForm.newPassword} onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-brand-gray-655">Confirm New Password:</label>
-                  <input
-                    type="password"
-                    required
-                    value={securityForm.confirmPassword}
-                    onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })}
-                    className="w-full bg-brand-light border-brand-gray-250 p-2.5 rounded-sm"
-                  />
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Confirm New Password *</label>
+                  <input type="password" required minLength={8} value={securityForm.confirmPassword} onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white" />
                 </div>
-              </div>
 
-              <Button type="submit" variant="primary" className="text-xs font-bold uppercase tracking-wider">
-                Reset Account Password
-              </Button>
-            </form>
-          )}
-
-          {/* TAB 7: GST Settings */}
-          {activeTab === 'gst' && (
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
-              <h2 className="text-lg font-extrabold text-brand-gray-900 uppercase tracking-tight">Business Billing Settings</h2>
-              
-              {formMsg.text && activeTab === 'gst' && (
-                <div className={`p-3 rounded text-xs font-semibold ${
-                  formMsg.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
-                }`}>
-                  {formMsg.text}
+                <div className="flex justify-end pt-3">
+                  <button type="submit" disabled={submitting} className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2.5 px-5 rounded-lg shadow-sm transition-all">
+                    {submitting ? 'Updating...' : 'Update Password'}
+                  </button>
                 </div>
-              )}
-
-              <div className="space-y-4 text-xs font-semibold">
-                <div className="space-y-1.5 max-w-md">
-                  <label className="text-brand-gray-650">Company GSTIN Number:</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 07AAAAA1111A1Z1"
-                    value={profileForm.gstin}
-                    onChange={(e) => setProfileForm({ ...profileForm, gstin: e.target.value })}
-                    className="w-full bg-brand-light border-brand-gray-250 p-2.5 rounded-sm uppercase tracking-wider font-extrabold text-brand-gray-800"
-                  />
-                </div>
-                <p className="text-xs text-brand-gray-400 leading-relaxed font-semibold">
-                  Saving your corporate GSTIN registers it inside your central profile, allowing you to checkout seamlessly without configuring it every time.
-                </p>
-              </div>
-
-              <Button type="submit" variant="primary" className="text-xs font-bold uppercase tracking-wider">
-                Save GST Profile
-              </Button>
-            </form>
+              </form>
+            </div>
           )}
 
         </div>
@@ -847,12 +1125,5 @@ const Account = () => {
     </div>
   );
 };
-
-// Reusable SVG loader for logout button
-const XIcon = ({ className = '', ...props }) => (
-  <svg className={`w-4 h-4 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-  </svg>
-);
 
 export default Account;

@@ -1,10 +1,72 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Zap, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import productService from '../../services/productService';
+import ProductCard from '../../components/product/ProductCard';
+import { ProductSkeleton } from '../../components/feedback/Skeleton';
+import Button from '../../components/ui/Button';
 
 const NewArrivals = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNew = async () => {
+      setLoading(true);
+      try {
+        const res = await productService.getNewArrivals(16);
+        if (res.success) {
+          setProducts(res.products || []);
+        }
+      } catch (err) {
+        console.error('Error loading new arrivals:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNew();
+  }, []);
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-left space-y-4">
-      <h1 className="text-2xl font-extrabold text-brand-gray-900 tracking-tight uppercase">New Arrivals</h1>
-      <p className="text-xs text-brand-gray-500">KAIA Technologies Platform placeholder screen.</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left space-y-8 font-sans">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-brand-gray-200 pb-4">
+        <div>
+          <div className="flex items-center space-x-2">
+            <Zap className="w-6 h-6 text-brand-accent fill-brand-accent/20" />
+            <h1 className="text-2xl font-black text-brand-gray-900 uppercase tracking-tight">
+              New Hardware Arrivals
+            </h1>
+          </div>
+          <p className="text-xs text-brand-gray-500 mt-0.5">
+            The newest next-generation electronics, high-refresh monitors, and enterprise peripherals.
+          </p>
+        </div>
+
+        <Link to="/products">
+          <Button variant="outline" size="sm" className="text-xs uppercase font-bold">
+            All Products
+          </Button>
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {Array(8).fill(0).map((_, i) => (
+            <ProductSkeleton key={i} />
+          ))}
+        </div>
+      ) : products.length === 0 ? (
+        <div className="bg-white border border-brand-gray-200 p-16 rounded text-center shadow-premium space-y-3">
+          <Sparkles className="w-12 h-12 text-brand-gray-300 mx-auto" />
+          <h2 className="text-lg font-black text-brand-gray-900 uppercase">No new arrivals found</h2>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {products.map((p) => (
+            <ProductCard key={p._id} product={p} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

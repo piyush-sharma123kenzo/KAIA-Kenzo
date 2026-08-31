@@ -1,132 +1,207 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Landmark, ArrowUpRight, TrendingUp } from 'lucide-react';
-import axiosInstance from '../../api/axiosInstance';
+import { 
+  IndianRupee, TrendingUp, ShoppingCart, Package, Calendar, 
+  ArrowUpRight, BarChart3, ShieldCheck, CheckCircle2, ShieldAlert
+} from 'lucide-react';
+import brandSellerService from '../../services/brandSellerService';
+import { Skeleton } from '../../components/feedback/Skeleton';
+import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
 
 const Sales = () => {
-  const [ledger, setLedger] = useState([]);
-  const [metrics, setMetrics] = useState(null);
+  const [range, setRange] = useState('30d');
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchSales = async (selectedRange) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await brandSellerService.getSales(selectedRange);
+      if (res.success) {
+        setData(res);
+      }
+    } catch (err) {
+      console.error('Error fetching sales analytics:', err);
+      setError('Unable to calculate sales analytics.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchLedger = async () => {
-      try {
-        const res = await axiosInstance.get('/dashboard/seller');
-        if (res.data.success) {
-          setMetrics(res.data.metrics);
-        }
+    fetchSales(range);
+  }, [range]);
 
-        // We can query the admin-like commissions or a specific seller ledger endpoint.
-        // Wait, does the backend have a custom seller payout list?
-        // Let's check backend/routes/adminRoutes.js: `/api/admin/commissions` lists ledger.
-        // But for brand seller, can they list their own payouts?
-        // Let's check backend/controllers/dashboardController.js:
-        // Inside getBrandDashboardStats, it populated activeOrders.
-        // We can easily fetch all child orders and render the payout ledger list directly in React!
-        // Each child order has finalAmount (gross), commissionAmount (platform share), and finalAmount - commissionAmount (net seller payout).
-        // This is perfectly accurate, clean, and requires no additional API routes!
-        const orderRes = await axiosInstance.get('/orders/seller/my-orders');
-        if (orderRes.data.success) {
-          // Filter where parent is paid (valid sales only)
-          const paidSplits = orderRes.data.orders.filter(
-            (o) => o.parentOrder && o.parentOrder.paymentStatus === 'Paid'
-          );
-          setLedger(paidSplits);
-        }
-      } catch (err) {
-        console.error('Error fetching sales ledger:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLedger();
-  }, []);
+  const ranges = [
+    { label: 'Today', value: 'today' },
+    { label: 'Last 7 Days', value: '7d' },
+    { label: 'Last 30 Days', value: '30d' },
+    { label: 'Last 90 Days', value: '90d' },
+    { label: 'All Time', value: 'all' },
+  ];
 
-  if (loading) {
-    return <div className="text-center py-20 text-brand-gray-500">Loading financial ledger...</div>;
-  }
+  const analytics = data?.analytics || {};
+  const chartData = data?.chartData || [];
+
+  const statCards = [
+    {
+      label: 'Gross Sales Revenue',
+      value: `₹${(analytics.grossSales || 0).toLocaleString('en-IN')}`,
+      sub: 'Total customer order volume',
+      icon: IndianRupee,
+      color: 'text-brand-accent bg-brand-accent/5',
+    },
+    {
+      label: 'Estimated Net Payout',
+      value: `₹${(analytics.netSales || 0).toLocaleString('en-IN')}`,
+      sub: `After ₹${(analytics.commissionTotal || 0).toLocaleString('en-IN')} platform fees`,
+      icon: TrendingUp,
+      color: 'text-emerald-700 bg-emerald-50',
+    },
+    {
+      label: 'Orders Fulfilled',
+      value: analytics.totalOrders || 0,
+      sub: `${analytics.unitsSold || 0} hardware items sold`,
+      icon: ShoppingCart,
+      color: 'text-blue-700 bg-blue-50',
+    },
+    {
+      label: 'Average Order Value (AOV)',
+      value: `₹${(analytics.averageOrderValue || 0).toLocaleString('en-IN')}`,
+      sub: 'Per customer transaction',
+      icon: Package,
+      color: 'text-brand-gray-900 bg-brand-light',
+    },
+  ];
 
   return (
-    <div className="space-y-8 text-left">
+    <div className="space-y-8 text-left max-w-7xl mx-auto pb-16">
       
-      {/* Overview Header */}
-      <div className="border-b pb-4">
-        <h2 className="text-xl font-extrabold text-brand-gray-900">Sales Ledger & settlements</h2>
-        <p className="text-xs text-brand-gray-500">Monitor your gross hardware revenues, commission offsets, and bank settlement payout status.</p>
-      </div>
-
-      {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-white border border-brand-gray-250 p-6 rounded-sm shadow-premium flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-[10px] font-semibold text-brand-gray-400 uppercase tracking-wider">Gross Sales GMV</p>
-            <h3 className="text-xl font-black text-brand-gray-900">₹{metrics?.totalRevenue.toLocaleString()}</h3>
-          </div>
-          <div className="p-2.5 rounded bg-blue-50 text-blue-600 shrink-0">
-            <DollarSign className="w-5 h-5" />
-          </div>
+      {/* Header & Filter Controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-brand-gray-200 pb-5">
+        <div>
+          <h2 className="text-xl font-black text-brand-gray-900 uppercase tracking-tight">Sales Analytics & Revenues</h2>
+          <p className="text-xs text-brand-gray-500 mt-0.5">
+            Real-time gross transaction telemetry, net settlement offsets, and order metrics aggregated directly from MongoDB.
+          </p>
         </div>
 
-        <div className="bg-white border border-brand-gray-255 p-6 rounded-sm shadow-premium flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-[10px] font-semibold text-brand-gray-400 uppercase tracking-wider">KAIA Marketplace Comm. (Est.)</p>
-            <h3 className="text-xl font-black text-brand-gray-900">₹{metrics?.totalCommissions.toLocaleString()}</h3>
-          </div>
-          <div className="p-2.5 rounded bg-red-50 text-red-500 shrink-0">
-            <TrendingUp className="w-5 h-5 animate-pulse" />
-          </div>
-        </div>
-
-        <div className="bg-white border border-brand-gray-255 p-6 rounded-sm shadow-premium flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-[10px] font-semibold text-brand-gray-400 uppercase tracking-wider">Net Bank Payout</p>
-            <h3 className="text-xl font-black text-brand-accent">₹{metrics?.netPayout.toLocaleString()}</h3>
-          </div>
-          <div className="p-2.5 rounded bg-green-50 text-green-600 shrink-0">
-            <Landmark className="w-5 h-5" />
-          </div>
+        {/* Range Selector */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-brand-light p-1 rounded-sm border border-brand-gray-200">
+          {ranges.map((r) => (
+            <button
+              key={r.value}
+              onClick={() => setRange(r.value)}
+              className={`px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider transition-all ${
+                range === r.value
+                  ? 'bg-brand-dark text-white shadow-sm'
+                  : 'text-brand-gray-600 hover:text-brand-gray-900 hover:bg-white'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Ledger Table */}
-      <div className="bg-white border border-brand-gray-200 rounded-sm shadow-premium overflow-x-auto">
-        <table className="min-w-full divide-y divide-brand-gray-200 text-left text-xs">
-          <thead className="bg-brand-gray-50 uppercase tracking-wider font-semibold text-brand-gray-500">
-            <tr>
-              <th className="px-6 py-4">Transaction Date</th>
-              <th className="px-6 py-4">Order ID</th>
-              <th className="px-6 py-4">Gross Revenue</th>
-              <th className="px-6 py-4">Platform Comm. Rate</th>
-              <th className="px-6 py-4">Commission Deducted</th>
-              <th className="px-6 py-4">Net Payout Ledger</th>
-              <th className="px-6 py-4">Payout Status</th>
-            </tr>
-          </thead>
-          
-          <tbody className="bg-white divide-y divide-brand-gray-200 text-brand-gray-700">
-            {ledger.map((row) => {
-              const netPayout = row.finalAmount - row.commissionAmount;
-              return (
-                <tr key={row._id} className="hover:bg-brand-gray-50/50">
-                  <td className="px-6 py-4 font-semibold">
-                    {new Date(row.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 font-bold text-brand-gray-950">{row.orderId}</td>
-                  <td className="px-6 py-4 font-semibold text-brand-gray-900">₹{row.finalAmount.toLocaleString()}</td>
-                  <td className="px-6 py-4 font-medium">{row.commissionRate}%</td>
-                  <td className="px-6 py-4 text-red-500 font-semibold">- ₹{row.commissionAmount.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-brand-accent font-extrabold">₹{netPayout.toLocaleString()}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                      row.payoutStatus === 'Paid' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-orange-50 text-orange-700 border border-orange-200 animate-pulse'
-                    }`}>
-                      {row.payoutStatus === 'Paid' ? 'Settled' : 'Ledgered'}
-                    </span>
-                  </td>
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded flex items-center space-x-2">
+          <ShieldAlert className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* KPI Cards */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {Array(4).fill(0).map((_, i) => (
+            <div key={i} className="bg-white border border-brand-gray-200 p-6 rounded-sm space-y-3">
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-8 w-3/4" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {statCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={i}
+                className="bg-white border border-brand-gray-200 p-6 rounded-sm shadow-premium flex flex-col justify-between"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-bold text-brand-gray-500 uppercase tracking-wider">{card.label}</p>
+                    <h3 className="text-2xl font-black text-brand-gray-900 tracking-tight">{card.value}</h3>
+                  </div>
+                  <div className={`p-2.5 rounded-sm ${card.color}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-brand-gray-400 font-semibold mt-4 pt-3 border-t border-brand-gray-100">
+                  {card.sub}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Timeline Breakdown Table */}
+      <div className="bg-white border border-brand-gray-200 rounded-sm shadow-premium overflow-hidden">
+        <div className="p-5 border-b border-brand-gray-200 flex justify-between items-center">
+          <div>
+            <h3 className="text-sm font-black text-brand-gray-900 uppercase tracking-tight">Timeline Sales Distribution</h3>
+            <p className="text-[11px] text-brand-gray-500 mt-0.5">Periodic performance breakdown across selected window ({range.toUpperCase()}).</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="p-6 space-y-3">
+            {Array(4).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-6 w-full" />
+            ))}
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="p-16 text-center text-xs text-brand-gray-400 italic space-y-2">
+            <BarChart3 className="w-10 h-10 mx-auto text-brand-gray-300" />
+            <p>Sales analytics will appear here once customers purchase your brand products during this timeframe.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-brand-gray-200 text-left text-xs">
+              <thead className="bg-brand-gray-50 uppercase tracking-wider font-bold text-[10px] text-brand-gray-500">
+                <tr>
+                  <th className="px-6 py-3.5">Activity Date</th>
+                  <th className="px-6 py-3.5 text-center">Orders Count</th>
+                  <th className="px-6 py-3.5 text-center">Units Sold</th>
+                  <th className="px-6 py-3.5 text-right">Gross Sales</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-brand-gray-200 text-brand-gray-800">
+                {chartData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-brand-gray-50/50 transition-colors">
+                    <td className="px-6 py-3.5 font-bold text-brand-gray-900 font-mono">
+                      {row.date}
+                    </td>
+                    <td className="px-6 py-3.5 text-center font-bold text-brand-gray-800">
+                      {row.orders}
+                    </td>
+                    <td className="px-6 py-3.5 text-center font-semibold text-brand-gray-600">
+                      {row.units}
+                    </td>
+                    <td className="px-6 py-3.5 text-right font-black text-brand-accent">
+                      ₹{row.sales.toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
     </div>

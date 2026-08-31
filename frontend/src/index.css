@@ -4,11 +4,54 @@
 
 @layer base {
   body {
-    @apply bg-brand-light text-brand-gray-900 font-sans antialiased selection:bg-brand-accent selection:text-white;
+    @apply bg-amz-bgGray text-amz-bodyInk font-sans antialiased selection:bg-amz-orange selection:text-white;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  a {
+    @apply transition-colors;
   }
 }
 
-/* Premium micro-interactions & utility custom styles */
+/* Amazon Nav Item Hover Outline (Signature 1px white border) */
+.amz-nav-item {
+  @apply border border-transparent rounded-[2px] cursor-pointer transition-all duration-75 select-none;
+}
+.amz-nav-item:hover {
+  @apply border-white;
+}
+
+/* Amazon Buttons */
+.amz-btn-yellow {
+  background: #FFD814;
+  border: 1px solid #FCD200;
+  border-radius: 20px;
+  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
+  @apply text-amz-bodyInk font-normal text-xs py-1.5 px-4 text-center cursor-pointer transition-all;
+}
+.amz-btn-yellow:hover {
+  background: #F7CA00;
+  border-color: #F2C200;
+  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.7);
+}
+
+.amz-btn-orange {
+  background: #FFA41C;
+  border: 1px solid #FF8F00;
+  border-radius: 20px;
+  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
+  @apply text-amz-bodyInk font-medium text-xs py-1.5 px-4 text-center cursor-pointer transition-all;
+}
+.amz-btn-orange:hover {
+  background: #FA8900;
+  border-color: #E37B00;
+}
+
+/* Amazon Card styling */
+.amz-card {
+  @apply bg-white rounded-none p-4 shadow-amzCard;
+}
 
 /* Webkit Scrollbars */
 ::-webkit-scrollbar {
@@ -16,48 +59,97 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-brand-gray-100;
+  background: #EAEDED;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-brand-gray-400 rounded-full hover:bg-brand-gray-500 transition-colors;
+  background: #AAB7B8;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #767676;
 }
 
-/* Custom focus ring styling for accessbility */
-*:focus-visible {
-  @apply outline-none ring-2 ring-brand-accent ring-offset-2;
+/* Custom focus ring styling for search & buttons */
+.amz-search-input:focus {
+  outline: none;
+  border-color: #E77600 !important;
+  box-shadow: 0 0 3px 2px rgba(228, 121, 17, 0.5) !important;
 }
 
-/* Skeleton Loading Animation */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+/* 2-line clamp */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.animate-shimmer {
-  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite linear;
+/* ========================================================================= */
+/* UNIFORM E-COMMERCE PRODUCT & CATEGORY IMAGE CONTAINERS                     */
+/* ========================================================================= */
+.product-image-container {
+  width: 100%;
+  height: 180px;
+  padding: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  position: relative;
 }
 
-.dark .animate-shimmer {
-  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite linear;
+.product-image-container img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 
-/* Glassmorphism utility */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+.tile-image-container {
+  width: 100%;
+  height: 110px;
+  padding: 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  position: relative;
 }
 
-.glass-dark {
-  background: rgba(22, 22, 26, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+.tile-image-container img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
+
+.category-image-container {
+  width: 100%;
+  height: 140px;
+  padding: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  position: relative;
+}
+
+.category-image-container img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+

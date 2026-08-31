@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 
 const Login = () => {
@@ -21,9 +21,26 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      if (user.role === 'ADMIN') navigate('/admin/dashboard');
-      else if (user.role === 'BRAND') navigate('/brand/dashboard');
-      else navigate(searchParams.get('redirect') || '/account');
+      const targetRedirect = searchParams.get('redirect');
+      if (user.role === 'ADMIN') {
+        if (targetRedirect && targetRedirect.startsWith('/admin')) {
+          navigate(targetRedirect);
+        } else {
+          navigate('/admin/dashboard');
+        }
+      } else if (user.role === 'BRAND') {
+        if (targetRedirect && targetRedirect.startsWith('/brand')) {
+          navigate(targetRedirect);
+        } else {
+          navigate('/brand/dashboard');
+        }
+      } else {
+        if (targetRedirect && !targetRedirect.startsWith('/admin') && !targetRedirect.startsWith('/brand')) {
+          navigate(targetRedirect);
+        } else {
+          navigate('/account');
+        }
+      }
     }
   }, [user, navigate, searchParams]);
 
@@ -33,7 +50,12 @@ const Login = () => {
     try {
       await login(email, password);
     } catch (err) {
-      // Error is stored in context and displayed
+      // Handle unverified account — redirect to OTP page
+      if (err.requiresVerification && err.email) {
+        navigate('/verify-otp', {
+          state: { email: err.email, purpose: 'SIGNUP_VERIFICATION' },
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -47,7 +69,7 @@ const Login = () => {
         <div className="text-center space-y-2">
           <Link to="/" className="flex flex-col items-center select-none">
             <span className="text-2xl font-extrabold tracking-tight text-brand-gray-900 leading-none">
-              KAIA<span className="text-brand-accent">.</span>
+              KAIA
             </span>
             <span className="text-[9px] uppercase tracking-[0.2em] font-medium text-brand-gray-500 mt-1">
               TECHNOLOGIES
@@ -100,11 +122,9 @@ const Login = () => {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3.5 top-3.5 text-brand-gray-400 hover:text-brand-gray-600 focus:outline-none"
+                  className="absolute right-3 top-2.5 text-brand-gray-400 hover:text-brand-gray-700 focus:outline-none"
                 >
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
-                    {showPassword ? 'Hide' : 'Show'}
-                  </span>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -115,7 +135,7 @@ const Login = () => {
             disabled={loading}
             className="w-full bg-brand-dark hover:bg-brand-gray-850 text-white font-semibold py-3 rounded-sm text-sm transition-colors flex items-center justify-center space-x-2"
           >
-            <span>{loading ? 'Authenticating Sandbox...' : 'Secure Sign In'}</span>
+            <span>{loading ? 'Signing In...' : 'Secure Sign In'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

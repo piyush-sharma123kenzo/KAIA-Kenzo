@@ -1,104 +1,151 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, CheckCircle, ArrowRight } from 'lucide-react';
-import { brandsData } from '../../constants/brands';
+import { Search, ArrowRight } from 'lucide-react';
+import brandService from '../../services/brandService';
 import Container from '../../components/ui/Container';
-import Button from '../../components/ui/Button';
+import { Skeleton } from '../../components/feedback/Skeleton';
+import { getBrandLogo } from '../../utils/brandLogos';
+
+const fallbackBrands = [
+  { name: 'Samsung', slug: 'samsung' },
+  { name: 'ASUS', slug: 'asus' },
+  { name: 'Dell', slug: 'dell' },
+  { name: 'HP', slug: 'hp' },
+  { name: 'Lenovo', slug: 'lenovo' },
+  { name: 'LG', slug: 'lg' },
+  { name: 'Logitech', slug: 'logitech' },
+  { name: 'Razer', slug: 'razer' },
+  { name: 'Corsair', slug: 'corsair' },
+  { name: 'MSI', slug: 'msi' },
+  { name: 'Intel', slug: 'intel' },
+  { name: 'AMD', slug: 'amd' },
+  { name: 'Canon', slug: 'canon' },
+  { name: 'Kingston', slug: 'kingston' },
+  { name: 'Xiaomi', slug: 'xiaomi' },
+];
 
 const Brands = () => {
+  const [brands, setBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
+  useEffect(() => {
+    const fetchBrands = async () => {
+      setLoading(true);
+      try {
+        const res = await brandService.getBrands();
+        if (res.success && Array.isArray(res.brands) && res.brands.length > 0) {
+          setBrands(res.brands);
+        } else if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setBrands(res.data);
+        } else {
+          setBrands(fallbackBrands);
+        }
+      } catch (err) {
+        console.error('Error fetching brands, using fallback list:', err);
+        setBrands(fallbackBrands);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBrands();
+  }, []);
+
   // Filter list
-  const filteredBrands = brandsData.filter(brand =>
-    brand.name.toLowerCase().includes(search.toLowerCase()) ||
-    brand.description.toLowerCase().includes(search.toLowerCase())
+  const filteredBrands = brands.filter(brand =>
+    (brand.name || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <Container className="py-12 text-left space-y-10 select-none">
+    <Container className="py-10 text-left space-y-8 font-sans select-none">
       
       {/* Breadcrumb */}
-      <nav className="text-xs text-brand-gray-400 font-semibold flex items-center space-x-2">
-        <Link to="/" className="hover:text-brand-gray-800 transition-colors">Home</Link>
+      <nav className="text-xs text-slate-400 font-semibold flex items-center space-x-2">
+        <Link to="/" className="hover:text-slate-800 transition-colors">Home</Link>
         <span>&gt;</span>
-        <span className="text-brand-gray-800 font-bold">Brands</span>
+        <span className="text-slate-900 font-bold">Brands</span>
       </nav>
 
       {/* Header Info */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 pb-6 gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-black text-brand-gray-900 uppercase tracking-tight">Brands You Trust</h1>
-          <p className="text-xs text-brand-gray-500">
-            Explore authentic technology directories straight from authorized brand partners.
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+            Explore All Brands
+          </h1>
+          <p className="text-xs text-slate-500">
+            Browse genuine hardware and electronics straight from authorized manufacturer partners.
           </p>
         </div>
 
         {/* Brand search */}
-        <div className="relative w-full md:w-64">
+        <div className="relative w-full md:w-72">
           <input
             type="text"
-            placeholder="Search brands..."
+            placeholder="Search brands (e.g. ASUS, Samsung, Dell)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-brand-light border border-brand-gray-250 pl-9 pr-4 py-2 rounded-sm text-xs focus:ring-0 focus:border-brand-accent placeholder:text-brand-gray-400"
+            className="w-full bg-[#F8FAFC] border border-slate-200 pl-9 pr-4 py-2.5 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-amber-500 transition-all placeholder:text-slate-400 font-medium"
           />
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-brand-gray-450 pointer-events-none" />
+          <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
         </div>
       </div>
 
       {/* Brands Grid */}
-      {filteredBrands.length === 0 ? (
-        <div className="py-20 text-center text-brand-gray-450 italic text-xs">No brand found.</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {filteredBrands.map((brand) => (
-            <div
-              key={brand.id}
-              className="bg-white border border-brand-gray-200 rounded-sm p-6 text-center hover:border-brand-accent transition-all duration-300 flex flex-col justify-between items-center group relative shadow-premium"
-            >
-              {/* Verified badge */}
-              {brand.verified && (
-                <span className="absolute top-3 right-3 flex items-center space-x-1 text-[9px] bg-green-50 border border-green-200 text-green-700 px-2 py-0.5 rounded font-extrabold uppercase">
-                  <CheckCircle className="w-3 h-3 shrink-0 text-green-600" />
-                  <span>Verified</span>
-                </span>
-              )}
-
-              {/* Logo / Image placeholder */}
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-brand-light flex items-center justify-center p-2 mb-4 border border-brand-gray-200 group-hover:border-brand-accent transition-colors duration-300">
-                <img
-                  src={brand.logo}
-                  alt={brand.name}
-                  className="object-cover h-full w-full rounded-full"
-                />
-              </div>
-
-              {/* Details */}
-              <div className="space-y-2 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-sm text-brand-gray-900 group-hover:text-brand-accent transition-colors">
-                    {brand.name}
-                  </h3>
-                  <p className="text-[10px] text-brand-gray-500 mt-1 leading-relaxed max-w-[200px] mx-auto font-semibold">
-                    {brand.description}
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t w-full flex justify-between items-center mt-4">
-                  <span className="text-[9px] bg-brand-light text-brand-gray-600 font-extrabold px-2 py-0.5 rounded">
-                    {brand.productCount} Products
-                  </span>
-                  <Link to={`/brands/${brand.slug}`}>
-                    <Button variant="outline" size="sm" className="text-[9px] font-bold uppercase tracking-wider flex items-center space-x-1 border-none hover:bg-transparent hover:text-brand-accent">
-                      <span>Browse</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6">
+          {Array(8).fill(0).map((_, i) => (
+            <div key={i} className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 shadow-sm animate-pulse h-56">
+              <Skeleton className="w-20 h-20 rounded-xl mx-auto" />
+              <Skeleton className="h-4 w-3/4 mx-auto" />
+              <Skeleton className="h-6 w-1/2 mx-auto rounded" />
             </div>
           ))}
+        </div>
+      ) : filteredBrands.length === 0 ? (
+        <div className="py-20 text-center text-slate-400 italic text-xs">
+          No brand found matching "{search}".
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6">
+          {filteredBrands.map((brand, idx) => {
+            const logo = getBrandLogo(brand);
+            const brandSlug = brand.slug || brand.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+            return (
+              <Link
+                key={brand.id || brand._id || idx}
+                to={`/products?brand=${brandSlug}`}
+                className="bg-white border border-slate-200/80 hover:border-amber-400/80 rounded-2xl p-6 text-center hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between items-center group relative shadow-xs min-h-[220px]"
+              >
+                {/* Brand Logo Container */}
+                <div className="w-full h-24 rounded-xl bg-[#F8FAFC] group-hover:bg-amber-50/20 flex items-center justify-center p-4 mb-4 border border-slate-100 group-hover:border-amber-400/30 transition-all duration-300">
+                  <img
+                    src={logo}
+                    alt={brand.name}
+                    className="max-h-12 max-w-[120px] object-contain filter group-hover:scale-110 transition-transform duration-300 pointer-events-none select-none"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://unpkg.com/simple-icons@v11/icons/intel.svg';
+                    }}
+                  />
+                </div>
+
+                {/* Brand Name */}
+                <h3 className="font-extrabold text-base text-slate-900 group-hover:text-amber-700 transition-colors">
+                  {brand.name}
+                </h3>
+
+                {/* Shop Now Action */}
+                <div className="pt-3 mt-2 border-t border-slate-100 w-full flex items-center justify-center">
+                  <span className="text-xs font-bold text-amber-700 group-hover:text-amber-800 flex items-center space-x-1 group-hover:translate-x-1 transition-all">
+                    <span>Shop Now</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
 

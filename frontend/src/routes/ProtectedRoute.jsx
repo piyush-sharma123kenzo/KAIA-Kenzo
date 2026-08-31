@@ -22,7 +22,13 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
 
   // Role permissions checks (e.g. BRAND or ADMIN)
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    if (user.role === 'ADMIN') {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else if (user.role === 'BRAND') {
+      return <Navigate to="/brand/dashboard" replace />;
+    } else {
+      return <Navigate to="/account" replace />;
+    }
   }
 
   return children;

@@ -237,6 +237,7 @@ export const CartProvider = ({ children }) => {
         removeFromCart,
         clearCart,
         getCartTotals,
+        cartTotals: getCartTotals(),
       }}
     >
       {children}

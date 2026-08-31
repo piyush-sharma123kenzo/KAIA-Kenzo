@@ -6,6 +6,7 @@ const brandSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
     },
     name: {
       type: String,
@@ -17,14 +18,25 @@ const brandSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
+      index: true,
     },
     logo: {
       type: String,
       default: '',
     },
+    banner: {
+      type: String,
+      default: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=80',
+    },
     description: {
       type: String,
       trim: true,
+      default: '',
+    },
+    website: {
+      type: String,
+      default: '',
     },
     contactEmail: {
       type: String,
@@ -42,15 +54,36 @@ const brandSchema = new mongoose.Schema(
       pan: { type: String, trim: true, uppercase: true },
       address: { type: String, trim: true },
     },
+    warehouseAddress: {
+      name: { type: String, default: '' },
+      phone: { type: String, default: '' },
+      addressLine1: { type: String, default: '' },
+      addressLine2: { type: String, default: '' },
+      city: { type: String, default: '' },
+      state: { type: String, default: '' },
+      postalCode: { type: String, default: '' },
+      country: { type: String, default: 'India' },
+    },
     bankDetails: {
       accountNumber: { type: String, trim: true },
       ifsc: { type: String, trim: true, uppercase: true },
       bankName: { type: String, trim: true },
     },
+    isApproved: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
     status: {
       type: String,
       enum: ['Pending', 'Under Review', 'Approved', 'Rejected', 'Suspended'],
-      default: 'Pending',
+      default: 'Approved',
+      index: true,
     },
     commissionOverride: {
       type: Number,
@@ -66,5 +99,5 @@ const brandSchema = new mongoose.Schema(
   }
 );
 
-const Brand = mongoose.model('Brand', brandSchema);
+const Brand = mongoose.models.Brand || mongoose.model('Brand', brandSchema);
 export default Brand;

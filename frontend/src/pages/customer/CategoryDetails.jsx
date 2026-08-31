@@ -1,39 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowRight, Laptop, Cpu, Smartphone, Headphones, ShieldAlert } from 'lucide-react';
-import axiosInstance from '../../api/axiosInstance';
-import { categoriesData } from '../../constants/categories';
+import categoryService from '../../services/categoryService';
+import productService from '../../services/productService';
 
 // UI components
 import Container from '../../components/ui/Container';
 import ProductGrid from '../../components/product/ProductGrid';
 import RecentlyViewed from '../../components/home/RecentlyViewed';
-import { ProductSkeleton } from '../../components/feedback/Skeleton';
+import { ProductSkeleton, Skeleton } from '../../components/feedback/Skeleton';
 
 const CategoryDetails = () => {
   const { slug } = useParams();
+  const [categoryInfo, setCategoryInfo] = useState(null);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCategory, setLoadingCategory] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
-  // Match local static category metadata
-  const categoryInfo = categoriesData.find(c => c.slug === slug);
+  // 1. Fetch Category metadata from API
+  useEffect(() => {
+    const fetchCategory = async () => {
+      setLoadingCategory(true);
+      try {
+        const res = await categoryService.getCategoryBySlug(slug);
+        if (res.success) {
+          setCategoryInfo(res.category || res.data);
+        } else {
+          setCategoryInfo(null);
+        }
+      } catch (err) {
+        console.error('Error fetching category:', err);
+        setCategoryInfo(null);
+      } finally {
+        setLoadingCategory(false);
+      }
+    };
+    fetchCategory();
+  }, [slug]);
 
+  // 2. Fetch Category products from API
   useEffect(() => {
     const fetchCategoryProducts = async () => {
-      setLoading(true);
+      setLoadingProducts(true);
       try {
-        const res = await axiosInstance.get(`/products?category=${slug}&limit=8`);
-        if (res.data.success) {
-          setProducts(res.data.products);
+        const res = await productService.getProducts({ category: slug, limit: 16 });
+        if (res.success) {
+          setProducts(res.products || []);
         }
       } catch (err) {
         console.error('Error fetching category products:', err);
       } finally {
-        setLoading(false);
+        setLoadingProducts(false);
       }
     };
     fetchCategoryProducts();
   }, [slug]);
+
+  if (loadingCategory) {
+    return (
+      <Container className="py-16 animate-pulse space-y-8">
+        <Skeleton className="h-48 w-full rounded" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          {Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)}
+        </div>
+      </Container>
+    );
+  }
 
   if (!categoryInfo) {
     return (
