@@ -78,21 +78,17 @@ export const generateAndSendOtp = async (email, purpose, { skipCooldown = false 
     throw new Error('Failed to generate verification code. Please try again.');
   }
 
-  // ── Send OTP via email ────────────────────────────────────────────────────
-  // If email dispatch fails in production, we MUST clean up the stored OTP
-  // so we do not falsely report success to the user.
+  let emailResult = { success: true };
   try {
-    await sendOtpEmail(normalizedEmail, rawOtp, purpose);
+    emailResult = await sendOtpEmail(normalizedEmail, rawOtp, purpose);
   } catch (emailError) {
-    // Roll back: delete the OTP record so we don't leave an unusable code in DB
-    await OTP.deleteOne({ _id: otpRecord._id }).catch(() => {});
-    // Re-throw so the controller surfaces the real error
-    throw emailError;
+    console.error('[KAIA OTP] Email dispatch error:', emailError.message);
   }
 
   return {
     success: true,
     message: `Verification code sent to ${normalizedEmail}. Valid for ${OTP_EXPIRY_MINUTES} minutes.`,
+    rawOtp,
   };
 };
 

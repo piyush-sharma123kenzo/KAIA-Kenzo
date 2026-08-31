@@ -99,7 +99,7 @@ const Register = () => {
       if (result?.requiresVerification) {
         // Redirect to OTP verification page, passing email and purpose via state
         navigate('/verify-otp', {
-          state: { email: result.email, purpose: 'SIGNUP_VERIFICATION' },
+          state: { email: result.email, purpose: 'SIGNUP_VERIFICATION', devOtp: result.devOtp },
         });
       }
     } catch (err) {

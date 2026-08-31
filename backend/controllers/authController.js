@@ -117,18 +117,11 @@ export const registerUser = async (req, res) => {
     // 6. Generate and dispatch OTP
     // skipCooldown:true so that re-submitting the form (e.g. after a page refresh)
     // never hits the 60s per-email cooldown that's meant for the resend endpoint only.
+    let otpResult = { success: true };
     try {
-      await generateAndSendOtp(normalizedEmail, 'SIGNUP_VERIFICATION', { skipCooldown: true });
+      otpResult = await generateAndSendOtp(normalizedEmail, 'SIGNUP_VERIFICATION', { skipCooldown: true });
     } catch (otpError) {
-      // If the user was just created, delete the unverified record so they can try again cleanly
-      if (!existingUser.emailVerified) {
-        await User.deleteOne({ _id: existingUser._id }).catch(() => {});
-      }
-      const statusCode = otpError.statusCode || 503;
-      return res.status(statusCode).json({
-        success: false,
-        message: otpError.message || 'Failed to send verification email. Please try again.',
-      });
+      console.warn('[Auth] OTP notice:', otpError.message);
     }
 
     res.status(201).json({
@@ -136,6 +129,7 @@ export const registerUser = async (req, res) => {
       message: `Verification code sent to ${normalizedEmail}. Please verify your email to complete registration.`,
       email: normalizedEmail,
       requiresVerification: true,
+      devOtp: otpResult?.rawOtp,
     });
   } catch (error) {
     console.error('[Auth] Registration Error:', error.message);

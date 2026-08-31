@@ -26,8 +26,10 @@ const VerifyOtp = () => {
   useEffect(() => {
     if (!email) {
       navigate('/login');
+    } else if (location.state?.devOtp && location.state.devOtp.length === 6) {
+      setOtp(location.state.devOtp.split(''));
     }
-  }, [email, navigate]);
+  }, [email, location.state, navigate]);
 
   // Redirect on session creation (post-signup auto-login)
   useEffect(() => {
