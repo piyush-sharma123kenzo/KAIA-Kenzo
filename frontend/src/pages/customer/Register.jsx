@@ -96,12 +96,12 @@ const Register = () => {
     setLoading(true);
     try {
       const result = await register(name.trim(), email.trim(), password, confirmPassword, 'CUSTOMER', phone.trim());
-      if (result?.user || result?.success) {
-        navigate('/account');
-      } else if (result?.requiresVerification) {
+      if (result?.requiresVerification) {
         navigate('/verify-otp', {
-          state: { email: result.email, purpose: 'SIGNUP_VERIFICATION', devOtp: result.devOtp },
+          state: { email: result.email, purpose: 'SIGNUP_VERIFICATION' },
         });
+      } else if (result?.user) {
+        navigate('/account');
       }
     } catch (err) {
       // Error is displayed via context error state

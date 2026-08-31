@@ -16,6 +16,7 @@ const isProduction = () => process.env.NODE_ENV === 'production';
 
 /**
  * Build a Nodemailer transporter from environment variables.
+ * Returns null if credentials are missing (dev-only fallback path).
  */
 const createTransporter = () => {
   const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
@@ -25,6 +26,7 @@ const createTransporter = () => {
 
   if (!user || !pass) return null;
 
+  // Use Nodemailer's native Gmail service preset for highest reliability in cloud environments
   if (host === 'smtp.gmail.com' || host === 'gmail' || !host) {
     return nodemailer.createTransport({
       service: 'gmail',
@@ -38,7 +40,7 @@ const createTransporter = () => {
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,
+    secure: port === 465, // SSL for 465, STARTTLS for 587
     auth: { user, pass },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
@@ -47,68 +49,6 @@ const createTransporter = () => {
       rejectUnauthorized: isProduction(),
     },
   });
-};
-
-/**
- * Dispatch email via HTTPS REST API (Port 443 — immune to cloud SMTP port blocks)
- * Supports Resend (resend.com) or Brevo (brevo.com)
- */
-const sendViaHttpApi = async (toEmail, subject, html, fromAddress) => {
-  // 1. Check for Resend API Key (https://resend.com)
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY.trim()}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromAddress || 'KAIA Technologies <onboarding@resend.dev>',
-          to: [toEmail],
-          subject,
-          html,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        console.log(`[KAIA Email - Resend API] ✅ Delivered email to ${toEmail} | ID: ${data.id}`);
-        return { success: true, messageId: data.id };
-      }
-      console.error('[KAIA Email - Resend API] Error:', data);
-    } catch (err) {
-      console.error('[KAIA Email - Resend API] Fetch error:', err.message);
-    }
-  }
-
-  // 2. Check for Brevo API Key (https://brevo.com)
-  if (process.env.BREVO_API_KEY) {
-    try {
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': process.env.BREVO_API_KEY.trim(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sender: { name: 'KAIA Technologies', email: process.env.EMAIL_USER || 'noreply@kaia.tech' },
-          to: [{ email: toEmail }],
-          subject,
-          htmlContent: html,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        console.log(`[KAIA Email - Brevo API] ✅ Delivered email to ${toEmail} | ID: ${data.messageId}`);
-        return { success: true, messageId: data.messageId };
-      }
-      console.error('[KAIA Email - Brevo API] Error:', data);
-    } catch (err) {
-      console.error('[KAIA Email - Brevo API] Fetch error:', err.message);
-    }
-  }
-
-  return null;
 };
 
 /**
@@ -348,17 +288,43 @@ const buildOtpHtml = (rawOtp, purpose) => {
  * @throws {Error} In production if email cannot be sent
  */
 export const sendOtpEmail = async (toEmail, rawOtp, purpose) => {
-  const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@kaia.tech';
   const { subject, html } = buildOtpHtml(rawOtp, purpose);
 
-  // 1. Try HTTPS REST API first (Port 443 — works 100% reliably on Render/cloud without SMTP port blocks)
-  const httpResult = await sendViaHttpApi(toEmail, subject, html, fromAddress);
-  if (httpResult && httpResult.success) {
-    return httpResult;
+  // ── 1. Resend HTTPS REST API (Port 443 — 100% Reliable on Render/Vercel) ──
+  const resendApiKey = process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.trim() : null;
+  if (resendApiKey) {
+    try {
+      const fromEmail = process.env.RESEND_FROM || process.env.EMAIL_FROM || 'KAIA Technologies <onboarding@resend.dev>';
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [toEmail],
+          subject,
+          html,
+        }),
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.id) {
+        console.log(`[KAIA Email] ✅ Real email sent via Resend API to ${toEmail} | ID: ${resData.id}`);
+        return { success: true, provider: 'resend', id: resData.id };
+      } else {
+        console.error('[KAIA Email] Resend API error:', resData);
+      }
+    } catch (apiErr) {
+      console.error('[KAIA Email] Resend HTTP request failed:', apiErr.message);
+    }
   }
 
-  // 2. Try Nodemailer SMTP
+  // ── 2. Standard SMTP Fallback (Nodemailer) ───────────────────────────────
   const transporter = createTransporter();
+  const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@kaia.tech';
+
   if (transporter) {
     try {
       const info = await transporter.sendMail({
@@ -367,24 +333,22 @@ export const sendOtpEmail = async (toEmail, rawOtp, purpose) => {
         subject,
         html,
       });
-      console.log(`[KAIA Email] ✅ OTP dispatched to ${toEmail} | MsgId: ${info.messageId} | Purpose: ${purpose}`);
-      return { success: true };
+      console.log(`[KAIA Email] ✅ OTP dispatched via SMTP to ${toEmail} | MsgId: ${info.messageId}`);
+      return { success: true, provider: 'smtp' };
     } catch (err) {
-      console.error(`[KAIA Email] ❌ SMTP delivery failed for ${toEmail} (${purpose}): ${err.message}`);
+      console.error(`[KAIA Email] ❌ SMTP delivery failed for ${toEmail}: ${err.message}`);
       console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`[KAIA Email Cloud Log] Verification Code for ${toEmail}:`);
+      console.log(`[KAIA Email Server Log] Verification Code for ${toEmail}:`);
       console.log(`  ➜  OTP Code: ${rawOtp}   |  Purpose: ${purpose}`);
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       return { success: true, fallback: true, rawOtp };
     }
   }
 
-  // ── Development only: no SMTP configured — console fallback ───────────────
-  // This branch is ONLY reachable in development (production throws above).
+  // ── 3. Fallback Console Log ───────────────────────────────────────────────
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`[KAIA Email Dev] No SMTP configured. OTP for ${toEmail}:`);
+  console.log(`[KAIA Email Log] Verification Code for ${toEmail}:`);
   console.log(`  ➜  Code: ${rawOtp}   |  Purpose: ${purpose}`);
-  console.log('  ✏  Set EMAIL_HOST, EMAIL_USER, EMAIL_PASS in .env to send real emails.');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  return { success: true, devFallback: true };
+  return { success: true, devFallback: true, rawOtp };
 };

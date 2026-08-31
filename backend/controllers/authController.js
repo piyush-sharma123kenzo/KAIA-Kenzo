@@ -114,17 +114,15 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Auto-verify and log in customer immediately for seamless friction-free onboarding
-    existingUser.emailVerified = true;
-    existingUser.status = 'Active';
-    await existingUser.save();
+    // 6. Generate and dispatch OTP via Resend / SMTP
+    const otpResult = await generateAndSendOtp(normalizedEmail, 'SIGNUP_VERIFICATION', { skipCooldown: true });
 
-    // Optionally dispatch welcome OTP in background without blocking signup
-    generateAndSendOtp(normalizedEmail, 'SIGNUP_VERIFICATION', { skipCooldown: true }).catch((e) => {
-      console.log('[Auth] Background email notification notice:', e.message);
+    return res.status(201).json({
+      success: true,
+      message: `Verification code sent to ${normalizedEmail}. Please verify your email to complete registration.`,
+      email: normalizedEmail,
+      requiresVerification: true,
     });
-
-    return sendTokenResponse(existingUser, 201, res);
   } catch (error) {
     console.error('[Auth] Registration Error:', error.message);
     res.status(500).json({ success: false, message: 'Server error during registration. Please try again.' });
