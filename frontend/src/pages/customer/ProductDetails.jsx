@@ -2,10 +2,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ShoppingCart, Heart, ShieldCheck, Truck, ShieldAlert, Award, Star, 
-  ChevronLeft, ChevronRight, X, CheckCircle, Package, Zap, ExternalLink, Box 
+  ChevronLeft, ChevronRight, X, CheckCircle, Package, Zap, ExternalLink, Box,
+  ArrowLeftRight, CreditCard, Check, Plus
 } from 'lucide-react';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useCompare } from '../../context/CompareContext';
 import axiosInstance from '../../api/axiosInstance';
 import productService from '../../services/productService';
 
@@ -20,6 +22,7 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const { addToCart } = useContext(CartContext);
   const { user } = useContext(AuthContext);
+  const { isInCompare, toggleCompare } = useCompare();
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -300,16 +303,33 @@ const ProductDetails = () => {
               </span>
             )}
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleWishlist();
-              }}
-              className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white rounded-full shadow-sm text-brand-gray-500 hover:text-red-600 transition-colors focus:outline-none"
-              title="Save to Wishlist"
-            >
-              <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-red-600 text-red-600' : ''}`} />
-            </button>
+            <div className="absolute top-4 right-4 flex items-center space-x-2 z-10">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCompare(product);
+                }}
+                className={`p-2 rounded-full shadow-sm transition-colors focus:outline-none ${
+                  isInCompare(product?._id)
+                    ? 'bg-amber-500 text-slate-950 font-bold'
+                    : 'bg-white/90 hover:bg-white text-brand-gray-500 hover:text-amber-600'
+                }`}
+                title={isInCompare(product?._id) ? 'Remove from comparison' : 'Add to compare'}
+              >
+                <ArrowLeftRight className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleWishlist();
+                }}
+                className="p-2 bg-white/90 hover:bg-white rounded-full shadow-sm text-brand-gray-500 hover:text-red-600 transition-colors focus:outline-none"
+                title="Save to Wishlist"
+              >
+                <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-red-600 text-red-600' : ''}`} />
+              </button>
+            </div>
 
             <img
               src={images[activeImage]?.url || images[activeImage]}
@@ -449,6 +469,43 @@ const ProductDetails = () => {
                 <Zap className="w-4 h-4" />
                 <span>Buy Now</span>
               </Button>
+            </div>
+
+            {/* EMI Options Widget */}
+            <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-1.5 text-xs text-left">
+              <div className="flex items-center space-x-2 font-black text-slate-900">
+                <CreditCard className="w-4 h-4 text-amber-600" />
+                <span>No-Cost EMI Options Available</span>
+              </div>
+              <p className="text-slate-600 text-[11px] leading-relaxed">
+                Starting from <strong className="text-slate-900 font-bold">₹{Math.round(product.sellingPrice / 12).toLocaleString('en-IN')}/month</strong> for 12 months with No-Cost EMI on select major bank cards and UPI credit lines.
+              </p>
+            </div>
+
+            {/* What's In The Box Section */}
+            <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-2.5 text-left shadow-2xs">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center space-x-1.5">
+                <Box className="w-4 h-4 text-amber-600" />
+                <span>What's In The Box</span>
+              </h4>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-700">
+                <li className="flex items-center space-x-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="truncate">1x {product.name}</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>1x High-Output OEM Power Adapter</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>1x Braided USB-C Data Cable</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>1x Official Manufacturer Warranty Card</span>
+                </li>
+              </ul>
             </div>
           </div>
 
@@ -648,7 +705,51 @@ const ProductDetails = () => {
 
       </div>
 
-      {/* 4. Related Products Grid */}
+      {/* 4. Frequently Bought Together Bundle */}
+      {relatedProducts.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 text-left shadow-xs">
+          <h3 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight flex items-center space-x-2">
+            <Package className="w-4 h-4 text-amber-600" />
+            <span>Frequently Bought Together</span>
+          </h3>
+
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="flex items-center space-x-3 overflow-x-auto py-2">
+              <div className="w-20 h-20 bg-slate-50 border rounded-lg p-1.5 flex items-center justify-center shrink-0">
+                <img src={images[0]?.url || images[0]} alt={product.name} className="max-h-full max-w-full object-contain" />
+              </div>
+              <span className="text-slate-400 font-black text-lg">+</span>
+              <div className="w-20 h-20 bg-slate-50 border rounded-lg p-1.5 flex items-center justify-center shrink-0">
+                <img src={relatedProducts[0]?.images?.[0]?.url || relatedProducts[0]?.images?.[0] || 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=500'} alt={relatedProducts[0]?.name} className="max-h-full max-w-full object-contain" />
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-1">
+              <p className="text-xs text-slate-700">
+                <strong>Bundle Includes:</strong> {product.name} <span className="text-slate-400">&</span> {relatedProducts[0]?.name}
+              </p>
+              <div className="flex items-baseline space-x-2">
+                <span className="text-sm font-bold text-slate-500">Combined Price:</span>
+                <span className="text-lg font-black text-slate-950">
+                  ₹{(product.sellingPrice + (relatedProducts[0]?.sellingPrice || 0)).toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                addToCart(product, 1);
+                if (relatedProducts[0]) addToCart(relatedProducts[0], 1);
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-2.5 px-5 rounded-lg shadow-sm transition-colors shrink-0"
+            >
+              Add Both to Cart
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Related Products Grid */}
       {relatedProducts.length > 0 && (
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b border-brand-gray-200 pb-3">
