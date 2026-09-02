@@ -13,6 +13,7 @@ out/
 .parcel-cache/
 .tmp/
 .tsbuildinfo
+uploads/
 
 # Environmental variables and secrets
 .env

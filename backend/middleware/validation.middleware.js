@@ -1,1 +1,0 @@
-export const validationMiddleware = (schema) => (req, res, next) => next();

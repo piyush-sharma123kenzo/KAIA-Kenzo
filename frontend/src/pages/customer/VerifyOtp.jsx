@@ -129,12 +129,17 @@ const VerifyOtp = () => {
     setResending(true);
     setError('');
     try {
-      await resendOtp(email, purpose);
+      const res = await resendOtp(email, purpose);
       setSuccess('New verification code sent to your email.');
       setCooldown(RESEND_COOLDOWN);
       setCanResend(false);
-      setOtp(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
+      if (res?.devOtp && res.devOtp.length === 6) {
+        setOtp(res.devOtp.split(''));
+        inputRefs.current[5]?.focus();
+      } else {
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
     } catch (err) {
       setError(err.message || 'Failed to resend OTP. Please try again.');
     } finally {

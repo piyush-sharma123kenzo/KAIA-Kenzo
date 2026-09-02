@@ -1,42 +1,61 @@
+/**
+ * KAIA Technologies — Authentication & Role Authorization Middleware
+ * 
+ * Middleware functions:
+ *  - protect / authenticateUser: Validates JWT token from cookies or Bearer Authorization header
+ *  - authorize / authorizeRoles: Validates user role matches allowed roles (e.g. 'CUSTOMER', 'BRAND', 'ADMIN')
+ *  - checkBrandApproval: Verifies brand partner status is 'Approved' before granting seller dashboard access
+ */
+
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Brand from '../models/Brand.js';
+import { getJwtSecret } from '../utils/jwt.utils.js';
 
+/**
+ * Protect routes by verifying JWT in cookies or Authorization header.
+ * Attaches authenticated user object to `req.user`.
+ */
 export const protect = async (req, res, next) => {
   let token;
 
-  // Read token from HTTP-only cookie
+  // 1. Read token from HTTP-only cookie
   if (req.cookies && req.cookies.token) {
     token = req.cookies.token;
   }
-  // Fallback to Bearer token header if needed
+  // 2. Fallback to Bearer token header if present
   else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
   }
 
-  if (!token) {
+  if (!token || token === 'none') {
     return res.status(401).json({ message: 'Not authorized, no token provided' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkeyfor_kaia_technologies_2026');
+    const secret = getJwtSecret();
+    const decoded = jwt.verify(token, secret);
     req.user = await User.findById(decoded.id).select('-password');
+
     if (!req.user) {
-      return res.status(401).json({ message: 'User no longer exists' });
+      return res.status(401).json({ message: 'User account no longer exists' });
     }
 
     if (req.user.status === 'Suspended') {
-      return res.status(403).json({ message: 'Your account is suspended' });
+      return res.status(403).json({ message: 'Your account has been suspended' });
     }
 
     next();
   } catch (error) {
-    console.error('JWT Verification Error:', error);
-    return res.status(401).json({ message: 'Not authorized, token failed' });
+    console.error('[KAIA Auth Middleware] JWT Verification Error:', error.message);
+    return res.status(401).json({ message: 'Not authorized, token invalid or expired' });
   }
 };
 
-// Middleware to authorize specific roles
+/**
+ * Authorize specific user roles (e.g. ADMIN, BRAND, CUSTOMER).
+ * @param  {...string} roles
+ */
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
@@ -48,7 +67,10 @@ export const authorize = (...roles) => {
   };
 };
 
-// Middleware to attach brand data to request if role is BRAND
+/**
+ * Verify that a brand partner's store application is Approved.
+ * Attaches the brand entity to `req.brand`.
+ */
 export const checkBrandApproval = async (req, res, next) => {
   if (req.user.role !== 'BRAND') {
     return res.status(403).json({ message: 'Only brand partners can access this resource' });
@@ -70,7 +92,19 @@ export const checkBrandApproval = async (req, res, next) => {
     req.brand = brand;
     next();
   } catch (error) {
-    console.error('Brand verification middleware error:', error);
+    console.error('[KAIA Auth Middleware] Brand verification error:', error.message);
     return res.status(500).json({ message: 'Error checking brand approval status' });
   }
+};
+
+// Aliases for clear semantic readability
+export const authenticateUser = protect;
+export const authorizeRoles = authorize;
+
+export default {
+  protect,
+  authenticateUser,
+  authorize,
+  authorizeRoles,
+  checkBrandApproval,
 };

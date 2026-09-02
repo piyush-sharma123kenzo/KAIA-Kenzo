@@ -12,6 +12,8 @@ const ForgotPassword = () => {
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
 
+  const [sentResult, setSentResult] = useState(null);
+
   useEffect(() => { clearError(); }, []);
 
   const handleSubmit = async (e) => {
@@ -23,7 +25,8 @@ const ForgotPassword = () => {
 
     setLoading(true);
     try {
-      await forgotPassword(trimmedEmail);
+      const res = await forgotPassword(trimmedEmail);
+      setSentResult(res);
       setSent(true);
     } catch (err) {
       setError(err.message || 'Failed to send OTP. Please try again.');
@@ -34,7 +37,11 @@ const ForgotPassword = () => {
 
   const handleContinueToOtp = () => {
     navigate('/verify-otp', {
-      state: { email: email.trim().toLowerCase(), purpose: 'PASSWORD_RESET' },
+      state: {
+        email: email.trim().toLowerCase(),
+        purpose: 'PASSWORD_RESET',
+        devOtp: sentResult?.devOtp,
+      },
     });
   };
 
