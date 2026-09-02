@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext } from 'react';
 import { X, CheckCircle, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 
-const ToastContext = createContext(null);
+export const ToastContext = createContext(null);
 
 export const useToast = () => {
   const context = useContext(ToastContext);

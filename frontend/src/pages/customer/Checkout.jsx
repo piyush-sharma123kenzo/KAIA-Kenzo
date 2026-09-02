@@ -8,6 +8,7 @@ import {
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { useLocationContext } from '../../context/LocationContext';
+import { useToast } from '../../context/ToastContext';
 import axiosInstance from '../../api/axiosInstance';
 import Container from '../../components/ui/Container';
 import Button from '../../components/ui/Button';
@@ -19,6 +20,7 @@ const Checkout = () => {
   const location = useLocation();
   const { user } = useContext(AuthContext);
   const { cart, getCartTotals, clearCart } = useContext(CartContext);
+  const toast = useToast();
   const { 
     deliveryLocation, 
     savedAddresses, 
@@ -97,7 +99,7 @@ const Checkout = () => {
   const handleAddNewAddress = async (e) => {
     e.preventDefault();
     if (!newAddress.fullName || !newAddress.addressLine1 || !newAddress.city || !newAddress.state || !newAddress.postalCode) {
-      alert('Please fill out all required address fields.');
+      toast.showToast('Please fill out all required address fields.', 'warning');
       return;
     }
 
@@ -118,7 +120,7 @@ const Checkout = () => {
         isDefault: false
       });
     } catch (err) {
-      alert(err.message || 'Error saving address.');
+      toast.showToast(err.message || 'Error saving address.', 'error');
     }
   };
 
@@ -126,7 +128,7 @@ const Checkout = () => {
     e.preventDefault();
     const currentAddr = savedAddresses[selectedAddressIndex] || deliveryLocation;
     if (!currentAddr || (!currentAddr.addressLine1 && !currentAddr.street)) {
-      alert('Please select or configure a delivery address.');
+      toast.showToast('Please select or configure a delivery address.', 'warning');
       return;
     }
     selectDeliveryAddress(currentAddr);
@@ -201,7 +203,7 @@ const Checkout = () => {
         setStep(4);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error creating order draft.');
+      toast.showToast(err.response?.data?.message || 'Error creating order draft.', 'error');
     } finally {
       setLoading(false);
     }
@@ -224,7 +226,7 @@ const Checkout = () => {
           });
         }
       } catch (err) {
-        alert(err.response?.data?.message || 'Error processing Cash on Delivery order.');
+        toast.showToast(err.response?.data?.message || 'Error processing Cash on Delivery order.', 'error');
       } finally {
         setPaymentProcessing(false);
       }

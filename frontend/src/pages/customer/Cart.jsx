@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, ShoppingBag, Plus, Minus, ArrowRight, ShieldCheck, Ticket, Heart } from 'lucide-react';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import axiosInstance from '../../api/axiosInstance';
 import Container from '../../components/ui/Container';
 import Button from '../../components/ui/Button';
@@ -11,6 +12,7 @@ const Cart = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const { cart, updateQuantity, removeFromCart, getCartTotals } = useContext(CartContext);
+  const toast = useToast();
 
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
@@ -90,7 +92,7 @@ const Cart = () => {
       }
       // Remove from cart
       await removeFromCart(item.product._id, item.selectedSpecs);
-      alert('Item moved to Wishlist.');
+      toast.showToast('Item moved to Wishlist.', 'success');
     } catch (err) {
       console.error('Error moving to wishlist:', err);
     }
@@ -214,7 +216,7 @@ const Cart = () => {
                             <button
                               onClick={() => {
                                 removeFromCart(prod._id, item.selectedSpecs);
-                                alert('Item removed from cart.');
+                                toast.showToast('Item removed from cart.', 'info');
                               }}
                               className="p-1.5 text-brand-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                               title="Remove item"

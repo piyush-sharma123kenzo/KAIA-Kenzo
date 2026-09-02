@@ -3,11 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, ShoppingCart, MapPin, Menu, X, ChevronDown, 
   User, ShieldCheck, Heart, Building2, Package, ExternalLink,
-  Navigation, Check
+  Navigation, Check, ArrowLeftRight, LogOut, Sparkles, Award, ShoppingBag, ChevronRight
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
 import { useLocationContext } from '../../context/LocationContext';
+import { useCompare } from '../../context/CompareContext';
 import categoryService from '../../services/categoryService';
 import productService from '../../services/productService';
 import Drawer from '../common/Drawer';
@@ -17,6 +18,7 @@ const Header = () => {
   const { user, logout } = useContext(AuthContext) || {};
   const { cart, cartTotals } = useContext(CartContext) || {};
   const { deliveryLocation, openLocationModal } = useLocationContext();
+  const { compareCount = 0 } = useCompare() || {};
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -265,67 +267,204 @@ const Header = () => {
             onMouseEnter={() => setAccountDropdown(true)}
             onMouseLeave={() => setAccountDropdown(false)}
           >
-            <Link to={user ? '/account' : '/login'} className="flex items-center space-x-1 py-1">
-              <span className="text-xs md:text-sm font-bold text-white block leading-none">
-                {user ? 'Account' : 'Sign In'}
+            <Link to={user ? '/account' : '/login'} className="flex flex-col justify-center py-1">
+              <span className="text-[11px] text-brand-gray-300 font-normal block leading-none truncate max-w-[110px]">
+                Hello, {user ? user.name?.split(' ')[0] || 'Member' : 'Sign In'}
               </span>
-              <ChevronDown className="w-3 h-3 text-brand-gray-400" />
+              <div className="flex items-center space-x-0.5 mt-0.5">
+                <span className="text-xs font-bold text-white block leading-none">
+                  {user ? 'Account & Lists' : 'Accounts & Orders'}
+                </span>
+                <ChevronDown className="w-3 h-3 text-brand-gray-400" />
+              </div>
             </Link>
 
             {/* Hover Account Dropdown Menu */}
             {accountDropdown && (
-              <div className="absolute right-0 top-full pt-1 w-64 z-50">
-                <div className="bg-white text-amz-bodyInk rounded-sm shadow-2xl border border-amz-borderGray p-4 space-y-3">
+              <div className="absolute right-0 top-full pt-2 w-80 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="bg-white text-slate-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.22)] border border-slate-200/90 overflow-hidden ring-1 ring-black/5 text-left">
+                  
+                  {/* If user not signed in */}
                   {!user ? (
-                    <div className="text-center pb-3 border-b border-amz-borderLight space-y-1.5">
+                    <div className="p-5 space-y-4">
+                      <div className="text-center space-y-2">
+                        <h4 className="font-black text-sm text-slate-900 tracking-tight">
+                          Welcome to KAIA Technologies
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          Sign in to manage technology orders, compare hardware, and access verified invoices.
+                        </p>
+                      </div>
+
                       <Link to="/login" className="block w-full">
-                        <button className="amz-btn-yellow w-full font-bold py-1.5">
-                          Sign In
+                        <button className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-2.5 px-4 rounded-xl shadow-xs transition-colors text-xs flex items-center justify-center space-x-1.5">
+                          <span>Sign In to Your Account</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
                         </button>
                       </Link>
-                      <p className="text-[11px] text-amz-secText">
-                        New customer? <Link to="/register" className="text-amz-linkBlue hover:underline">Start here.</Link>
-                      </p>
+
+                      <div className="text-center text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                        New to KAIA?{' '}
+                        <Link to="/register" className="text-amber-700 font-bold hover:underline">
+                          Create an Account
+                        </Link>
+                      </div>
                     </div>
                   ) : (
-                    <div className="pb-2 border-b border-amz-borderLight">
-                      <p className="text-[11px] text-amz-secText">Signed in as</p>
-                      <p className="font-bold text-amz-bodyInk truncate">{user.name || user.email}</p>
-                    </div>
+                    <>
+                      {/* User Identity Header Card */}
+                      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-850 text-white p-4.5 border-b border-slate-800">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 font-black flex items-center justify-center text-sm shadow-md ring-2 ring-white/20 shrink-0">
+                            {(user.name || user.email).charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center space-x-1.5">
+                              <span className="font-extrabold text-sm text-white truncate block">
+                                {user.name || 'Piyush Sharma'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 truncate font-mono">
+                              {user.email}
+                            </p>
+                            <div className="mt-1 flex items-center space-x-1.5">
+                              <span className="inline-flex items-center text-[9px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 px-1.5 py-0.2 rounded">
+                                {user.role === 'ADMIN' ? 'Admin Central' : user.role === 'BRAND' ? 'Brand Seller' : 'Verified Member'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* KAIA Club Mini Banner */}
+                        <Link
+                          to="/account?tab=rewards"
+                          className="mt-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl p-2.5 flex items-center justify-between text-xs transition-colors group"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-slate-300 text-[11px] font-medium">KAIA Loyalty Club</span>
+                          </div>
+                          <div className="flex items-center space-x-1 text-amber-300 font-black text-xs group-hover:translate-x-0.5 transition-transform">
+                            <span>1,250 Pts</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </div>
+                        </Link>
+                      </div>
+
+                      {/* Primary Navigation Links */}
+                      <div className="p-3 space-y-1 text-xs">
+                        <div className="px-2 pt-1 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          Your Account & Tech Hub
+                        </div>
+
+                        <Link
+                          to="/account"
+                          className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                        >
+                          <User className="w-4 h-4 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                          <span className="flex-1">Account Overview</span>
+                          <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-slate-500" />
+                        </Link>
+
+                        <Link
+                          to="/orders"
+                          className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                        >
+                          <ShoppingBag className="w-4 h-4 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                          <span className="flex-1">Your Orders & Invoices</span>
+                          <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-slate-500" />
+                        </Link>
+
+                        <Link
+                          to="/account/wishlist"
+                          className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                        >
+                          <Heart className="w-4 h-4 text-slate-400 group-hover:text-rose-600 transition-colors" />
+                          <span className="flex-1">Saved Wishlist</span>
+                          <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-slate-500" />
+                        </Link>
+
+                        <Link
+                          to="/compare"
+                          className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                        >
+                          <ArrowLeftRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                          <span className="flex-1">Compare Hardware</span>
+                          {compareCount > 0 ? (
+                            <span className="bg-amber-400 text-slate-950 font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                              {compareCount}
+                            </span>
+                          ) : (
+                            <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-slate-500" />
+                          )}
+                        </Link>
+
+                        <Link
+                          to="/account?tab=warranties"
+                          className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                        >
+                          <Award className="w-4 h-4 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                          <span className="flex-1">Hardware Warranties</span>
+                          <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-slate-500" />
+                        </Link>
+
+                        <Link
+                          to="/account?tab=addresses"
+                          className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                        >
+                          <MapPin className="w-4 h-4 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                          <span className="flex-1">Saved Delivery Addresses</span>
+                          <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-slate-500" />
+                        </Link>
+                      </div>
+
+                      {/* Management Consoles (Role-based) */}
+                      {(user?.role === 'ADMIN' || user?.role === 'BRAND') && (
+                        <div className="p-3 pt-0 space-y-1 border-t border-slate-100">
+                          <div className="px-2 pt-2 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                            Management Consoles
+                          </div>
+
+                          {user?.role === 'ADMIN' && (
+                            <Link
+                              to="/admin/dashboard"
+                              className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-indigo-700 hover:text-indigo-950 bg-indigo-50/70 hover:bg-indigo-100/70 transition-colors group font-bold text-xs"
+                            >
+                              <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                              <span className="flex-1">Admin Central Console</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />
+                            </Link>
+                          )}
+
+                          {user?.role === 'BRAND' && (
+                            <Link
+                              to="/brand/dashboard"
+                              className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100/70 transition-colors group font-bold text-xs"
+                            >
+                              <Building2 className="w-4 h-4 text-amber-700" />
+                              <span className="flex-1">Brand Seller Portal</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-amber-500" />
+                            </Link>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Sign Out Action */}
+                      <div className="p-3 border-t border-slate-100 bg-slate-50/70 rounded-b-2xl">
+                        <button
+                          onClick={logout}
+                          className="w-full flex items-center justify-between px-3 py-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors font-bold group"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out of Account</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 group-hover:text-rose-500 font-mono">Secure</span>
+                        </button>
+                      </div>
+                    </>
                   )}
 
-                  <div className="space-y-1 text-xs font-normal">
-                    <h5 className="font-bold text-xs uppercase text-amz-bodyInk mb-1">Your Account</h5>
-                    <Link to="/account" className="block py-1 hover:text-amz-orange hover:underline">Your Account Profile</Link>
-                    <Link to="/orders" className="block py-1 hover:text-amz-orange hover:underline">Your Orders & Invoices</Link>
-                    <Link to="/account?tab=warranties" className="block py-1 hover:text-amz-orange hover:underline">Your Warranties</Link>
-                    <Link to="/account?tab=addresses" className="block py-1 hover:text-amz-orange hover:underline">Your Addresses</Link>
-                  </div>
-
-                  <div className="pt-2 border-t border-amz-borderLight space-y-1 text-xs">
-                    <h5 className="font-bold text-xs uppercase text-amz-bodyInk mb-1">Management Consoles</h5>
-                    {user?.role === 'BRAND' && (
-                      <Link to="/brand/dashboard" className="block py-1 font-bold text-amz-orange hover:underline">
-                        Brand Seller Dashboard ›
-                      </Link>
-                    )}
-                    {user?.role === 'ADMIN' && (
-                      <Link to="/admin/dashboard" className="block py-1 font-bold text-indigo-700 hover:underline">
-                        Admin Central Console ›
-                      </Link>
-                    )}
-                  </div>
-
-                  {user && (
-                    <div className="pt-2 border-t border-amz-borderLight">
-                      <button
-                        onClick={logout}
-                        className="w-full text-left py-1 text-xs text-red-600 hover:underline font-semibold"
-                      >
-                        Sign Out
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -339,6 +478,23 @@ const Header = () => {
           >
             <span className="text-[11px] text-brand-gray-300 font-normal block leading-none">Returns</span>
             <span className="text-xs font-bold text-white block mt-0.5 leading-none">& Orders</span>
+          </Link>
+
+          {/* 6b. Compare Counter */}
+          <Link
+            to="/compare"
+            className="amz-nav-item px-2 py-1 flex items-center space-x-1 shrink-0 relative"
+            title="Compare Products"
+          >
+            <div className="relative flex items-center">
+              <ArrowLeftRight className="w-5 h-5 text-white" />
+              {compareCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-amber-400 text-slate-950 font-black text-[10px] rounded-full px-1 min-w-[16px] text-center leading-tight shadow-xs">
+                  {compareCount}
+                </span>
+              )}
+            </div>
+            <span className="text-xs font-bold text-white hidden xl:inline ml-1">Compare</span>
           </Link>
 
           {/* 7. Cart Counter */}
@@ -391,6 +547,9 @@ const Header = () => {
             </Link>
             <Link to="/best-sellers" className="amz-nav-item px-2 py-1 text-white font-normal hover:text-white">
               Best Sellers
+            </Link>
+            <Link to="/compare" className="amz-nav-item px-2 py-1 text-amber-300 font-semibold hover:text-amber-200">
+              Compare {compareCount > 0 ? `(${compareCount})` : ''}
             </Link>
             <Link to="/categories" className="amz-nav-item px-2 py-1 text-white font-normal hover:text-white">
               Departments

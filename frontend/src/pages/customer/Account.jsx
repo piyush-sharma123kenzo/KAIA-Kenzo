@@ -4,10 +4,11 @@ import {
   User, ShoppingBag, Award, Landmark, ShieldCheck, Download, Truck, 
   ExternalLink, FileText, MapPin, Heart, Lock, Trash2, Plus, AlertCircle, 
   RotateCcw, MessageSquare, Bell, Star, CheckCircle, Edit, ChevronRight, QrCode,
-  Package, Clock, CheckCircle2, ArrowRight
+  Package, Clock, CheckCircle2, ArrowRight, Sparkles, Gift, Zap
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
 import axiosInstance from '../../api/axiosInstance';
 import { Skeleton } from '../../components/feedback/Skeleton';
 import Badge from '../../components/ui/Badge';
@@ -18,6 +19,7 @@ import EmptyState from '../../components/ui/EmptyState';
 const Account = () => {
   const { user, updateProfile, logout } = useContext(AuthContext);
   const { addToCart } = useContext(CartContext);
+  const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'overview';
 
@@ -99,6 +101,7 @@ const Account = () => {
     { id: 'invoices', name: 'Tax Invoices', icon: FileText },
     { id: 'reviews', name: 'My Reviews', icon: MessageSquare },
     { id: 'wishlist', name: 'My Wishlist', icon: Heart },
+    { id: 'rewards', name: 'KAIA Club Rewards', icon: Sparkles },
     { id: 'addresses', name: 'Saved Addresses', icon: MapPin },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'profile', name: 'Profile Settings', icon: User },
@@ -303,7 +306,7 @@ const Account = () => {
         setAddressForm({ name: '', phone: '', addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '', country: 'India', label: 'Home', isDefault: false });
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error saving address.');
+      toast.showToast(err.response?.data?.message || 'Error saving address.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -313,18 +316,24 @@ const Account = () => {
     if (!window.confirm('Are you sure you want to delete this address?')) return;
     try {
       const res = await axiosInstance.delete(`/account/addresses/${id}`);
-      if (res.data.success) setAddresses(res.data.addresses || []);
+      if (res.data.success) {
+        setAddresses(res.data.addresses || []);
+        toast.showToast('Address deleted successfully.', 'info');
+      }
     } catch (err) {
-      alert('Error deleting address.');
+      toast.showToast('Error deleting address.', 'error');
     }
   };
 
   const handleSetDefaultAddress = async (id) => {
     try {
       const res = await axiosInstance.post(`/account/addresses/${id}/default`);
-      if (res.data.success) setAddresses(res.data.addresses || []);
+      if (res.data.success) {
+        setAddresses(res.data.addresses || []);
+        toast.showToast('Default delivery address updated.', 'success');
+      }
     } catch (err) {
-      alert('Error setting default address.');
+      toast.showToast('Error setting default address.', 'error');
     }
   };
 
@@ -335,11 +344,12 @@ const Account = () => {
       const res = await axiosInstance.post('/account/reviews', reviewForm);
       if (res.data.success) {
         setReviewModalOpen(false);
+        toast.showToast('Product review published successfully.', 'success');
         const rRes = await axiosInstance.get('/account/reviews');
         if (rRes.data.success) setReviews(rRes.data.reviews || []);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error saving product review.');
+      toast.showToast(err.response?.data?.message || 'Error saving product review.', 'error');
     }
   };
 
@@ -433,13 +443,14 @@ const Account = () => {
             <div className="space-y-6">
               
               {/* Elevated Stat Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5">
                 {[
                   { label: 'Total Orders', val: stats.totalOrders || 0, link: '?tab=orders', color: 'text-slate-900' },
-                  { label: 'Active In-Transit', val: stats.activeOrders || 0, link: '?tab=orders', color: 'text-amber-600' },
+                  { label: 'In-Transit', val: stats.activeOrders || 0, link: '?tab=orders', color: 'text-amber-600' },
                   { label: 'Delivered', val: stats.deliveredOrders || 0, link: '?tab=orders', color: 'text-emerald-600' },
                   { label: 'RMA Returns', val: stats.totalReturns || 0, link: '?tab=returns', color: 'text-slate-700' },
                   { label: 'Saved Wishlist', val: stats.wishlistCount || 0, link: '?tab=wishlist', color: 'text-purple-600' },
+                  { label: 'KAIA Points', val: '1,250 Pts', link: '?tab=rewards', color: 'text-amber-500' },
                 ].map((kpi, idx) => (
                   <button
                     key={idx}
@@ -1017,6 +1028,104 @@ const Account = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* =================================================================== */}
+          {/* TAB: KAIA CLUB REWARDS                                              */}
+          {/* =================================================================== */}
+          {activeTab === 'rewards' && (
+            <div className="space-y-6 text-left">
+              {/* VIP Member Card */}
+              <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden border border-amber-500/30">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10 border-b border-white/10 pb-6">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-400/30 px-2.5 py-0.5 rounded-full">
+                        KAIA Titanium Club
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono">ID: KAIA-VIP-2026-9482</span>
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-black mt-2 tracking-tight text-white">
+                      {user?.name || 'Valued Member'}
+                    </h3>
+                  </div>
+
+                  <div className="text-left sm:text-right">
+                    <span className="text-xs text-slate-400 block uppercase tracking-wider font-semibold">Available Loyalty Balance</span>
+                    <div className="flex items-baseline space-x-1.5 sm:justify-end mt-1">
+                      <span className="text-3xl md:text-4xl font-black text-amber-400 font-mono">1,250</span>
+                      <span className="text-sm font-bold text-slate-300">Points (₹1,250)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Perks Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 relative z-10 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold">
+                      <Zap className="w-4 h-4" />
+                      <span>2% Tech Cashback</span>
+                    </div>
+                    <p className="text-slate-400 text-[11px]">Earn ₹1 in points for every ₹50 spent</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold">
+                      <Truck className="w-4 h-4" />
+                      <span>Zero-Cost Air Dispatch</span>
+                    </div>
+                    <p className="text-slate-400 text-[11px]">Priority express shipping across India</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>VIP Concierge RMA</span>
+                    </div>
+                    <p className="text-slate-400 text-[11px]">Direct brand replacement assistance</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold">
+                      <Gift className="w-4 h-4" />
+                      <span>Birthday Bonus</span>
+                    </div>
+                    <p className="text-slate-400 text-[11px]">Exclusive ₹2,000 upgrade voucher</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Points Conversion & Redemption Widget */}
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 shadow-sm">
+                <h4 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>Redeem Points at Instant Checkout</span>
+                </h4>
+                <p className="text-xs text-slate-600">
+                  Your 1,250 points can be applied directly as a ₹1,250 instant discount on any new laptop, monitor, or GPU order at checkout. No coupon codes needed!
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Tier 1 Voucher</span>
+                    <p className="text-sm font-black text-slate-900">₹500 Instant Discount</p>
+                    <span className="text-xs text-emerald-700 font-bold">Costs 500 Pts</span>
+                  </div>
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Tier 2 Voucher</span>
+                    <p className="text-sm font-black text-slate-900">₹1,000 Instant Discount</p>
+                    <span className="text-xs text-emerald-700 font-bold">Costs 1,000 Pts</span>
+                  </div>
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-1">
+                    <span className="text-[10px] font-bold text-amber-800 uppercase">Full Balance</span>
+                    <p className="text-sm font-black text-slate-900">₹1,250 Max Discount</p>
+                    <span className="text-xs text-amber-700 font-bold">Redeem All 1,250 Pts</span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

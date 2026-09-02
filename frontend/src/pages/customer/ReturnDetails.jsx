@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useParams, Link } from 'react-router-dom';
 import orderService from '../../services/orderService';
+import { useToast } from '../../context/ToastContext';
 import { Skeleton } from '../../components/feedback/Skeleton';
 import Badge from '../../components/ui/Badge';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -14,6 +15,7 @@ import Container from '../../components/ui/Container';
 
 const ReturnDetails = () => {
   const { id } = useParams();
+  const toast = useToast();
   const [returnReq, setReturnReq] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,11 +47,11 @@ const ReturnDetails = () => {
     try {
       const res = await orderService.cancelReturn(returnReq._id);
       if (res.success) {
-        alert('Return request cancelled.');
+        toast.showToast('Return request cancelled.', 'info');
         fetchReturnDetails();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error cancelling return.');
+      toast.showToast(err.response?.data?.message || 'Error cancelling return.', 'error');
     } finally {
       setCancelling(false);
     }

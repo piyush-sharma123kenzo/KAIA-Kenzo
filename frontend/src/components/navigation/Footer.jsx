@@ -2,23 +2,85 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Globe, ShieldCheck, MapPin, ExternalLink, Building2, 
-  Mail, Phone, Clock, Compass, Navigation 
+  Mail, Phone, Clock, Compass, Navigation, Lock, CheckCircle2, RotateCcw
 } from 'lucide-react';
 import { KAIA_OFFICE_LOCATION } from '../../constants/companyInfo';
 
-const Footer = () => {
+const Footer = ({ mode = 'full' }) => {
   const [mapLoaded, setMapLoaded] = useState(false);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // =========================================================================
+  // CHECKOUT MINIMAL TRUST FOOTER (Distraction-Free Commerce)
+  // =========================================================================
+  if (mode === 'checkout') {
+    return (
+      <footer className="w-full bg-slate-950 text-slate-400 py-8 px-4 text-center text-xs select-none border-t border-slate-800">
+        <div className="max-w-4xl mx-auto space-y-5">
+          {/* Trust Highlights */}
+          <div className="flex flex-wrap justify-center items-center gap-6 text-[11px] font-semibold text-slate-300">
+            <div className="flex items-center space-x-1.5 text-emerald-400">
+              <Lock className="w-3.5 h-3.5" />
+              <span>256-Bit SSL Bank-Grade Encryption</span>
+            </div>
+            <div className="flex items-center space-x-1.5 text-amber-400">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>100% Genuine Direct Brand Supply</span>
+            </div>
+            <div className="flex items-center space-x-1.5 text-slate-300">
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>7-Day Replacement Policy</span>
+            </div>
+          </div>
+
+          {/* Quick Support Links */}
+          <div className="flex flex-wrap justify-center items-center gap-x-5 gap-y-1 text-[11px]">
+            <Link to="/help" className="hover:text-amber-400 hover:underline">Help & Support</Link>
+            <Link to="/shipping-policy" className="hover:text-amber-400 hover:underline">Shipping Policy</Link>
+            <Link to="/refund-policy" className="hover:text-amber-400 hover:underline">Returns & Refunds</Link>
+            <Link to="/privacy" className="hover:text-amber-400 hover:underline">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-amber-400 hover:underline">Terms of Service</Link>
+          </div>
+
+          <p className="text-[11px] text-slate-500">
+            © 2026 KAIA Technologies Pvt. Ltd. Verified Corporate Office: Mayur Vihar Phase 1, Delhi, India.
+          </p>
+        </div>
+      </footer>
+    );
+  }
+
+  // =========================================================================
+  // AUTH MINIMAL FOOTER (Login, Register, OTP)
+  // =========================================================================
+  if (mode === 'auth') {
+    return (
+      <footer className="w-full bg-slate-900 text-slate-400 py-6 px-4 text-center text-[11px] select-none border-t border-slate-800">
+        <div className="max-w-md mx-auto space-y-2">
+          <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-slate-300">
+            <Link to="/terms" className="hover:text-amber-400 hover:underline">Conditions of Use</Link>
+            <Link to="/privacy" className="hover:text-amber-400 hover:underline">Privacy Notice</Link>
+            <Link to="/help" className="hover:text-amber-400 hover:underline">Help</Link>
+            <Link to="/contact" className="hover:text-amber-400 hover:underline">Contact</Link>
+          </div>
+          <p className="text-slate-500">
+            © 2026, KAIA Technologies Pvt. Ltd. or its affiliates.
+          </p>
+        </div>
+      </footer>
+    );
+  }
+
+  // =========================================================================
+  // FULL COMMERCIAL MARKETING FOOTER (Homepage, Catalog, Brands, etc.)
+  // =========================================================================
   return (
     <footer className="w-full font-sans text-xs select-none">
       
-      {/* ========================================================================= */}
-      {/* 1. BACK TO TOP FULL-WIDTH BAR (#37475A)                                   */}
-      {/* ========================================================================= */}
+      {/* 1. BACK TO TOP FULL-WIDTH BAR */}
       <button
         onClick={scrollToTop}
         className="w-full bg-amz-navy3 hover:bg-amz-navy3Hover text-white py-3.5 text-center text-xs font-semibold tracking-wider transition-colors cursor-pointer block"
@@ -26,9 +88,7 @@ const Footer = () => {
         Back to top
       </button>
 
-      {/* ========================================================================= */}
-      {/* 2. CORPORATE DIRECTORY & VERIFIED OFFICE LOCATION (Navy-2 #232F3E)        */}
-      {/* ========================================================================= */}
+      {/* 2. CORPORATE DIRECTORY & VERIFIED OFFICE LOCATION */}
       <div className="bg-amz-navy2 text-white border-b border-brand-gray-800 py-14 px-6 md:px-12 lg:px-20">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 text-left">
           
@@ -39,6 +99,7 @@ const Footer = () => {
               <li><Link to="/about" className="hover:underline hover:text-white">About KAIA Technologies</Link></li>
               <li><Link to="/about" className="hover:underline hover:text-white">Direct Brand Supply</Link></li>
               <li><Link to="/categories" className="hover:underline hover:text-white">Hardware Catalog</Link></li>
+              <li><Link to="/compare" className="hover:underline hover:text-amber-400">Product Comparison</Link></li>
               <li><Link to="/about" className="hover:underline hover:text-white">Warranty Verification</Link></li>
             </ul>
           </div>
@@ -58,9 +119,10 @@ const Footer = () => {
           <div className="space-y-3">
             <h4 className="font-extrabold text-sm text-white tracking-tight">Policies & Trust</h4>
             <ul className="space-y-2 text-brand-gray-300 text-xs">
-              <li><Link to="/privacy-policy" className="hover:underline hover:text-white">Privacy Policy</Link></li>
+              <li><Link to="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link></li>
               <li><Link to="/terms" className="hover:underline hover:text-white">Terms of Service</Link></li>
               <li><Link to="/shipping-policy" className="hover:underline hover:text-white">Shipping & Delivery Policy</Link></li>
+              <li><Link to="/refund-policy" className="hover:underline hover:text-white">Refund & Return Policy</Link></li>
               <li><Link to="/about" className="hover:underline hover:text-white">Genuine Product Guarantee</Link></li>
             </ul>
           </div>
@@ -78,44 +140,35 @@ const Footer = () => {
 
           {/* Col 5: KAIA TECHNOLOGIES OFFICE & VERIFIED MAP LOCATION */}
           <div className="lg:col-span-1 space-y-3.5 bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
-            <div className="flex items-center space-x-2 text-amber-400">
-              <Building2 className="w-4 h-4 shrink-0" />
-              <h4 className="font-extrabold text-xs tracking-wider uppercase">KAIA Office</h4>
+            <div className="flex items-center space-x-2">
+              <Building2 className="w-4 h-4 text-amz-orange shrink-0" />
+              <h4 className="font-extrabold text-xs text-white uppercase tracking-wider">Corporate Hub</h4>
             </div>
 
-            {/* Address Details */}
-            <div className="text-xs text-slate-300 space-y-1 leading-relaxed">
-              <p className="font-bold text-white text-xs">{KAIA_OFFICE_LOCATION.companyName}</p>
-              <p>{KAIA_OFFICE_LOCATION.addressLine1}</p>
-              <p>{KAIA_OFFICE_LOCATION.landmark}</p>
-              <p>{KAIA_OFFICE_LOCATION.city}, {KAIA_OFFICE_LOCATION.country}</p>
-            </div>
+            <p className="text-[11px] text-brand-gray-300 leading-relaxed">
+              <strong className="text-white block font-bold">KAIA Technologies Pvt. Ltd.</strong>
+              Mayur Vihar Phase 1, Near Unna Enclave<br />
+              Delhi, India
+            </p>
 
-            {/* Compact Map Preview Card */}
-            <div className="relative rounded-lg overflow-hidden border border-slate-700/80 bg-slate-950 aspect-[16/9] shadow-inner group">
-              {/* Static lightweight map tile with dynamic marker */}
+            <div className="h-24 w-full rounded-lg overflow-hidden border border-slate-700 relative bg-slate-800">
               <iframe
-                title="KAIA Technologies Office Location"
-                src={`https://maps.google.com/maps?q=${encodeURIComponent(KAIA_OFFICE_LOCATION.fullAddress)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-                className="w-full h-full border-0 opacity-80 group-hover:opacity-100 transition-opacity"
+                title="KAIA Technologies Verified Location"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14013.298064971274!2d77.2917!3d28.6056!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390ce4c16a1ebc5d%3A0x8e57849156488d5e!2sMayur%20Vihar%20Phase%201%2C%20Delhi!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen=""
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                onLoad={() => setMapLoaded(true)}
               />
-              
-              {/* Floating Map Badge */}
-              <div className="absolute bottom-1.5 left-1.5 bg-slate-900/90 text-amber-300 px-2 py-0.5 rounded text-[9px] font-mono flex items-center space-x-1 backdrop-blur-sm pointer-events-none">
-                <MapPin className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-                <span>Delhi HQ</span>
-              </div>
             </div>
 
-            {/* View on Map CTA Button */}
             <a
-              href={KAIA_OFFICE_LOCATION.googleMapsUrl}
+              href="https://www.google.com/maps/search/?api=1&query=Mayur+Vihar+Phase+1+near+Unna+Enclave+Delhi+India"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-2 px-3 rounded-lg shadow transition-all flex items-center justify-center space-x-1.5 group"
+              className="inline-flex items-center space-x-1.5 text-[11px] text-amber-400 hover:text-amber-300 font-bold group"
             >
               <span>View on Map</span>
               <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -125,9 +178,7 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 3. CENTERED WORDMARK & LOCALE STRIP (Navy #131A22)                       */}
-      {/* ========================================================================= */}
+      {/* 3. CENTERED WORDMARK & LOCALE STRIP */}
       <div className="bg-amz-navy text-white py-6 border-b border-brand-gray-850">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-6 px-4">
           <Link to="/" className="flex items-baseline space-x-1.5">
@@ -151,9 +202,7 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 4. BOTTOM LEGAL STRIP (Darkest Navy #0F1720)                             */}
-      {/* ========================================================================= */}
+      {/* 4. BOTTOM LEGAL STRIP */}
       <div className="bg-amz-navyDark text-brand-gray-400 py-8 px-4 text-center text-[11px] space-y-2">
         <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
           <Link to="/terms" className="hover:underline hover:text-white">Conditions of Use & Sale</Link>
