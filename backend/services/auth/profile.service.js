@@ -41,7 +41,7 @@ export const getUserProfile = async (userId) => {
  * @param {string} [updates.gstin]
  * @returns {Promise<object>}
  */
-export const updateUserProfile = async (userId, { name, phone, gstin }) => {
+export const updateUserProfile = async (userId, { name, phone, gstin, avatar }) => {
   const user = await User.findById(userId);
   if (!user) {
     const error = new Error('User not found.');
@@ -51,6 +51,7 @@ export const updateUserProfile = async (userId, { name, phone, gstin }) => {
 
   if (name) user.name = name.trim();
   if (phone) user.phone = phone.trim();
+  if (avatar !== undefined) user.avatar = avatar;
   if (gstin !== undefined) {
     if (gstin && !GSTIN_REGEX.test(gstin.trim())) {
       const error = new Error('Invalid Indian GSTIN format.');
@@ -68,6 +69,7 @@ export const updateUserProfile = async (userId, { name, phone, gstin }) => {
     email: user.email,
     role: user.role,
     phone: user.phone,
+    avatar: user.avatar,
     gstin: user.gstin,
   };
 };

@@ -168,10 +168,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Update personal profile
-  const updateProfile = async (name, phone, gstin) => {
+  const updateProfile = async (updates) => {
     setError(null);
     try {
-      const res = await authApi.updateUserProfile({ name, phone, gstin });
+      const payload = typeof updates === 'object' ? updates : { name: arguments[0], phone: arguments[1], gstin: arguments[2] };
+      const res = await authApi.updateUserProfile(payload);
       if (res.success) {
         setUser((prev) => ({ ...prev, ...res.user }));
         return res;

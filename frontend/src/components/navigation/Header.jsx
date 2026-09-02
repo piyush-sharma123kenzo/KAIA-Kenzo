@@ -3,24 +3,60 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, ShoppingCart, MapPin, Menu, X, ChevronDown, 
   User, ShieldCheck, Heart, Building2, Package, ExternalLink,
-  Navigation, Check, ArrowLeftRight, LogOut, Sparkles, Award, ShoppingBag, ChevronRight
+  Navigation, Check, ArrowLeftRight, LogOut, Award, ShoppingBag, ChevronRight, Camera
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
 import { useLocationContext } from '../../context/LocationContext';
 import { useCompare } from '../../context/CompareContext';
+import { useToast } from '../../context/ToastContext';
 import categoryService from '../../services/categoryService';
 import productService from '../../services/productService';
 import Drawer from '../common/Drawer';
 import LocationSelectorModal from '../common/LocationSelectorModal';
 
 const Header = () => {
-  const { user, logout } = useContext(AuthContext) || {};
+  const { user, logout, updateProfile } = useContext(AuthContext) || {};
   const { cart, cartTotals } = useContext(CartContext) || {};
   const { deliveryLocation, openLocationModal } = useLocationContext();
   const { compareCount = 0 } = useCompare() || {};
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast?.showToast('Please select an image file (PNG, JPG, WebP).', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast?.showToast('Image size must be less than 5MB.', 'error');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Image = event.target?.result;
+        if (base64Image && updateProfile) {
+          await updateProfile({ avatar: base64Image });
+          toast?.showToast('Profile picture updated successfully!', 'success');
+        }
+        setUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      toast?.showToast('Failed to update profile picture.', 'error');
+      setUploadingAvatar(false);
+    }
+  };
 
   const cartItemCount = cartTotals?.quantityCount ?? (cart?.items?.reduce((sum, it) => sum + (it.quantity || 1), 0) ?? 0);
 
@@ -308,8 +344,16 @@ const Header = () => {
               onMouseEnter={() => setAccountDropdown(true)}
               onMouseLeave={() => setAccountDropdown(false)}
             >
-              <Link to={user ? '/account' : '/login'} className="flex items-center space-x-1.5 hover:text-[#F5B400] transition-colors py-1">
-                <User className="w-5 h-5 text-white" />
+              <Link to={user ? '/account' : '/login'} className="flex items-center space-x-2 hover:text-[#F5B400] transition-colors py-1">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name || 'User'}
+                    className="w-6 h-6 rounded-full object-cover ring-2 ring-[#F5B400]/80 shadow-xs"
+                  />
+                ) : (
+                  <User className="w-5 h-5 text-white" />
+                )}
                 <span className="font-bold hidden sm:inline">
                   {user ? user.name?.split(' ')[0] : 'Sign In / Register'}
                 </span>
@@ -349,12 +393,41 @@ const Header = () => {
                     </div>
                   ) : (
                     <>
-                      {/* User Profile Summary */}
-                      <div className="p-4 border-b border-slate-100 bg-slate-50/80 rounded-t-2xl">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#F5B400] to-[#FFD043] text-slate-950 font-black flex items-center justify-center text-sm shadow-sm ring-2 ring-amber-400/20 shrink-0">
-                            {(user.name || user.email).charAt(0).toUpperCase()}
+                      {/* Clean User Profile Header */}
+                      <div className="p-4 border-b border-slate-100 bg-slate-50/90 rounded-t-2xl">
+                        <div className="flex items-center space-x-3.5">
+                          {/* Profile Picture with Change Photo Trigger */}
+                          <div className="relative group/avatar shrink-0">
+                            <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-[#F5B400] to-[#FFD043] text-slate-950 font-black flex items-center justify-center text-base shadow-sm ring-2 ring-amber-400/30">
+                              {user.avatar ? (
+                                <img
+                                  src={user.avatar}
+                                  alt={user.name || 'User'}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                (user.name || user.email).charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            
+                            {/* Camera overlay on hover */}
+                            <label
+                              htmlFor="header-avatar-upload"
+                              className="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center text-white opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer text-[9px] font-bold"
+                              title="Click to change profile picture"
+                            >
+                              <Camera className="w-3.5 h-3.5 text-[#F5B400]" />
+                            </label>
+                            <input
+                              id="header-avatar-upload"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleAvatarUpload}
+                              className="hidden"
+                              disabled={uploadingAvatar}
+                            />
                           </div>
+
                           <div className="min-w-0 flex-1">
                             <h4 className="font-extrabold text-sm text-slate-900 truncate">
                               {user.name || 'Piyush Kumar Sharma'}
@@ -362,31 +435,15 @@ const Header = () => {
                             <p className="text-[11px] text-slate-500 truncate font-mono">
                               {user.email}
                             </p>
-                            <div className="mt-1 flex items-center">
-                              <span className="inline-flex items-center text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
-                                {user.role === 'ADMIN' ? 'Admin Central' : user.role === 'BRAND' ? 'Brand Seller' : 'Verified Member'}
-                              </span>
-                            </div>
+                            <label
+                              htmlFor="header-avatar-upload"
+                              className="inline-flex items-center space-x-1 text-[11px] text-amber-700 hover:text-amber-800 font-bold cursor-pointer mt-1"
+                            >
+                              <Camera className="w-3 h-3 text-amber-600" />
+                              <span>{uploadingAvatar ? 'Uploading...' : 'Change Photo'}</span>
+                            </label>
                           </div>
                         </div>
-
-                        {/* KAIA Loyalty Club Pill */}
-                        <Link
-                          to="/account?tab=rewards"
-                          className="mt-3 bg-white hover:bg-amber-50/70 border border-amber-200/90 rounded-xl p-2.5 flex items-center justify-between text-xs transition-all shadow-2xs group"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div className="w-5 h-5 rounded-md bg-amber-100 flex items-center justify-center">
-                              <Sparkles className="w-3.5 h-3.5 text-amber-700" />
-                            </div>
-                            <span className="text-slate-800 text-xs font-bold">KAIA Loyalty Club</span>
-                          </div>
-                          <div className="flex items-center space-x-1 text-amber-800 font-extrabold text-xs group-hover:translate-x-0.5 transition-transform">
-                            <span>1,250 Pts</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-amber-600" />
-                          </div>
-                        </Link>
                       </div>
 
                       {/* Primary Navigation Links */}

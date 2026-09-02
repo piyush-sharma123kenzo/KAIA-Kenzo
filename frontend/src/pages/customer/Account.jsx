@@ -4,7 +4,7 @@ import {
   User, ShoppingBag, Award, Landmark, ShieldCheck, Download, Truck, 
   ExternalLink, FileText, MapPin, Heart, Lock, Trash2, Plus, AlertCircle, 
   RotateCcw, MessageSquare, Bell, Star, CheckCircle, Edit, ChevronRight, QrCode,
-  Package, Clock, CheckCircle2, ArrowRight, Sparkles, Gift, Zap
+  Package, Clock, CheckCircle2, ArrowRight, Gift, Zap, Camera
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
@@ -101,7 +101,6 @@ const Account = () => {
     { id: 'invoices', name: 'Tax Invoices', icon: FileText },
     { id: 'reviews', name: 'My Reviews', icon: MessageSquare },
     { id: 'wishlist', name: 'My Wishlist', icon: Heart },
-    { id: 'rewards', name: 'KAIA Club Rewards', icon: Sparkles },
     { id: 'addresses', name: 'Saved Addresses', icon: MapPin },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'profile', name: 'Profile Settings', icon: User },
@@ -353,29 +352,92 @@ const Account = () => {
     }
   };
 
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.showToast('Please select a valid image file (JPG, PNG, WebP).', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.showToast('Image size must be less than 5MB.', 'error');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Image = event.target?.result;
+        if (base64Image) {
+          await updateProfile({ avatar: base64Image });
+          setProfileForm((prev) => ({ ...prev, avatar: base64Image }));
+          toast.showToast('Profile picture updated successfully!', 'success');
+        }
+        setUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      toast.showToast('Failed to update profile picture.', 'error');
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    try {
+      await updateProfile({ avatar: '' });
+      setProfileForm((prev) => ({ ...prev, avatar: '' }));
+      toast.showToast('Profile picture removed.', 'info');
+    } catch (err) {
+      toast.showToast('Failed to remove profile picture.', 'error');
+    }
+  };
+
   const stats = overviewData?.stats || {};
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left space-y-8 pb-24 font-sans">
       
       {/* ========================================================================= */}
-      {/* 1. PROFILE HEADER CARD (Soft Avatar, Refined Typography, Clean Actions)  */}
+      {/* 1. PROFILE HEADER CARD (Interactive Avatar, Refined Typography, Clean)   */}
       {/* ========================================================================= */}
       <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center space-x-5">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-800 to-amber-950 text-white font-black text-2xl shadow-md border border-slate-700/50 flex items-center justify-center shrink-0">
-            {user?.name?.charAt(0) || 'K'}
-          </div>
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">
-                Hello, {user?.name || 'Customer'}
-              </h1>
-              <div className="inline-flex items-center space-x-1 bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-semibold px-2.5 py-0.5 rounded-full text-[11px]">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Verified Account</span>
-              </div>
+          {/* Avatar with Photo Upload Button */}
+          <div className="relative group/pic shrink-0">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#F5B400] to-[#FFD043] text-slate-950 font-black text-2xl shadow-md ring-2 ring-amber-400/20 flex items-center justify-center">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name || 'User'} className="w-full h-full object-cover" />
+              ) : (
+                user?.name?.charAt(0) || 'K'
+              )}
             </div>
+            <label
+              htmlFor="account-header-avatar"
+              className="absolute inset-0 bg-black/60 rounded-2xl flex flex-col items-center justify-center text-white opacity-0 group-hover/pic:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold"
+              title="Click to change profile picture"
+            >
+              <Camera className="w-4 h-4 text-[#F5B400]" />
+              <span>{uploadingAvatar ? '...' : 'Change'}</span>
+            </label>
+            <input
+              id="account-header-avatar"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+              disabled={uploadingAvatar}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">
+              Hello, {user?.name || 'Customer'}
+            </h1>
             <p className="text-xs text-slate-500 font-normal">{user?.email}</p>
           </div>
         </div>
@@ -387,7 +449,7 @@ const Account = () => {
             </button>
           </Link>
           <Link to="/products" className="flex-1 md:flex-initial">
-            <button className="w-full bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2.5 px-5 rounded-lg shadow-sm hover:shadow transition-all">
+            <button className="w-full bg-slate-900 hover:bg-slate-800 text-[#F5B400] font-bold text-xs py-2.5 px-5 rounded-lg shadow-sm hover:shadow transition-all">
               Browse Catalog
             </button>
           </Link>
@@ -442,15 +504,14 @@ const Account = () => {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               
-              {/* Elevated Stat Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5">
+              {/* Elevated Stat Cards (5 Core Customer Metrics) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
                 {[
                   { label: 'Total Orders', val: stats.totalOrders || 0, link: '?tab=orders', color: 'text-slate-900' },
                   { label: 'In-Transit', val: stats.activeOrders || 0, link: '?tab=orders', color: 'text-amber-600' },
                   { label: 'Delivered', val: stats.deliveredOrders || 0, link: '?tab=orders', color: 'text-emerald-600' },
                   { label: 'RMA Returns', val: stats.totalReturns || 0, link: '?tab=returns', color: 'text-slate-700' },
                   { label: 'Saved Wishlist', val: stats.wishlistCount || 0, link: '?tab=wishlist', color: 'text-purple-600' },
-                  { label: 'KAIA Points', val: '1,250 Pts', link: '?tab=rewards', color: 'text-amber-500' },
                 ].map((kpi, idx) => (
                   <button
                     key={idx}
@@ -1031,103 +1092,7 @@ const Account = () => {
             </div>
           )}
 
-          {/* =================================================================== */}
-          {/* TAB: KAIA CLUB REWARDS                                              */}
-          {/* =================================================================== */}
-          {activeTab === 'rewards' && (
-            <div className="space-y-6 text-left">
-              {/* VIP Member Card */}
-              <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden border border-amber-500/30">
-                <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-                
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10 border-b border-white/10 pb-6">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-[11px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-400/30 px-2.5 py-0.5 rounded-full">
-                        KAIA Titanium Club
-                      </span>
-                      <span className="text-xs text-slate-400 font-mono">ID: KAIA-VIP-2026-9482</span>
-                    </div>
-                    <h3 className="text-2xl md:text-3xl font-black mt-2 tracking-tight text-white">
-                      {user?.name || 'Valued Member'}
-                    </h3>
-                  </div>
 
-                  <div className="text-left sm:text-right">
-                    <span className="text-xs text-slate-400 block uppercase tracking-wider font-semibold">Available Loyalty Balance</span>
-                    <div className="flex items-baseline space-x-1.5 sm:justify-end mt-1">
-                      <span className="text-3xl md:text-4xl font-black text-amber-400 font-mono">1,250</span>
-                      <span className="text-sm font-bold text-slate-300">Points (₹1,250)</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Perks Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 relative z-10 text-xs">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold">
-                      <Zap className="w-4 h-4" />
-                      <span>2% Tech Cashback</span>
-                    </div>
-                    <p className="text-slate-400 text-[11px]">Earn ₹1 in points for every ₹50 spent</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold">
-                      <Truck className="w-4 h-4" />
-                      <span>Zero-Cost Air Dispatch</span>
-                    </div>
-                    <p className="text-slate-400 text-[11px]">Priority express shipping across India</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold">
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>VIP Concierge RMA</span>
-                    </div>
-                    <p className="text-slate-400 text-[11px]">Direct brand replacement assistance</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold">
-                      <Gift className="w-4 h-4" />
-                      <span>Birthday Bonus</span>
-                    </div>
-                    <p className="text-slate-400 text-[11px]">Exclusive ₹2,000 upgrade voucher</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Points Conversion & Redemption Widget */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 shadow-sm">
-                <h4 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span>Redeem Points at Instant Checkout</span>
-                </h4>
-                <p className="text-xs text-slate-600">
-                  Your 1,250 points can be applied directly as a ₹1,250 instant discount on any new laptop, monitor, or GPU order at checkout. No coupon codes needed!
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">Tier 1 Voucher</span>
-                    <p className="text-sm font-black text-slate-900">₹500 Instant Discount</p>
-                    <span className="text-xs text-emerald-700 font-bold">Costs 500 Pts</span>
-                  </div>
-                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">Tier 2 Voucher</span>
-                    <p className="text-sm font-black text-slate-900">₹1,000 Instant Discount</p>
-                    <span className="text-xs text-emerald-700 font-bold">Costs 1,000 Pts</span>
-                  </div>
-                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-1">
-                    <span className="text-[10px] font-bold text-amber-800 uppercase">Full Balance</span>
-                    <p className="text-sm font-black text-slate-900">₹1,250 Max Discount</p>
-                    <span className="text-xs text-amber-700 font-bold">Redeem All 1,250 Pts</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* =================================================================== */}
           {/* TAB 10: PROFILE SETTINGS                                            */}
@@ -1148,6 +1113,47 @@ const Account = () => {
                   {formMsg.text}
                 </div>
               )}
+
+              {/* Profile Photo Upload Widget in Settings */}
+              <div className="flex items-center space-x-5 p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#F5B400] to-[#FFD043] text-slate-950 font-black text-2xl shadow-sm ring-2 ring-amber-400/20 flex items-center justify-center shrink-0">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.name || 'User'} className="w-full h-full object-cover" />
+                  ) : (
+                    user?.name?.charAt(0) || 'K'
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-xs text-slate-900">Profile Picture</h4>
+                  <p className="text-[11px] text-slate-500">Upload a custom image for your profile and orders (PNG, JPG, max 5MB)</p>
+                  <div className="flex items-center space-x-2 pt-1">
+                    <label
+                      htmlFor="settings-avatar-upload"
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-[#F5B400] rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-xs"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>{uploadingAvatar ? 'Uploading...' : 'Upload Photo'}</span>
+                    </label>
+                    <input
+                      id="settings-avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      disabled={uploadingAvatar}
+                    />
+                    {user?.avatar && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 border border-slate-200 rounded-lg text-xs font-semibold transition-colors"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <form onSubmit={handleUpdateProfile} className="space-y-4 text-xs">
                 <div className="grid grid-cols-2 gap-4">
