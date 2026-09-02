@@ -27,20 +27,25 @@ const seed = async () => {
     await SerialNumber.deleteMany({});
     await Coupon.deleteMany({});
 
-    console.log('Creating Admin & Brand Partner accounts...');
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('Password@123', salt);
+    console.log('Creating Admin & Customer accounts...');
 
+    const salt = await bcrypt.genSalt(10);
+    const adminHashedPassword = await bcrypt.hash('Piyush@1234', salt);
+    const customerHashedPassword = await bcrypt.hash('Password@123', salt);
+
+    // Create Original KAIA Admin Account
     const adminUser = await User.create({
       name: 'KAIA Admin Team',
-      email: 'admin@kaia.tech',
-      password: 'Password@123',
+      email: 'piyush.sharma@kenzoinfosystems.com',
+      password: 'Piyush@1234',
       role: 'ADMIN',
-      phone: '9876543210',
+      phone: '9334683692',
       emailVerified: true,
       status: 'Active',
     });
+    console.log(`✓ Admin user created: ${adminUser.email}`);
 
+    // Create Original Customer Account
     const customerUser = await User.create({
       name: 'Piyush Sharma',
       email: 'customer@kaia.tech',
@@ -51,6 +56,7 @@ const seed = async () => {
       emailVerified: true,
       status: 'Active',
     });
+    console.log(`✓ Customer user created: ${customerUser.email}`);
 
     // Create Brands & Brand Partner Users
     const brandsConfig = [
@@ -854,60 +860,13 @@ const seed = async () => {
       },
     ];
 
-    // Expand dataset systematically to 105+ products by generating variants across brands & categories
-    const categoriesList = Object.keys(categoryMap);
-    const brandsList = Object.keys(brandMap);
-
-    const productTemplates = [
-      { name: 'Pro Studio Sound Monitor Speakers Pair', cat: 'speakers', mrp: 28990, price: 23990, images: ['https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800'], specs: { Power: '120W RMS', Drivers: '5-inch Kevlar woofer + 1-inch silk dome tweeter', Frequency: '45Hz - 22kHz' } },
-      { name: 'Ultra-Slim 4K UHD Smart Display 27"', cat: 'monitors-and-displays', mrp: 42990, price: 34990, images: ['https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800'], specs: { Resolution: '4K UHD (3840x2160)', Panel: 'IPS 99% sRGB', RefreshRate: '75Hz', USB_C: '65W Power Delivery' } },
-      { name: 'Wireless Ergonomic Mechanical Split Keyboard', cat: 'mechanical-keyboards', mrp: 18990, price: 14990, images: ['https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800'], specs: { Layout: 'Ergonomic Alice Split', Switches: 'Gateron Oil King Linear', Battery: '4000mAh rechargeable' } },
-      { name: 'High-Speed Gen4 1TB NVMe Gaming SSD', cat: 'storage', mrp: 12990, price: 8990, images: ['https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=800'], specs: { Interface: 'PCIe 4.0 x4', ReadSpeed: '7000 MB/s', WriteSpeed: '6500 MB/s', Endurance: '600 TBW' } },
-      { name: '32GB (2x16GB) RGB DDR5 6400MHz Desktop RAM Kit', cat: 'memory', mrp: 16990, price: 12990, images: ['https://images.unsplash.com/photo-1562976540-1502c2145186?w=800'], specs: { Capacity: '32GB (2x16GB)', Speed: 'DDR5 6400 MT/s', Latency: 'CL32-38-38-84', Voltage: '1.4V' } },
-      { name: 'Extreme 360mm AIO Liquid CPU Cooler', cat: 'pc-components', mrp: 22990, price: 17990, images: ['https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=800'], specs: { Radiator: '360mm Aluminum', Pump: 'Asetek 8th Gen with LCD screen', Fans: '3x 120mm Magnetic Levitation PWM' } },
-      { name: 'True Wireless Noise-Cancelling Spatial Earbuds', cat: 'earbuds', mrp: 14990, price: 10990, images: ['https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800'], specs: { Driver: '11mm dual dynamic', ANC: 'Up to 45dB hybrid ANC', Battery: '7h earbuds + 28h case', Codecs: 'LDAC, AAC' } },
-      { name: 'Dual-Band Wi-Fi 7 Gaming Tri-Band Router', cat: 'pc-components', mrp: 34990, price: 27990, images: ['https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=800'], specs: { Standard: 'Wi-Fi 7 (802.11be)', Bandwidth: 'BE19000 (up to 19Gbps)', Ports: 'Dual 10G Multi-Gig WAN/LAN' } },
-    ];
-
-    let skuCounter = 100;
-    const generatedProducts = [...productsSeedData];
-
-    for (let i = 0; i < 60; i++) {
-      const bSlug = brandsList[i % brandsList.length];
-      const template = productTemplates[i % productTemplates.length];
-      const brandName = brandMap[bSlug].name;
-      const uniqueSuffix = `${brandName} ${template.name} - Edition ${Math.floor(i / productTemplates.length) + 1}`;
-      const slug = uniqueSuffix.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      const sku = `${bSlug.substring(0, 3).toUpperCase()}-${template.cat.substring(0, 4).toUpperCase()}-${skuCounter++}`;
-
-      generatedProducts.push({
-        brand: bSlug,
-        category: template.cat,
-        name: uniqueSuffix,
-        slug,
-        modelNumber: `MOD-${skuCounter}`,
-        sku,
-        mrp: template.mrp + (i * 500),
-        price: template.price + (i * 450),
-        images: template.images || [
-          'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800',
-        ],
-        desc: `High quality authorized technology hardware engineered by ${brandName}. Features robust build quality, verified genuine components, and official service warranties.`,
-        specs: template.specs,
-        stock: 10 + (i % 25),
-        isFeatured: i % 7 === 0,
-        isNewArrival: i % 5 === 0,
-        isBestSeller: i % 4 === 0,
-      });
-    }
-
-    console.log(`Inserting ${generatedProducts.length} Products into MongoDB...`);
+    console.log(`Inserting ${productsSeedData.length} Authentic Hardware Products into MongoDB...`);
 
     let productCount = 0;
     let inventoryCount = 0;
     let serialCount = 0;
 
-    for (const p of generatedProducts) {
+    for (const p of productsSeedData) {
       const brandDoc = brandMap[p.brand];
       const catDoc = categoryMap[p.category] || categoryMap['computers'];
 

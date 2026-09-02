@@ -251,7 +251,7 @@ export const processSettlement = async (req, res) => {
 
     const settlement = await settlementService.processSettlementPayout({
       settlementId: id,
-      paymentProvider: paymentProvider || 'mock',
+      paymentProvider: paymentProvider || 'bank_transfer',
       user: req.user,
     });
 

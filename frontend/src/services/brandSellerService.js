@@ -595,7 +595,7 @@ export const brandSellerService = {
     }
   },
 
-  processSettlement: async (id, paymentProvider = 'mock') => {
+  processSettlement: async (id, paymentProvider = 'bank_transfer') => {
     try {
       const res = await axiosInstance.post(`/admin/settlements/${id}/process`, { paymentProvider });
       return res.data;

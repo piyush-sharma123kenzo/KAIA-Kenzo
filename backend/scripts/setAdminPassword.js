@@ -16,7 +16,8 @@ const setAdminPassword = async () => {
     console.log('Connected to MongoDB.');
 
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('Piyush@1234', salt);
+    const adminPassword = 'Piyush@1234';
+    const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
     const result = await User.updateOne(
       { email: 'piyush.sharma@kenzoinfosystems.com' },
@@ -27,7 +28,7 @@ const setAdminPassword = async () => {
     console.log('Matched Count:', result.matchedCount, 'Modified Count:', result.modifiedCount);
 
     const user = await User.findOne({ email: 'piyush.sharma@kenzoinfosystems.com' });
-    const isMatch = await bcrypt.compare('Piyush@1234', user.password);
+    const isMatch = await bcrypt.compare(adminPassword, user.password);
     console.log('✓ Tested password match with Piyush@1234:', isMatch);
 
     process.exit(0);

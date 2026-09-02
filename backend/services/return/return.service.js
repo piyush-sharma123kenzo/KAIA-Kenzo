@@ -353,7 +353,10 @@ export class ReturnService {
 
       // Find original payment
       const masterOrder = await Order.findById(returnDoc.masterOrderId);
-      const paymentId = masterOrder?.paymentDetails?.transactionId || 'mock_pay_id';
+      const paymentId = masterOrder?.paymentDetails?.transactionId;
+      if (!paymentId) {
+        throw new Error(`Cannot initiate refund: No payment transaction ID found for order ${returnDoc.masterOrderId}`);
+      }
 
       const refundResult = await paymentService.initiateRefund({
         paymentId,
