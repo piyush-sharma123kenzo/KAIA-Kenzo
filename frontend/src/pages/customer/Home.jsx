@@ -58,7 +58,7 @@ const hardwareCategories = [
     name: 'PC Cases',
     slug: 'pc-components',
     query: 'case',
-    img: 'https://images.unsplash.com/photo-1587202372579-22f3c70624bc?w=400&auto=format&fit=crop&q=80',
+    img: '/assets/categories/pc_case.jpg',
   },
   {
     name: 'Monitors',
@@ -148,7 +148,7 @@ const curatedNewArrivals = [
     sellingPrice: 11999,
     rating: 4.7,
     reviewsCount: 45,
-    image: 'https://images.unsplash.com/photo-1587202372579-22f3c70624bc?w=500&auto=format&fit=crop&q=80',
+    image: '/assets/categories/pc_case.jpg',
   },
   {
     _id: 'arrival-cpu-14700k',
