@@ -164,21 +164,12 @@ const Header = () => {
         {/* ========================================================================= */}
         {/* TIER 0: TOP UTILITY STRIP (Pure Black #000000)                             */}
         {/* ========================================================================= */}
-        <div className="bg-black text-slate-300 py-1.5 px-4 md:px-8 text-[11px] flex justify-between items-center border-b border-white/10 select-none">
-          {/* Left: Location */}
-          <div
-            onClick={openLocationModal}
-            className="flex items-center space-x-2 cursor-pointer text-slate-300 hover:text-white transition-colors py-0.5 select-none"
-            title="Change Delivery Location"
-          >
-            <MapPin className="w-3.5 h-3.5 text-[#F5B400] shrink-0" />
-            <span className="text-slate-300 text-xs font-normal">
-              Deliver to: <span className="text-white font-bold tracking-tight">{deliveryAreaLabel}{deliveryPinLabel}</span>
-            </span>
-          </div>
-
+        {/* ========================================================================= */}
+        {/* TIER 0: TOP UTILITY STRIP (Pure Black #000000)                             */}
+        {/* ========================================================================= */}
+        <div className="bg-black text-slate-300 py-1 px-4 md:px-8 text-[11px] flex justify-end items-center border-b border-white/10 select-none">
           {/* Right: Utility Links */}
-          <div className="hidden sm:flex items-center space-x-5 text-slate-300 font-medium">
+          <div className="flex items-center space-x-5 text-slate-400 font-medium">
             <Link to="/orders" className="hover:text-[#F5B400] transition-colors">Track Order</Link>
             <Link to="/brand-register" className="hover:text-[#F5B400] transition-colors">Become a Seller</Link>
             <Link to="/help" className="hover:text-[#F5B400] transition-colors">Help & Support</Link>
@@ -188,7 +179,7 @@ const Header = () => {
         {/* ========================================================================= */}
         {/* TIER 1: MAIN SEARCH & COMMERCE BAR (Pure Black #000000)                   */}
         {/* ========================================================================= */}
-        <div className="bg-black px-4 md:px-8 py-3 flex items-center justify-between gap-4 md:gap-8 h-[68px]">
+        <div className="bg-black px-4 md:px-8 py-3 flex items-center justify-between gap-3 md:gap-5 h-[68px]">
           
           {/* 1. Brand Logo */}
           <Link
@@ -208,6 +199,23 @@ const Header = () => {
               </span>
             </div>
           </Link>
+
+          {/* 2. Deliver To Location (Directly Beside KAIA Logo) */}
+          <div
+            onClick={openLocationModal}
+            className="hidden sm:flex items-center space-x-1.5 cursor-pointer text-slate-300 hover:text-white transition-colors shrink-0 py-1 px-1.5 rounded hover:ring-1 hover:ring-white/20 select-none group"
+            title="Click to change delivery location"
+          >
+            <MapPin className="w-4 h-4 text-[#F5B400] shrink-0 group-hover:scale-110 transition-transform mt-0.5" />
+            <div className="leading-tight text-left">
+              <span className="text-[10px] text-slate-400 block font-normal leading-none">
+                Deliver to
+              </span>
+              <span className="text-xs font-bold text-white block mt-0.5 leading-none group-hover:text-[#F5B400] transition-colors truncate max-w-[120px] lg:max-w-[160px]">
+                {deliveryAreaLabel}{deliveryPinLabel}
+              </span>
+            </div>
+          </div>
 
           {/* 2. Search Bar with Category Select & Gold Search Button */}
           <form
