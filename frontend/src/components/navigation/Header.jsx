@@ -179,7 +179,7 @@ const Header = () => {
         {/* ========================================================================= */}
         {/* TIER 1: MAIN SEARCH & COMMERCE BAR (Pure Black #000000)                   */}
         {/* ========================================================================= */}
-        <div className="bg-black px-4 md:px-8 py-3 flex items-center justify-between gap-3 md:gap-5 h-[68px]">
+        <div className="bg-black px-4 md:px-8 py-3 flex items-center justify-between gap-3 md:gap-6 h-[74px]">
           
           {/* 1. Brand Logo */}
           <Link
@@ -187,7 +187,7 @@ const Header = () => {
             className="flex items-center space-x-2.5 shrink-0 group"
             title="KAIA Technologies Home"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#F5B400] to-[#FFD043] flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-sm group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#F5B400] to-[#FFD043] flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-sm group-hover:scale-105 transition-transform">
               K
             </div>
             <div className="text-left">
@@ -203,25 +203,25 @@ const Header = () => {
           {/* 2. Deliver To Location (Directly Beside KAIA Logo) */}
           <div
             onClick={openLocationModal}
-            className="hidden sm:flex items-center space-x-1.5 cursor-pointer text-slate-300 hover:text-white transition-colors shrink-0 py-1 px-1.5 rounded hover:ring-1 hover:ring-white/20 select-none group"
+            className="hidden sm:flex items-center space-x-2 cursor-pointer text-slate-300 hover:text-white transition-colors shrink-0 py-1.5 px-2 rounded-lg hover:ring-1 hover:ring-white/20 select-none group"
             title="Click to change delivery location"
           >
-            <MapPin className="w-4 h-4 text-[#F5B400] shrink-0 group-hover:scale-110 transition-transform mt-0.5" />
+            <MapPin className="w-4 h-4 text-[#F5B400] shrink-0 group-hover:scale-110 transition-transform" />
             <div className="leading-tight text-left">
               <span className="text-[10px] text-slate-400 block font-normal leading-none">
                 Deliver to
               </span>
-              <span className="text-xs font-bold text-white block mt-0.5 leading-none group-hover:text-[#F5B400] transition-colors truncate max-w-[120px] lg:max-w-[160px]">
+              <span className="text-xs font-bold text-white block mt-1 leading-none group-hover:text-[#F5B400] transition-colors truncate max-w-[120px] lg:max-w-[160px]">
                 {deliveryAreaLabel}{deliveryPinLabel}
               </span>
             </div>
           </div>
 
-          {/* 2. Search Bar with Category Select & Gold Search Button */}
+          {/* 3. Spacious Search Bar with Working Category Select & Gold Button */}
           <form
             onSubmit={handleSearchSubmit}
-            className={`flex-1 max-w-2xl flex items-center h-10 rounded-md bg-white overflow-hidden relative shadow-inner ${
-              isSearchFocused || categoryDropdownOpen ? 'ring-2 ring-[#F5B400]' : ''
+            className={`flex-1 max-w-4xl flex items-center h-11 md:h-12 rounded-lg bg-white relative shadow-md transition-all ${
+              isSearchFocused || categoryDropdownOpen ? 'ring-2 ring-[#F5B400]' : 'hover:ring-1 hover:ring-[#F5B400]/60'
             }`}
           >
             {/* Custom Styled Category Dropdown */}
@@ -229,16 +229,16 @@ const Header = () => {
               <button
                 type="button"
                 onClick={() => setCategoryDropdownOpen((prev) => !prev)}
-                className="bg-slate-100 hover:bg-slate-200 border-r border-slate-300 h-full flex items-center justify-between px-3.5 gap-1.5 cursor-pointer text-xs text-slate-800 font-bold transition-colors focus:outline-none"
+                className="bg-slate-100 hover:bg-slate-200 border-r border-slate-300 h-full flex items-center justify-between px-3.5 md:px-4 gap-2 cursor-pointer text-xs md:text-sm text-slate-800 font-bold transition-colors focus:outline-none rounded-l-lg"
                 title="Select Category"
               >
-                <span className="truncate max-w-[110px]">{activeCategoryLabel}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${categoryDropdownOpen ? 'rotate-180 text-[#F5B400]' : ''}`} />
+                <span className="truncate max-w-[95px] sm:max-w-[130px] md:max-w-[160px]">{activeCategoryLabel}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-600 transition-transform duration-200 ${categoryDropdownOpen ? 'rotate-180 text-[#F5B400]' : ''}`} />
               </button>
 
-              {/* Styled Category Dropdown Menu */}
+              {/* Styled Category Dropdown Menu - Unclipped & Z-Indexed */}
               {categoryDropdownOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-60 max-h-80 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-2xl z-50 py-1.5 text-left divide-y divide-slate-100">
+                <div className="absolute left-0 top-full mt-1.5 w-64 max-h-96 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-2xl z-[100] py-1.5 text-left divide-y divide-slate-100 ring-1 ring-black/10">
                   {displayCategories.map((cat) => {
                     const isSelected = selectedCategory === cat.slug;
                     return (
@@ -249,14 +249,14 @@ const Header = () => {
                           setSelectedCategory(cat.slug);
                           setCategoryDropdownOpen(false);
                         }}
-                        className={`w-full px-4 py-2.5 text-xs flex items-center justify-between transition-colors cursor-pointer text-left ${
+                        className={`w-full px-4 py-2.5 text-xs md:text-sm flex items-center justify-between transition-colors cursor-pointer text-left ${
                           isSelected
                             ? 'bg-amber-50 text-amber-900 font-bold'
                             : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium'
                         }`}
                       >
                         <span className="truncate">{cat.name}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-amber-600 shrink-0 ml-2" />}
+                        {isSelected && <Check className="w-4 h-4 text-amber-600 shrink-0 ml-2" />}
                       </button>
                     );
                   })}
@@ -273,12 +273,12 @@ const Header = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                className="w-full h-full px-4 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                className="w-full h-full px-4 text-xs md:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none bg-transparent"
               />
 
-              {/* Autocomplete Flyout */}
+              {/* Autocomplete Flyout - Unclipped & Z-Indexed */}
               {isSearchFocused && suggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-brand-gray-300 shadow-2xl rounded-b-[4px] z-50 overflow-hidden divide-y divide-brand-gray-100 text-left">
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 shadow-2xl rounded-xl z-[100] overflow-hidden divide-y divide-slate-100 text-left ring-1 ring-black/10">
                   {suggestions.map((item, idx) => (
                     <div
                       key={idx}
@@ -286,15 +286,15 @@ const Header = () => {
                         setSearchQuery(item.name);
                         navigate(`/product/${item.slug || item._id}`);
                       }}
-                      className="px-4 py-2 hover:bg-amz-bgGray cursor-pointer flex items-center justify-between group"
+                      className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer flex items-center justify-between group"
                     >
-                      <div className="flex items-center space-x-2">
-                        <Search className="w-3.5 h-3.5 text-brand-gray-400 group-hover:text-amz-orange" />
-                        <span className="text-xs text-amz-bodyInk font-medium truncate max-w-sm">
+                      <div className="flex items-center space-x-2.5">
+                        <Search className="w-4 h-4 text-slate-400 group-hover:text-[#F5B400] transition-colors" />
+                        <span className="text-xs md:text-sm text-slate-800 font-medium truncate max-w-sm">
                           {item.name}
                         </span>
                       </div>
-                      <span className="text-[10px] text-brand-gray-400 uppercase font-mono">
+                      <span className="text-[10px] text-slate-400 uppercase font-mono">
                         {item.brandName || 'Verified'}
                       </span>
                     </div>
@@ -306,10 +306,10 @@ const Header = () => {
             {/* Search Submit Button (Solid Yellow Accent #F5B400) */}
             <button
               type="submit"
-              className="bg-[#F5B400] hover:bg-[#E0A200] text-slate-950 font-black h-full px-4.5 flex items-center justify-center shrink-0 transition-colors"
+              className="bg-[#F5B400] hover:bg-[#E0A200] text-slate-950 font-black h-full px-5 md:px-6 flex items-center justify-center shrink-0 transition-colors rounded-r-lg"
               title="Search"
             >
-              <Search className="w-4 h-4 stroke-[2.5]" />
+              <Search className="w-5 h-5 stroke-[2.5]" />
             </button>
           </form>
 
