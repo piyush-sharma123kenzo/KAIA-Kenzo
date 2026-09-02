@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { Settings, ShieldCheck, CheckCircle2, Bell, KeyRound, Lock, AlertCircle, Save } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import brandSellerService from '../../services/brandSellerService';
-import authService from '../../services/authService';
+import axiosInstance from '../../api/axiosInstance';
 import Button from '../../components/ui/Button';
 
 const SettingsPage = () => {
@@ -45,11 +45,11 @@ const SettingsPage = () => {
 
     setSavingPass(true);
     try {
-      const res = await authService.changePassword({
+      const res = await axiosInstance.post('/account/change-password', {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      if (res.success) {
+      if (res.data?.success) {
         setPassMsg({ type: 'success', text: 'Password updated successfully.' });
         setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       }

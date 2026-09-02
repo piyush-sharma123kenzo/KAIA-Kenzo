@@ -10,8 +10,6 @@ import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import SerialNumber from '../models/SerialNumber.js';
 import Warranty from '../models/Warranty.js';
-import { generateInvoicePDF } from '../services/invoiceService.js';
-import invoiceService from '../services/invoice/invoice.service.js';
 
 /**
  * Helper: Derive the Master Order status from its child SellerOrders.

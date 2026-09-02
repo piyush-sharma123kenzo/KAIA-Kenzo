@@ -1,1 +1,0 @@
-export const CONSTANTS = { PLATFORM_NAME: 'KAIA Technologies' };

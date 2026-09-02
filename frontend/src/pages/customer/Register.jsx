@@ -98,7 +98,11 @@ const Register = () => {
       const result = await register(name.trim(), email.trim(), password, confirmPassword, 'CUSTOMER', phone.trim());
       if (result?.requiresVerification) {
         navigate('/verify-otp', {
-          state: { email: result.email, purpose: 'SIGNUP_VERIFICATION' },
+          state: {
+            email: result.email,
+            purpose: 'SIGNUP_VERIFICATION',
+            devOtp: result.devOtp,
+          },
         });
       } else if (result?.user) {
         navigate('/account');
