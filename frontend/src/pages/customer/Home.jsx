@@ -369,11 +369,8 @@ const Home = () => {
                 className="bg-white border border-slate-100 rounded-xl p-2.5 flex flex-col justify-between hover:shadow-md transition-all group relative text-left"
               >
                 <div>
-                  {/* Top discount tag & wishlist */}
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
-                      {prod.discount}% OFF
-                    </span>
+                  {/* Wishlist */}
+                  <div className="flex justify-end mb-1.5">
                     <Heart className="w-3.5 h-3.5 text-slate-300 hover:text-red-500 transition-colors" />
                   </div>
 
