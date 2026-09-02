@@ -121,49 +121,61 @@ const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full select-none text-white font-sans text-xs shadow-md">
+      <header className="sticky top-0 z-40 w-full select-none font-sans text-xs shadow-md">
         
         {/* ========================================================================= */}
-        {/* TIER 1: MAIN TOP NAV BAR (Navy #131A22)                                    */}
+        {/* TIER 0: TOP UTILITY STRIP (Pure Black #000000)                             */}
         {/* ========================================================================= */}
-        <div className="bg-amz-navy px-3 md:px-4 py-1.5 flex items-center justify-between gap-2 md:gap-4 h-[60px]">
-          
-          {/* 1. Logo */}
-          <Link
-            to="/"
-            className="amz-nav-item px-2 py-1 flex items-baseline space-x-1.5 shrink-0"
-            title="KAIA Technologies Home"
-          >
-            <span className="text-xl md:text-2xl font-black tracking-tight text-white leading-none">
-              KAIA
-            </span>
-            <span className="text-xs md:text-sm font-bold text-amz-orange tracking-normal">
-              Technologies
-            </span>
-          </Link>
-
-          {/* 2. Deliver To Block (Interactive Location Selector) */}
+        <div className="bg-black text-slate-300 py-1.5 px-4 md:px-8 text-[11px] flex justify-between items-center border-b border-white/10 select-none">
+          {/* Left: Location */}
           <div
             onClick={openLocationModal}
-            className="amz-nav-item hidden lg:flex items-center space-x-1.5 px-2 py-1 shrink-0 cursor-pointer rounded hover:ring-1 hover:ring-white/40 transition-all group"
-            title="Click to change delivery location"
+            className="flex items-center space-x-1.5 cursor-pointer hover:text-white transition-colors"
+            title="Change Delivery Location"
           >
-            <MapPin className="w-4 h-4 text-white shrink-0 mt-1.5 group-hover:text-amz-orange transition-colors" />
-            <div className="leading-tight text-left max-w-[150px]">
-              <span className="text-[11px] text-brand-gray-300 font-normal block leading-none truncate">
-                Deliver to {deliverToName}
-              </span>
-              <span className="text-xs font-bold text-white block mt-0.5 leading-none truncate">
-                {deliveryAreaLabel}{deliveryPinLabel}
-              </span>
-            </div>
+            <MapPin className="w-3.5 h-3.5 text-[#F5B400] shrink-0" />
+            <span>
+              Deliver to: <strong className="text-white font-medium">{deliveryAreaLabel}{deliveryPinLabel}</strong>
+            </span>
           </div>
 
-          {/* 3. Full-Width Search Bar */}
+          {/* Right: Utility Links */}
+          <div className="hidden sm:flex items-center space-x-5 text-slate-300 font-medium">
+            <Link to="/orders" className="hover:text-[#F5B400] transition-colors">Track Order</Link>
+            <Link to="/brand-register" className="hover:text-[#F5B400] transition-colors">Become a Seller</Link>
+            <Link to="/help" className="hover:text-[#F5B400] transition-colors">Help & Support</Link>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* TIER 1: MAIN SEARCH & COMMERCE BAR (Pure Black #000000)                   */}
+        {/* ========================================================================= */}
+        <div className="bg-black px-4 md:px-8 py-3 flex items-center justify-between gap-4 md:gap-8 h-[68px]">
+          
+          {/* 1. Brand Logo */}
+          <Link
+            to="/"
+            className="flex items-center space-x-2.5 shrink-0 group"
+            title="KAIA Technologies Home"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#F5B400] to-[#FFD043] flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-sm group-hover:scale-105 transition-transform">
+              K
+            </div>
+            <div className="text-left">
+              <span className="text-xl md:text-2xl font-black tracking-tight text-white block leading-none">
+                KAIA
+              </span>
+              <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase block mt-0.5">
+                TECHNOLOGIES
+              </span>
+            </div>
+          </Link>
+
+          {/* 2. Search Bar with Category Select & Gold Search Button */}
           <form
             onSubmit={handleSearchSubmit}
-            className={`flex-1 flex items-center h-10 max-w-4xl rounded-[4px] bg-white relative ${
-              isSearchFocused || categoryDropdownOpen ? 'ring-2 ring-amz-orange ring-offset-0' : ''
+            className={`flex-1 max-w-2xl flex items-center h-10 rounded-md bg-white overflow-hidden relative shadow-inner ${
+              isSearchFocused || categoryDropdownOpen ? 'ring-2 ring-[#F5B400]' : ''
             }`}
           >
             {/* Custom Styled Category Dropdown */}
@@ -171,11 +183,11 @@ const Header = () => {
               <button
                 type="button"
                 onClick={() => setCategoryDropdownOpen((prev) => !prev)}
-                className="bg-brand-gray-100 hover:bg-brand-gray-200 border-r border-brand-gray-300 h-full flex items-center justify-between px-3 gap-2 cursor-pointer text-xs text-amz-bodyInk font-semibold transition-colors focus:outline-none rounded-l-[4px]"
+                className="bg-slate-100 hover:bg-slate-200 border-r border-slate-300 h-full flex items-center justify-between px-3.5 gap-1.5 cursor-pointer text-xs text-slate-800 font-bold transition-colors focus:outline-none"
                 title="Select Category"
               >
-                <span className="truncate max-w-[120px] text-center">{activeCategoryLabel}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-amz-secText transition-transform duration-200 ${categoryDropdownOpen ? 'rotate-180 text-amz-orange' : ''}`} />
+                <span className="truncate max-w-[110px]">{activeCategoryLabel}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${categoryDropdownOpen ? 'rotate-180 text-[#F5B400]' : ''}`} />
               </button>
 
               {/* Styled Category Dropdown Menu */}
@@ -245,39 +257,62 @@ const Header = () => {
               )}
             </div>
 
-            {/* Search Submit Button (Amazon Yellow Accent) */}
+            {/* Search Submit Button (Solid Yellow Accent #F5B400) */}
             <button
               type="submit"
-              className="bg-amz-searchYellow hover:bg-amz-searchYellowHover text-amz-bodyInk h-full px-4 flex items-center justify-center shrink-0 transition-colors"
+              className="bg-[#F5B400] hover:bg-[#E0A200] text-slate-950 font-black h-full px-4.5 flex items-center justify-center shrink-0 transition-colors"
               title="Search"
             >
               <Search className="w-4 h-4 stroke-[2.5]" />
             </button>
           </form>
 
-          {/* 4. Language Selector Pill */}
-          <div className="amz-nav-item hidden xl:flex items-center space-x-1 px-2 py-1 shrink-0 cursor-default">
-            <span className="text-xs">🇮🇳</span>
-            <span className="text-xs font-bold text-white uppercase">IN / EN</span>
-          </div>
-
-          {/* 5. Account / Sign In */}
-          <div
-            className="relative group amz-nav-item px-2 py-1 shrink-0 text-left"
-            onMouseEnter={() => setAccountDropdown(true)}
-            onMouseLeave={() => setAccountDropdown(false)}
-          >
-            <Link to={user ? '/account' : '/login'} className="flex flex-col justify-center py-1">
-              <span className="text-[11px] text-brand-gray-300 font-normal block leading-none truncate max-w-[110px]">
-                Hello, {user ? user.name?.split(' ')[0] || 'Member' : 'Sign In'}
-              </span>
-              <div className="flex items-center space-x-0.5 mt-0.5">
-                <span className="text-xs font-bold text-white block leading-none">
-                  {user ? 'Account & Lists' : 'Accounts & Orders'}
+          {/* 3. Right Action Bar: Wishlist, Cart, Account */}
+          <div className="flex items-center space-x-4 md:space-x-6 shrink-0 text-white text-xs font-semibold">
+            
+            {/* Wishlist */}
+            <Link
+              to="/account/wishlist"
+              className="flex items-center space-x-1.5 hover:text-[#F5B400] transition-colors relative py-1"
+              title="View Saved Wishlist"
+            >
+              <div className="relative">
+                <Heart className="w-5 h-5 text-white" />
+                <span className="absolute -top-1.5 -right-2 bg-[#F5B400] text-slate-950 font-black text-[9px] rounded-full w-4 h-4 flex items-center justify-center leading-none shadow-xs">
+                  0
                 </span>
-                <ChevronDown className="w-3 h-3 text-brand-gray-400" />
               </div>
+              <span className="hidden xl:inline font-bold">Wishlist</span>
             </Link>
+
+            {/* Cart Counter */}
+            <Link
+              to="/cart"
+              className="flex items-center space-x-1.5 hover:text-[#F5B400] transition-colors relative py-1"
+              title="View Shopping Cart"
+            >
+              <div className="relative">
+                <ShoppingCart className="w-5 h-5 text-white" />
+                <span className="absolute -top-1.5 -right-2 bg-[#F5B400] text-slate-950 font-black text-[9px] rounded-full w-4 h-4 flex items-center justify-center leading-none shadow-xs">
+                  {cartItemCount}
+                </span>
+              </div>
+              <span className="hidden xl:inline font-bold">Cart</span>
+            </Link>
+
+            {/* Account / User */}
+            <div
+              className="relative group text-left py-1"
+              onMouseEnter={() => setAccountDropdown(true)}
+              onMouseLeave={() => setAccountDropdown(false)}
+            >
+              <Link to={user ? '/account' : '/login'} className="flex items-center space-x-1.5 hover:text-[#F5B400] transition-colors py-1">
+                <User className="w-5 h-5 text-white" />
+                <span className="font-bold hidden sm:inline">
+                  {user ? user.name?.split(' ')[0] : 'Sign In / Register'}
+                </span>
+                <ChevronDown className="w-3 h-3 text-slate-400" />
+              </Link>
 
             {/* Hover Account Dropdown Menu */}
             {accountDropdown && (
@@ -469,96 +504,60 @@ const Header = () => {
               </div>
             )}
           </div>
-
-          {/* 6. Returns & Orders */}
-          <Link
-            to="/orders"
-            className="amz-nav-item px-2 py-1 shrink-0 text-left hidden sm:block"
-            title="View Returns and Orders"
-          >
-            <span className="text-[11px] text-brand-gray-300 font-normal block leading-none">Returns</span>
-            <span className="text-xs font-bold text-white block mt-0.5 leading-none">& Orders</span>
-          </Link>
-
-          {/* 6b. Compare Counter */}
-          <Link
-            to="/compare"
-            className="amz-nav-item px-2 py-1 flex items-center space-x-1 shrink-0 relative"
-            title="Compare Products"
-          >
-            <div className="relative flex items-center">
-              <ArrowLeftRight className="w-5 h-5 text-white" />
-              {compareCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-amber-400 text-slate-950 font-black text-[10px] rounded-full px-1 min-w-[16px] text-center leading-tight shadow-xs">
-                  {compareCount}
-                </span>
-              )}
-            </div>
-            <span className="text-xs font-bold text-white hidden xl:inline ml-1">Compare</span>
-          </Link>
-
-          {/* 7. Cart Counter */}
-          <Link
-            to="/cart"
-            className="amz-nav-item px-2 py-1 flex items-center space-x-1.5 shrink-0"
-            title="View Shopping Cart"
-          >
-            <div className="relative flex items-center">
-              <ShoppingCart className="w-7 h-7 text-white" />
-              <span className="absolute -top-1 left-3 bg-amz-orange text-amz-bodyInk font-black text-[11px] rounded-full px-1.5 py-0.2 min-w-[18px] text-center leading-tight">
-                {cartItemCount}
-              </span>
-            </div>
-            <span className="text-xs font-bold text-white hidden md:inline mt-2">Cart</span>
-          </Link>
-
         </div>
+      </div>
 
         {/* ========================================================================= */}
-        {/* TIER 2: SUB-NAVIGATION BAR (Amazon Dark Navy #232F3E)                      */}
+        {/* TIER 2: SECONDARY CATEGORY BAR (Pure White with Light Gray Bottom Border)  */}
         {/* ========================================================================= */}
-        <div className="bg-amz-navy2 px-3 md:px-4 py-1.5 flex items-center justify-between text-xs overflow-x-auto no-scrollbar">
+        <div className="bg-white text-slate-800 border-b border-slate-200 px-4 md:px-8 py-2.5 flex items-center text-xs font-semibold overflow-x-auto no-scrollbar gap-6 select-none shadow-2xs">
           
-          {/* Left menu items */}
-          <div className="flex items-center space-x-1 md:space-x-2 shrink-0">
-            {/* All Menu Button */}
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="amz-nav-item px-2 py-1 flex items-center space-x-1 font-bold text-white hover:text-white"
-            >
-              <Menu className="w-4 h-4" />
-              <span>All</span>
-            </button>
+          {/* Shop by Category Button */}
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="flex items-center space-x-2 text-slate-950 font-black pr-6 border-r border-slate-200 shrink-0 hover:text-[#F5B400] transition-colors"
+          >
+            <Menu className="w-4 h-4" />
+            <span>Shop by Category</span>
+          </button>
 
-            {/* Mobile Location Quick Pill */}
-            <button
-              onClick={openLocationModal}
-              className="lg:hidden flex items-center space-x-1 text-amber-400 bg-white/10 px-2.5 py-1 rounded text-[11px] font-bold"
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              <span className="truncate max-w-[110px]">{deliveryAreaLabel}</span>
-            </button>
-
-            <Link to="/deals" className="amz-nav-item px-2 py-1 text-white font-normal hover:text-white">
-              Today's Deals
-            </Link>
-            <Link to="/new-arrivals" className="amz-nav-item px-2 py-1 text-white font-normal hover:text-white">
-              New Arrivals
-            </Link>
-            <Link to="/best-sellers" className="amz-nav-item px-2 py-1 text-white font-normal hover:text-white">
-              Best Sellers
-            </Link>
-            <Link to="/compare" className="amz-nav-item px-2 py-1 text-amber-300 font-semibold hover:text-amber-200">
-              Compare {compareCount > 0 ? `(${compareCount})` : ''}
-            </Link>
-            <Link to="/categories" className="amz-nav-item px-2 py-1 text-white font-normal hover:text-white">
-              Departments
-            </Link>
-            <Link to="/brands" className="amz-nav-item px-2 py-1 text-white font-normal hover:text-white">
-              Authorized Brands
-            </Link>
-          </div>
-
+          {/* Category Navigation Links */}
+          <Link to="/" className="text-slate-950 font-bold border-b-2 border-[#F5B400] pb-1 shrink-0">
+            Home
+          </Link>
+          <Link to="/products?category=pc-components" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            PC Components
+          </Link>
+          <Link to="/products?category=laptops" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Laptops
+          </Link>
+          <Link to="/products?category=desktops" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Desktops
+          </Link>
+          <Link to="/products?category=monitors-and-displays" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Monitors
+          </Link>
+          <Link to="/products?category=networking" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Networking
+          </Link>
+          <Link to="/products?category=accessories" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Accessories
+          </Link>
+          <Link to="/products?category=storage" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Storage
+          </Link>
+          <Link to="/products?category=peripherals" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Peripherals
+          </Link>
+          <Link to="/products?category=software" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Software
+          </Link>
+          <Link to="/brands" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Brands
+          </Link>
+          <Link to="/deals" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
+            Deals
+          </Link>
         </div>
 
       </header>
