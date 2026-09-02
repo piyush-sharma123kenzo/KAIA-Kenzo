@@ -128,6 +128,14 @@ export const sendOtpEmail = async (toEmail, rawOtp, purpose) => {
   const { subject, html } = buildOtpHtml(rawOtp, purpose);
   const result = await sendEmail({ to: toEmail, subject, html });
 
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.error || 'Email delivery failed.',
+      rawOtp,
+    };
+  }
+
   if (!isProduction()) {
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`[KAIA Email Log] Verification Code for ${toEmail}:`);
@@ -136,7 +144,7 @@ export const sendOtpEmail = async (toEmail, rawOtp, purpose) => {
   }
 
   return {
-    success: result.success,
+    success: true,
     rawOtp,
   };
 };

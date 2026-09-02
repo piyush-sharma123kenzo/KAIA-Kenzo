@@ -32,11 +32,9 @@ export const requestPasswordReset = async (email) => {
     try {
       otpResult = await generateAndSendOtp(normalizedEmail, 'PASSWORD_RESET', { skipCooldown: false });
     } catch (otpError) {
-      if (process.env.NODE_ENV === 'production' && otpError.statusCode === 503) {
-        const error = new Error('Email service is temporarily unavailable. Please try again shortly.');
-        error.statusCode = 503;
-        throw error;
-      }
+      const error = new Error('Email service is temporarily unavailable. Please try again shortly.');
+      error.statusCode = otpError.statusCode || 503;
+      throw error;
     }
   }
 

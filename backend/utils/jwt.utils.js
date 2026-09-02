@@ -16,11 +16,10 @@ import jwt from 'jsonwebtoken';
  */
 export const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    console.error('[KAIA Auth] FATAL: JWT_SECRET environment variable is not configured.');
-    return 'supersecretjwtkeyfor_kaia_technologies_2026';
+  if (!secret || !secret.trim()) {
+    throw new Error('JWT_SECRET environment variable is not configured.');
   }
-  return secret;
+  return secret.trim();
 };
 
 /**

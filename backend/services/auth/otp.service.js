@@ -75,9 +75,15 @@ export const generateAndSendOtp = async (email, purpose, { skipCooldown = false 
 
   // 6. Dispatch email
   try {
-    await sendOtpEmail(normalizedEmail, rawOtp, purpose);
+    const emailResult = await sendOtpEmail(normalizedEmail, rawOtp, purpose);
+    if (!emailResult?.success) {
+      throw new Error(emailResult?.error || 'Failed to send OTP email.');
+    }
   } catch (emailErr) {
     console.error('[KAIA OTP] Failed to send email:', emailErr.message);
+    const error = new Error('Unable to send verification code. Please try again later.');
+    error.statusCode = 503;
+    throw error;
   }
 
   return {
