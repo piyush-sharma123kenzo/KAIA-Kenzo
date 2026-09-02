@@ -168,7 +168,7 @@ function _createMockOrder({ internalOrderId, amountInRupees, amountInPaise, curr
     currency,
     receipt: generateReceiptId(internalOrderId),
     provider: 'mock',
-    razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key',
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
   };
 }
 

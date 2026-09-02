@@ -1,8 +1,16 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import Category from '../models/Category.js';
 import Brand from '../models/Brand.js';
 
-const ATLAS_URI = 'mongodb+srv://piyushsharma_db_user:9B4OgEWACnirmgjI@cluster0.rrinoas.mongodb.net/kaia-tech?retryWrites=true&w=majority';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '../../.env') });
+dotenv.config();
+
+const MONGO_URI = process.env.MONGO_URI || process.env.ATLAS_URI || 'mongodb://127.0.0.1:27017/kaia-tech';
 
 const INITIAL_CATEGORIES = [
   { name: 'Computers', slug: 'computers', description: 'Laptops, Desktops, and Workstations' },
@@ -51,8 +59,8 @@ const INITIAL_BRANDS = [
 
 const seedAtlasTaxonomy = async () => {
   try {
-    await mongoose.connect(ATLAS_URI);
-    console.log('Connected to Atlas for Taxonomy Seeding...');
+    await mongoose.connect(MONGO_URI);
+    console.log('Connected to MongoDB for Taxonomy Seeding...');
 
     for (const cat of INITIAL_CATEGORIES) {
       await Category.updateOne({ slug: cat.slug }, { $set: cat }, { upsert: true });

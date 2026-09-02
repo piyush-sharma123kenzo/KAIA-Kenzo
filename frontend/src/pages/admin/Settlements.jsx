@@ -68,7 +68,7 @@ const AdminSettlements = () => {
     if (!window.confirm('Disburse payout to brand seller account?')) return;
     setActionLoading(true);
     try {
-      const res = await brandSellerService.processSettlement(id, 'mock');
+      const res = await brandSellerService.processSettlement(id, 'bank_transfer');
       if (res.success) {
         alert(res.message || 'Payout processed successfully.');
         fetchSettlementsData();

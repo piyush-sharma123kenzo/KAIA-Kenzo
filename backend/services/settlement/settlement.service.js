@@ -181,7 +181,7 @@ export class SettlementService {
       netPayable: Math.round(netPayable * 100) / 100,
       sellerOrders: orderIds,
       status: 'pending',
-      paymentProvider: 'mock',
+      paymentProvider: 'bank_transfer',
     });
 
     // Mark included orders as held in settlement
@@ -223,7 +223,7 @@ export class SettlementService {
   /**
    * 6. Process Settlement Payout
    */
-  async processSettlementPayout({ settlementId, paymentProvider = 'mock', user }) {
+  async processSettlementPayout({ settlementId, paymentProvider = 'bank_transfer', user }) {
     const settlement = await Settlement.findById(settlementId).populate('brandId');
     if (!settlement) throw new Error('Settlement not found.');
 

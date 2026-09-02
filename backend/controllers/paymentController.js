@@ -85,7 +85,7 @@ export const createPaymentOrder = async (req, res) => {
         currency: existingPayment.currency,
         provider: existingPayment.provider,
         // Public key only — secret NEVER sent to frontend
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key',
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
       });
     }
 
