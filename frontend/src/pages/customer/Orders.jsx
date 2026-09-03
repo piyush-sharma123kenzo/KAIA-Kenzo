@@ -216,15 +216,25 @@ const Orders = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-3">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <StatusBadge status={order.orderStatus} />
+                    <Link to={`/order-details/${order.orderId}`}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs uppercase font-bold tracking-wider flex items-center space-x-1.5 border border-slate-300 hover:border-slate-400 bg-white"
+                      >
+                        <Truck className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Track Order</span>
+                      </Button>
+                    </Link>
                     <Link to={`/order-details/${order.orderId}`}>
                       <Button
                         variant="primary"
                         size="sm"
                         className="text-xs uppercase font-bold tracking-wider flex items-center space-x-1"
                       >
-                        <span>View Order Details</span>
+                        <span>Details</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Button>
                     </Link>

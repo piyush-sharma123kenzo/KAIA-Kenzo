@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Globe, ShieldCheck, MapPin, ExternalLink, Building2, 
-  Mail, Phone, Clock, Compass, Navigation, Lock, CheckCircle2, RotateCcw
+  Mail, Phone, Clock, Compass, Navigation, Lock, CheckCircle2, RotateCcw,
+  ArrowRight, Headphones, Truck
 } from 'lucide-react';
 import { KAIA_OFFICE_LOCATION } from '../../constants/companyInfo';
 import KaiaLogo from '../common/KaiaLogo';
@@ -73,7 +74,7 @@ const Footer = ({ mode = 'full' }) => {
           <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-slate-300">
             <Link to="/terms" className="hover:text-amber-400 hover:underline">Conditions of Use</Link>
             <Link to="/privacy" className="hover:text-amber-400 hover:underline">Privacy Notice</Link>
-            <Link to="/help" className="hover:text-amber-400 hover:underline">Help</Link>
+            <Link to="/help" className="hover:text-amber-400 hover:underline">Help & Support</Link>
             <Link to="/contact" className="hover:text-amber-400 hover:underline">Contact</Link>
           </div>
           <p className="text-slate-400">
@@ -106,7 +107,32 @@ const Footer = ({ mode = 'full' }) => {
         Back to top
       </button>
 
-      {/* 2. CORPORATE DIRECTORY & VERIFIED OFFICE LOCATION */}
+      {/* 2. UNIQUE SPOTLIGHT: BECOME A SELLER / PARTNER CTA STRIP */}
+      <div className="bg-[#0F172A] border-b border-slate-800 py-8 px-6 md:px-12 lg:px-20 text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/70 rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+          <div className="space-y-2 z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 bg-amber-400/15 text-amber-400 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border border-amber-400/30">
+              <Building2 className="w-3.5 h-3.5 text-[#F5B400]" />
+              <span>KAIA Supplier Network</span>
+            </div>
+            <h3 className="text-white text-lg md:text-xl font-black tracking-tight">
+              Authorized Hardware Manufacturer or Distributor?
+            </h3>
+            <p className="text-slate-300 text-xs leading-relaxed">
+              Sell directly on India's premier high-performance computing portal. Get direct brand listings, automated B2B GST invoicing, and verified escrow settlements.
+            </p>
+          </div>
+          <Link
+            to="/brand-register"
+            className="bg-[#F5B400] hover:bg-[#E0A200] text-slate-950 font-black text-xs md:text-sm px-6 py-3 rounded-xl flex items-center space-x-2 shrink-0 shadow-lg hover:scale-105 transition-all z-10"
+          >
+            <span>Become a Seller</span>
+            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+          </Link>
+        </div>
+      </div>
+
+      {/* 3. CORPORATE DIRECTORY & VERIFIED OFFICE LOCATION */}
       <div className="bg-amz-navy2 text-white border-b border-brand-gray-800 py-14 px-6 md:px-12 lg:px-20">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 text-left">
           
@@ -138,7 +164,7 @@ const Footer = ({ mode = 'full' }) => {
             <h4 className="font-extrabold text-sm text-white tracking-tight">Connect with Us</h4>
             <ul className="space-y-2 text-brand-gray-300 text-xs">
               <li><Link to="/support" className="hover:underline hover:text-white">Customer Support</Link></li>
-              <li><Link to="/help" className="hover:underline hover:text-white">Help Assistant</Link></li>
+              <li><Link to="/help" className="hover:underline hover:text-white">Help Assistant & FAQ</Link></li>
               <li><Link to="/brands" className="hover:underline hover:text-white">Authorized Brand Directory</Link></li>
               <li><a href={`mailto:${KAIA_OFFICE_LOCATION.supportEmail}`} className="hover:underline hover:text-white">{KAIA_OFFICE_LOCATION.supportEmail}</a></li>
             </ul>
@@ -161,6 +187,7 @@ const Footer = ({ mode = 'full' }) => {
             <h4 className="font-extrabold text-sm text-white tracking-tight">Let Us Help You</h4>
             <ul className="space-y-2 text-brand-gray-300 text-xs">
               <li><Link to="/account" className="hover:underline hover:text-white">Your Account</Link></li>
+              <li><Link to="/orders" className="hover:underline hover:text-amber-400 font-semibold">Track Your Orders</Link></li>
               <li><Link to="/returns" className="hover:underline hover:text-white">Returns & RMA Claims</Link></li>
               <li><Link to="/serial-check" className="hover:underline hover:text-white">Serial Warranty Check</Link></li>
               <li><Link to="/shipping-rates" className="hover:underline hover:text-white">Shipping & Delivery Rates</Link></li>

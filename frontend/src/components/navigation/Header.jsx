@@ -163,20 +163,6 @@ const Header = () => {
     <>
       <header className="sticky top-0 z-40 w-full select-none font-sans text-xs shadow-md">
         
-        {/* ========================================================================= */}
-        {/* TIER 0: TOP UTILITY STRIP (Pure Black #000000)                             */}
-        {/* ========================================================================= */}
-        {/* ========================================================================= */}
-        {/* TIER 0: TOP UTILITY STRIP (Pure Black #000000)                             */}
-        {/* ========================================================================= */}
-        <div className="bg-black text-slate-300 py-1 px-4 md:px-8 text-[11px] flex justify-end items-center border-b border-white/10 select-none">
-          {/* Right: Utility Links */}
-          <div className="flex items-center space-x-5 text-slate-400 font-medium">
-            <Link to="/orders" className="hover:text-[#F5B400] transition-colors">Track Order</Link>
-            <Link to="/brand-register" className="hover:text-[#F5B400] transition-colors">Become a Seller</Link>
-            <Link to="/help" className="hover:text-[#F5B400] transition-colors">Help & Support</Link>
-          </div>
-        </div>
 
         {/* ========================================================================= */}
         {/* TIER 1: MAIN SEARCH & COMMERCE BAR (Pure Black #000000)                   */}
