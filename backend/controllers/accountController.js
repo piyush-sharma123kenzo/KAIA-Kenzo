@@ -133,6 +133,14 @@ export const uploadAvatar = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
+    // Clean up old local avatar file if it exists to prevent disk clutter
+    if (user.avatar && user.avatar.startsWith('/uploads/avatars/')) {
+      const oldFilePath = path.join(process.cwd(), user.avatar);
+      if (fs.existsSync(oldFilePath)) {
+        try { fs.unlinkSync(oldFilePath); } catch (e) { console.warn('Could not delete old avatar:', e.message); }
+      }
+    }
+
     user.avatar = avatarUrl;
     await user.save();
 
@@ -162,17 +170,27 @@ export const removeAvatar = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
+    // Delete existing file from disk if local
+    if (user.avatar && user.avatar.startsWith('/uploads/avatars/')) {
+      const oldFilePath = path.join(process.cwd(), user.avatar);
+      if (fs.existsSync(oldFilePath)) {
+        try { fs.unlinkSync(oldFilePath); } catch (e) {}
+      }
+    }
+
     user.avatar = '';
     await user.save();
 
     return res.status(200).json({
       success: true,
-      message: 'Profile picture removed successfully.',
-      avatar: '',
+      message: 'Profile avatar removed successfully.',
       user: {
         _id: user._id,
         name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
+        phone: user.phone,
         avatar: '',
         role: user.role,
       },
