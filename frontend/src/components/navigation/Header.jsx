@@ -3,7 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, ShoppingCart, MapPin, Menu, X, ChevronDown, 
   User, ShieldCheck, Heart, Building2, Package, ExternalLink,
-  Navigation, Check, ArrowLeftRight, LogOut, Award, ShoppingBag, ChevronRight, Camera
+  Navigation, Check, ArrowLeftRight, LogOut, Award, ShoppingBag, ChevronRight, Camera,
+  Sparkles, Flame, Tag
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
@@ -576,56 +577,70 @@ const Header = () => {
       </div>
 
         {/* ========================================================================= */}
-        {/* TIER 2: SECONDARY CATEGORY BAR (Pure White with Light Gray Bottom Border)  */}
+        {/* TIER 2: SECONDARY CATEGORY BAR (Modern High-End Pill Navigation)           */}
         {/* ========================================================================= */}
-        <div className="bg-white text-slate-800 border-b border-slate-200 px-4 md:px-8 py-2.5 flex items-center text-xs font-semibold overflow-x-auto no-scrollbar gap-6 select-none shadow-2xs">
+        <div className="bg-white/95 backdrop-blur-md text-slate-800 border-b border-slate-200/90 px-4 md:px-8 py-2 flex items-center text-xs font-semibold overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] gap-2 md:gap-2.5 select-none shadow-2xs">
           
-          {/* Shop by Category Button */}
+          {/* Shop by Category Pill */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="flex items-center space-x-2 text-slate-950 font-black pr-6 border-r border-slate-200 shrink-0 hover:text-[#F5B400] transition-colors"
+            className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-3.5 py-1.5 rounded-xl shrink-0 transition-all hover:scale-[1.02] active:scale-95 shadow-xs cursor-pointer mr-1"
           >
-            <Menu className="w-4 h-4" />
-            <span>Shop by Category</span>
+            <Menu className="w-3.5 h-3.5 text-[#F5B400]" />
+            <span className="text-[11px] md:text-xs tracking-tight">Shop by Category</span>
           </button>
 
-          {/* Category Navigation Links */}
-          <Link to="/" className="text-slate-950 font-bold border-b-2 border-[#F5B400] pb-1 shrink-0">
-            Home
-          </Link>
-          <Link to="/products?category=pc-components" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            PC Components
-          </Link>
-          <Link to="/products?category=laptops" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Laptops
-          </Link>
-          <Link to="/products?category=desktops" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Desktops
-          </Link>
-          <Link to="/products?category=monitors-and-displays" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Monitors
-          </Link>
-          <Link to="/products?category=networking" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Networking
-          </Link>
-          <Link to="/products?category=accessories" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Accessories
-          </Link>
-          <Link to="/products?category=storage" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Storage
-          </Link>
-          <Link to="/products?category=peripherals" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Peripherals
-          </Link>
-          <Link to="/products?category=software" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Software
-          </Link>
-          <Link to="/brands" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Brands
-          </Link>
-          <Link to="/deals" className="hover:text-[#F5B400] transition-colors shrink-0 pb-1">
-            Deals
-          </Link>
+          {/* Divider */}
+          <div className="h-4 w-[1px] bg-slate-200 shrink-0 mx-0.5" />
+
+          {/* Category Navigation Pill Links */}
+          {[
+            { name: 'Home', path: '/' },
+            { name: 'PC Components', path: '/products?category=pc-components' },
+            { name: 'Laptops', path: '/products?category=laptops' },
+            { name: 'Desktops', path: '/products?category=desktops' },
+            { name: 'Monitors', path: '/products?category=monitors-and-displays' },
+            { name: 'Networking', path: '/products?category=networking' },
+            { name: 'Accessories', path: '/products?category=accessories' },
+            { name: 'Storage', path: '/products?category=storage' },
+            { name: 'Peripherals', path: '/products?category=peripherals' },
+            { name: 'Software', path: '/products?category=software' },
+            { name: 'Brands', path: '/brands', isBrands: true },
+            { name: 'Deals', path: '/deals', isDeals: true },
+          ].map((item) => {
+            const currentFullUrl = location.pathname + location.search;
+            const isActive = item.path === '/' 
+              ? (location.pathname === '/' && !location.search) 
+              : (currentFullUrl === item.path || location.pathname === item.path);
+
+            return (
+              <Link
+                key={item.name}
+                to={item.path}
+                className={`
+                  shrink-0 px-3 py-1.5 rounded-xl transition-all duration-200 flex items-center gap-1.5 text-xs font-semibold
+                  ${
+                    isActive
+                      ? 'bg-slate-900 text-white font-bold shadow-xs'
+                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/90'
+                  }
+                `}
+              >
+                {item.isBrands && (
+                  <Sparkles className={`w-3 h-3 ${isActive ? 'text-[#F5B400]' : 'text-amber-500'}`} />
+                )}
+                {item.isDeals && (
+                  <Flame className={`w-3 h-3 ${isActive ? 'text-orange-400' : 'text-red-500'}`} />
+                )}
+                <span>{item.name}</span>
+                {item.isDeals && (
+                  <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase leading-none tracking-tighter">
+                    HOT
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </div>
 
       </header>
