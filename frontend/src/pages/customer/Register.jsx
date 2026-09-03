@@ -71,6 +71,9 @@ const Register = () => {
     }
   }, [user, navigate]);
 
+  const confirmPasswordError = confirmPassword && password !== confirmPassword
+    ? 'Passwords do not match.' : '';
+
   const handleInputChange = (setter) => (e) => {
     setter(e.target.value);
     if (error) clearError();
