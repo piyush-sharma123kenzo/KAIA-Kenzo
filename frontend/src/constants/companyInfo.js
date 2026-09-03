@@ -6,6 +6,8 @@
 export const KAIA_OFFICE_LOCATION = {
   companyName: 'KAIA Technologies Pvt. Ltd.',
   brandName: 'KAIA Technologies',
+  parentCompany: 'Kenzo Info Systems',
+  companyWebsite: 'https://www.kenzoinfosystems.com',
   addressLine1: 'Mayur Vihar Phase 1',
   landmark: 'Near Unna Enclave',
   city: 'Delhi',

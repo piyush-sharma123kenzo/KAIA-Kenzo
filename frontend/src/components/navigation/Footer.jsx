@@ -46,8 +46,17 @@ const Footer = ({ mode = 'full' }) => {
             <Link to="/terms" className="hover:text-amber-400 hover:underline">Terms of Service</Link>
           </div>
 
-          <p className="text-[11px] text-slate-500">
-            © 2026 KAIA Technologies Pvt. Ltd. Verified Corporate Office: Mayur Vihar Phase 1, Delhi, India.
+          <p className="text-[11px] text-slate-400">
+            © 2026 KAIA Technologies Pvt. Ltd. | Powered by{' '}
+            <a 
+              href="https://www.kenzoinfosystems.com" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-amber-400 hover:underline font-semibold"
+            >
+              Kenzo Info Systems
+            </a>
+            . Verified Office: Mayur Vihar Phase 1, Delhi, India.
           </p>
         </div>
       </footer>
@@ -67,8 +76,16 @@ const Footer = ({ mode = 'full' }) => {
             <Link to="/help" className="hover:text-amber-400 hover:underline">Help</Link>
             <Link to="/contact" className="hover:text-amber-400 hover:underline">Contact</Link>
           </div>
-          <p className="text-slate-500">
-            © 2026, KAIA Technologies Pvt. Ltd. or its affiliates.
+          <p className="text-slate-400">
+            © 2026, KAIA Technologies Pvt. Ltd. |{' '}
+            <a 
+              href="https://www.kenzoinfosystems.com" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-amber-400 hover:underline font-semibold"
+            >
+              Kenzo Info Systems
+            </a>
           </p>
         </div>
       </footer>
@@ -98,6 +115,17 @@ const Footer = ({ mode = 'full' }) => {
             <h4 className="font-extrabold text-sm text-white tracking-tight">Get to Know Us</h4>
             <ul className="space-y-2 text-brand-gray-300 text-xs">
               <li><Link to="/about" className="hover:underline hover:text-white">About KAIA Technologies</Link></li>
+              <li>
+                <a 
+                  href="https://www.kenzoinfosystems.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:underline hover:text-amber-400 inline-flex items-center space-x-1 font-bold text-amber-300"
+                >
+                  <span>Kenzo Info Systems</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </li>
               <li><Link to="/about" className="hover:underline hover:text-white">Direct Brand Supply</Link></li>
               <li><Link to="/categories" className="hover:underline hover:text-white">Hardware Catalog</Link></li>
               <li><Link to="/compare" className="hover:underline hover:text-amber-400">Product Comparison</Link></li>
@@ -146,11 +174,20 @@ const Footer = ({ mode = 'full' }) => {
               <h4 className="font-extrabold text-xs text-white uppercase tracking-wider">Corporate Hub</h4>
             </div>
 
-            <p className="text-[11px] text-brand-gray-300 leading-relaxed">
+            <div className="text-[11px] text-brand-gray-300 leading-relaxed space-y-1">
               <strong className="text-white block font-bold">KAIA Technologies Pvt. Ltd.</strong>
-              Mayur Vihar Phase 1, Near Unna Enclave<br />
-              Delhi, India
-            </p>
+              <p>Mayur Vihar Phase 1, Near Unna Enclave<br />Delhi, India</p>
+              
+              <a
+                href="https://www.kenzoinfosystems.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1.5 text-xs text-amber-400 hover:text-amber-300 font-bold hover:underline pt-1"
+              >
+                <span>www.kenzoinfosystems.com</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
 
             <div className="h-24 w-full rounded-lg overflow-hidden border border-slate-700 relative bg-slate-800">
               <iframe
@@ -211,8 +248,17 @@ const Footer = ({ mode = 'full' }) => {
           <Link to="/warranty-policy" className="hover:underline hover:text-white">Warranty Policy</Link>
           <Link to="/shipping-policy" className="hover:underline hover:text-white">Shipping & Logistics</Link>
         </div>
-        <p className="text-brand-gray-500">
-          © 2026, KAIA Technologies Pvt. Ltd. Mayur Vihar Phase 1, Delhi. All rights reserved.
+        <p className="text-brand-gray-400">
+          © 2026, KAIA Technologies Pvt. Ltd. | Powered by{' '}
+          <a 
+            href="https://www.kenzoinfosystems.com" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-amber-400 hover:text-amber-300 hover:underline font-bold"
+          >
+            Kenzo Info Systems Pvt. Ltd.
+          </a>
+          . Mayur Vihar Phase 1, Delhi. All rights reserved.
         </p>
       </div>
 
