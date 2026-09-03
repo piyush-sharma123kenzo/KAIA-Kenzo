@@ -593,7 +593,7 @@ const Header = () => {
           {/* Divider */}
           <div className="h-4 w-[1px] bg-slate-200 shrink-0 mx-0.5" />
 
-          {/* Category Navigation Pill Links */}
+          {/* Category Navigation Pill Links (Clean Professional Typography) */}
           {[
             { name: 'Home', path: '/' },
             { name: 'PC Components', path: '/products?category=pc-components' },
@@ -605,8 +605,8 @@ const Header = () => {
             { name: 'Storage', path: '/products?category=storage' },
             { name: 'Peripherals', path: '/products?category=peripherals' },
             { name: 'Software', path: '/products?category=software' },
-            { name: 'Brands', path: '/brands', isBrands: true },
-            { name: 'Deals', path: '/deals', isDeals: true },
+            { name: 'Brands', path: '/brands' },
+            { name: 'Deals', path: '/deals' },
           ].map((item) => {
             const currentFullUrl = location.pathname + location.search;
             const isActive = item.path === '/' 
@@ -618,26 +618,15 @@ const Header = () => {
                 key={item.name}
                 to={item.path}
                 className={`
-                  shrink-0 px-3 py-1.5 rounded-xl transition-all duration-200 flex items-center gap-1.5 text-xs font-semibold
+                  shrink-0 px-3 py-1.5 rounded-lg transition-all duration-150 text-[12px]
                   ${
                     isActive
                       ? 'bg-slate-900 text-white font-bold shadow-xs'
-                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/90'
+                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/90 font-medium'
                   }
                 `}
               >
-                {item.isBrands && (
-                  <Sparkles className={`w-3 h-3 ${isActive ? 'text-[#F5B400]' : 'text-amber-500'}`} />
-                )}
-                {item.isDeals && (
-                  <Flame className={`w-3 h-3 ${isActive ? 'text-orange-400' : 'text-red-500'}`} />
-                )}
-                <span>{item.name}</span>
-                {item.isDeals && (
-                  <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase leading-none tracking-tighter">
-                    HOT
-                  </span>
-                )}
+                {item.name}
               </Link>
             );
           })}
