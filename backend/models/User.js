@@ -110,8 +110,17 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+// Virtual field alias: isEmailVerified <-> emailVerified
+userSchema.virtual('isEmailVerified').get(function () {
+  return this.emailVerified;
+}).set(function (val) {
+  this.emailVerified = val;
+});
 
 // Encrypt password before saving
 userSchema.pre('save', async function (next) {

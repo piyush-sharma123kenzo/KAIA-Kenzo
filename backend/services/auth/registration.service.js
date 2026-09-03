@@ -1,14 +1,22 @@
 /**
  * KAIA Technologies — User Registration Service
  * 
- * Responsibilities:
- *  - Full name, email, password, and confirm password validation
- *  - Multi-domain email support (Gmail, Yahoo, Outlook, custom corporate domains)
- *  - Case-insensitive email normalization
- *  - Duplicate email checking:
- *      * If verified: returns "This email is already registered. Please login."
- *      * If unverified: updates credentials and dispatches fresh OTP (no duplicate key collision)
- *  - Cryptographic single-use OTP dispatch
+ * Strict "One Email = One Account" Rules:
+ *  - Email Normalization: Trim & Lowercase
+ *  - Email Format & Password Match / Strength Validation
+ *  - Duplicate Handling:
+ *      * If email exists and isVerified === true:
+ *          -> Throws 409 Conflict: "This email is already registered. Please login."
+ *      * If email exists and isVerified === false:
+ *          -> Throws 409 Conflict: "An account already exists with this email but is not verified."
+ *             with requiresVerification = true (Allows frontend to offer [Verify Email] and [Resend OTP])
+ *             Does NOT recreate, duplicate, or delete user record.
+ *      * If email does not exist:
+ *          -> Creates new user account with isEmailVerified = false
+ *          -> Generates cryptographically secure 6-digit OTP
+ *          -> Stores hashed OTP in MongoDB (10-minute TTL)
+ *          -> Dispatches OTP to exact recipient email
+ *          -> Returns 201 Created response
  */
 
 import User from '../../models/User.js';
@@ -28,7 +36,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * @param {string} [params.role='CUSTOMER']
  * @param {string} [params.phone='']
  * @param {string} [params.gstin='']
- * @returns {Promise<{ success: boolean, message: string, email: string, requiresVerification: boolean, devOtp?: string }>}
+ * @returns {Promise<{ success: boolean, statusCode: number, message: string, email: string, requiresVerification: boolean }>}
  */
 export const registerNewUser = async ({
   name,
@@ -46,7 +54,7 @@ export const registerNewUser = async ({
     throw error;
   }
 
-  // 2. Email format validation
+  // 2. Email format validation & Normalization (Trim + Lowercase)
   const normalizedEmail = email.trim().toLowerCase();
   if (!EMAIL_REGEX.test(normalizedEmail)) {
     const error = new Error('Please provide a valid email address.');
@@ -72,53 +80,59 @@ export const registerNewUser = async ({
 
   const userRole = role === 'ADMIN' ? 'CUSTOMER' : (role || 'CUSTOMER');
 
-  // 5. User creation or re-registration with fresh OTP verification
-  let existingUser = await User.findOne({ email: normalizedEmail });
+  // 5. Strict Unique Email Check
+  const existingUser = await User.findOne({ email: normalizedEmail });
 
   if (existingUser) {
-    // Update existing user with fresh registration credentials and require fresh OTP verification
-    existingUser.name = name.trim();
-    existingUser.password = password; // Pre-save hook hashes password securely
-    existingUser.role = userRole;
-    existingUser.emailVerified = false; // Fresh OTP verification required
-    if (phone) existingUser.phone = phone.trim();
-    if (gstin) existingUser.gstin = gstin.trim();
-    await existingUser.save();
-  } else {
-    // Create new unverified user
-    try {
-      await User.create({
-        name: name.trim(),
-        email: normalizedEmail,
-        password,
-        role: userRole,
-        phone: phone ? phone.trim() : '',
-        gstin: gstin ? gstin.trim() : '',
-        emailVerified: false,
-      });
-    } catch (createErr) {
-      if (createErr.code === 11000) {
-        const raceUser = await User.findOne({ email: normalizedEmail });
-        if (raceUser) {
-          raceUser.name = name.trim();
-          raceUser.password = password;
-          raceUser.role = userRole;
-          raceUser.emailVerified = false;
-          if (phone) raceUser.phone = phone.trim();
-          if (gstin) raceUser.gstin = gstin.trim();
-          await raceUser.save();
-        }
-      } else {
-        throw createErr;
-      }
+    if (existingUser.emailVerified) {
+      // Already verified account
+      const error = new Error('This email is already registered. Please login.');
+      error.statusCode = 409;
+      error.code = 'EMAIL_ALREADY_REGISTERED';
+      error.isVerified = true;
+      error.requiresVerification = false;
+      error.email = normalizedEmail;
+      throw error;
+    } else {
+      // Existing unverified account
+      const error = new Error('An account already exists with this email but is not verified.');
+      error.statusCode = 409;
+      error.code = 'EMAIL_UNVERIFIED';
+      error.isVerified = false;
+      error.requiresVerification = true;
+      error.email = normalizedEmail;
+      throw error;
     }
   }
 
-  // 6. Generate and dispatch verification OTP
-  const otpResult = await generateAndSendOtp(normalizedEmail, 'SIGNUP_VERIFICATION', { skipCooldown: true });
+  // 6. Create new unverified user account
+  try {
+    await User.create({
+      name: name.trim(),
+      email: normalizedEmail,
+      password, // Pre-save hook securely bcrypt-hashes password
+      role: userRole,
+      phone: phone ? phone.trim() : '',
+      gstin: gstin ? gstin.trim() : '',
+      emailVerified: false,
+    });
+  } catch (createErr) {
+    if (createErr.code === 11000) {
+      const error = new Error('This email is already registered. Please login.');
+      error.statusCode = 409;
+      error.code = 'EMAIL_ALREADY_REGISTERED';
+      error.email = normalizedEmail;
+      throw error;
+    }
+    throw createErr;
+  }
+
+  // 7. Generate and dispatch verification OTP
+  await generateAndSendOtp(normalizedEmail, 'SIGNUP_VERIFICATION', { skipCooldown: true });
 
   return {
     success: true,
+    statusCode: 201,
     message: `Verification code sent to ${normalizedEmail}. Please verify your email to complete registration.`,
     email: normalizedEmail,
     requiresVerification: true,

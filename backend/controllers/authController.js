@@ -47,6 +47,10 @@ export const registerUser = async (req, res) => {
     return res.status(statusCode).json({
       success: false,
       message: error.message || 'Server error during registration. Please try again.',
+      isVerified: error.isVerified,
+      requiresVerification: error.requiresVerification,
+      email: error.email,
+      code: error.code,
     });
   }
 };

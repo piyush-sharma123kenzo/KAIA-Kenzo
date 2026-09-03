@@ -111,9 +111,16 @@ export const AuthProvider = ({ children }) => {
       }
       return res;
     } catch (err) {
-      const errMsg = err.response?.data?.message || 'Registration failed.';
+      const data = err.response?.data || {};
+      const errMsg = data.message || 'Registration failed.';
       setError(errMsg);
-      throw new Error(errMsg);
+      const regError = new Error(errMsg);
+      regError.statusCode = err.response?.status;
+      regError.isVerified = data.isVerified;
+      regError.requiresVerification = data.requiresVerification;
+      regError.code = data.code;
+      regError.email = data.email || email;
+      throw regError;
     }
   };
 

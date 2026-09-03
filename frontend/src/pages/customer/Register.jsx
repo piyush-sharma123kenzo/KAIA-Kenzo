@@ -1,11 +1,12 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ShieldAlert, Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ShieldAlert, Eye, EyeOff, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import KaiaLogo from '../../components/common/KaiaLogo';
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton';
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const PasswordStrengthBar = ({ password }) => {
   const checks = [
@@ -23,7 +24,7 @@ const PasswordStrengthBar = ({ password }) => {
   return (
     <div className="mt-2 space-y-2">
       <div className="flex gap-1 h-1">
-        {[1,2,3,4].map(i => (
+        {[1, 2, 3, 4].map(i => (
           <div key={i} className={`flex-1 rounded-full ${i <= strength ? colors[strength] : 'bg-brand-gray-200'} transition-all`} />
         ))}
       </div>
@@ -49,7 +50,7 @@ const PasswordStrengthBar = ({ password }) => {
 
 const Register = () => {
   const navigate = useNavigate();
-  const { user, register, error, clearError } = useContext(AuthContext);
+  const { user, register, resendOtp, error, clearError } = useContext(AuthContext);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -60,7 +61,10 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [conflictState, setConflictState] = useState(null); // { type: 'verified' | 'unverified', message, email }
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState('');
 
   useEffect(() => { clearError(); }, []);
   useEffect(() => {
@@ -78,14 +82,37 @@ const Register = () => {
     setter(e.target.value);
     if (error) clearError();
     if (validationError) setValidationError('');
+    if (conflictState) setConflictState(null);
+    if (resendSuccess) setResendSuccess('');
+  };
+
+  const handleResendUnverifiedOtp = async () => {
+    const targetEmail = conflictState?.email || email.trim().toLowerCase();
+    if (!targetEmail) return;
+    setResending(true);
+    setResendSuccess('');
+    try {
+      await resendOtp(targetEmail, 'SIGNUP_VERIFICATION');
+      setResendSuccess(`New verification code sent to ${targetEmail}.`);
+    } catch (err) {
+      setValidationError(err.message || 'Failed to resend verification code.');
+    } finally {
+      setResending(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setValidationError('');
+    setConflictState(null);
+    setResendSuccess('');
 
-    if (!name.trim()) return setValidationError('Full name is required.');
-    if (!email.trim()) return setValidationError('Email address is required.');
+    const trimmedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!trimmedName) return setValidationError('Full name is required.');
+    if (!normalizedEmail) return setValidationError('Email address is required.');
+    if (!EMAIL_REGEX.test(normalizedEmail)) return setValidationError('Please enter a valid email address.');
 
     if (!PASSWORD_REGEX.test(password)) {
       return setValidationError('Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one number.');
@@ -101,20 +128,33 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const result = await register(name.trim(), email.trim(), password, confirmPassword, 'CUSTOMER', phone.trim());
+      const result = await register(trimmedName, normalizedEmail, password, confirmPassword, 'CUSTOMER', phone.trim());
       if (result?.requiresVerification) {
         navigate('/verify-otp', {
           state: {
-            email: result.email,
+            email: result.email || normalizedEmail,
             purpose: 'SIGNUP_VERIFICATION',
-            devOtp: result.devOtp,
           },
         });
       } else if (result?.user) {
         navigate('/account');
       }
     } catch (err) {
-      // Error is displayed via context error state
+      if (err.statusCode === 409 || err.code === 'EMAIL_ALREADY_REGISTERED' || err.code === 'EMAIL_UNVERIFIED') {
+        if (err.requiresVerification || err.isVerified === false || err.code === 'EMAIL_UNVERIFIED') {
+          setConflictState({
+            type: 'unverified',
+            message: err.message || 'An account already exists with this email but is not verified.',
+            email: err.email || normalizedEmail,
+          });
+        } else {
+          setConflictState({
+            type: 'verified',
+            message: err.message || 'This email is already registered. Please login.',
+            email: err.email || normalizedEmail,
+          });
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -131,8 +171,71 @@ const Register = () => {
           <p className="text-xs text-brand-gray-500">A 6-digit verification code will be sent to your email.</p>
         </div>
 
-        {/* Error notification */}
-        {(error || validationError) && (
+        {/* 1. Unverified Account Conflict Banner with Action Buttons */}
+        {conflictState?.type === 'unverified' && (
+          <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-sm space-y-3 shadow-xs">
+            <div className="flex items-start space-x-2">
+              <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">{conflictState.message}</p>
+                <p className="text-[11px] text-amber-700 mt-0.5">
+                  Verify your email with the 6-digit code or request a new code.
+                </p>
+              </div>
+            </div>
+
+            {resendSuccess && (
+              <div className="p-2 bg-emerald-100/80 border border-emerald-300 text-emerald-800 text-[11px] font-bold rounded flex items-center space-x-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>{resendSuccess}</span>
+              </div>
+            )}
+
+            <div className="flex items-center space-x-2 pt-1">
+              <button
+                type="button"
+                onClick={() => navigate('/verify-otp', { state: { email: conflictState.email, purpose: 'SIGNUP_VERIFICATION' } })}
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded text-xs transition-all shadow-xs cursor-pointer text-center"
+              >
+                Verify Email →
+              </button>
+              <button
+                type="button"
+                onClick={handleResendUnverifiedOtp}
+                disabled={resending}
+                className="py-2 px-3 border border-amber-300 bg-white hover:bg-amber-100 text-amber-800 font-bold rounded text-xs transition-all flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                <span>{resending ? 'Sending...' : 'Resend Code'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Verified Account Conflict Banner with Login Button */}
+        {conflictState?.type === 'verified' && (
+          <div className="p-4 bg-rose-50 border border-rose-200 text-rose-900 text-xs rounded-sm space-y-3 shadow-xs">
+            <div className="flex items-start space-x-2">
+              <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">{conflictState.message}</p>
+                <p className="text-[11px] text-rose-700 mt-0.5">
+                  You already have an active account with this email address.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to={`/login?email=${encodeURIComponent(conflictState.email)}`}
+              className="block w-full bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 font-bold py-2 px-4 rounded text-xs transition-all shadow-xs text-center cursor-pointer"
+            >
+              Sign In to Your Account →
+            </Link>
+          </div>
+        )}
+
+        {/* 3. Generic Validation / Network Error Banner */}
+        {!conflictState && (error || validationError) && (
           <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-sm flex items-start space-x-2">
             <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
             <span className="font-semibold">{error || validationError}</span>
@@ -261,49 +364,55 @@ const Register = () => {
             </div>
             {confirmPasswordError && (
               <p className="text-[10px] text-red-500 font-bold flex items-center space-x-1">
-                <XCircle className="w-3 h-3" />
+                <XCircle className="w-3 h-3 text-red-500 shrink-0" />
                 <span>{confirmPasswordError}</span>
-              </p>
-            )}
-            {confirmPassword && !confirmPasswordError && (
-              <p className="text-[10px] text-emerald-600 font-bold flex items-center space-x-1">
-                <CheckCircle2 className="w-3 h-3" />
-                <span>Passwords match.</span>
               </p>
             )}
           </div>
 
-          {/* Terms */}
-          <label className="flex items-start space-x-2.5 cursor-pointer pt-1">
+          {/* Terms checkbox */}
+          <div className="flex items-center space-x-2 pt-1">
             <input
+              id="terms"
               type="checkbox"
+              required
               checked={acceptTerms}
               onChange={(e) => setAcceptTerms(e.target.checked)}
-              className="rounded text-brand-accent focus:ring-brand-accent w-4 h-4 mt-0.5 shrink-0"
+              className="h-3.5 w-3.5 text-brand-accent focus:ring-brand-accent border-brand-gray-300 rounded-2xs"
             />
-            <span className="text-[10px] text-brand-gray-500 font-semibold leading-relaxed">
+            <label htmlFor="terms" className="text-2xs text-brand-gray-500 select-none">
               I agree to the{' '}
-              <Link to="/terms" className="text-brand-accent hover:underline">Terms & Conditions</Link>
+              <Link to="/terms" className="text-brand-accent hover:underline font-semibold">Terms & Conditions</Link>
               {' '}and{' '}
-              <Link to="/privacy" className="text-brand-accent hover:underline">Privacy Policy</Link>.
-            </span>
-          </label>
+              <Link to="/privacy" className="text-brand-accent hover:underline font-semibold">Privacy Policy</Link>.
+            </label>
+          </div>
 
+          {/* Submit button */}
           <button
             type="submit"
-            disabled={loading || !!confirmPasswordError}
-            className="w-full bg-brand-dark hover:bg-brand-gray-850 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-sm text-sm transition-colors flex items-center justify-center space-x-2"
+            disabled={loading}
+            className="w-full bg-brand-primary hover:bg-brand-primary-dark text-white font-bold py-3 px-4 rounded-sm text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition duration-150 disabled:opacity-50 cursor-pointer shadow-sm active:scale-[0.99]"
           >
-            <span>{loading ? 'Creating Account...' : 'Create Account & Send OTP'}</span>
-            <ArrowRight className="w-4 h-4" />
+            {loading ? (
+              <span>Creating Account & Sending OTP...</span>
+            ) : (
+              <>
+                <span>Create Account & Send OTP</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
           </button>
         </form>
 
-        <div className="text-center pt-2 border-t border-brand-gray-100 text-xs text-brand-gray-500">
-          Already have an account?{' '}
-          <Link to="/login" className="text-brand-accent font-semibold hover:underline">
-            Sign In here
-          </Link>
+        {/* Footer Link */}
+        <div className="text-center border-t border-brand-gray-200 pt-4">
+          <p className="text-xs text-brand-gray-500">
+            Already have an account?{' '}
+            <Link to="/login" className="font-extrabold text-brand-accent hover:underline">
+              Sign In
+            </Link>
+          </p>
         </div>
 
       </div>
