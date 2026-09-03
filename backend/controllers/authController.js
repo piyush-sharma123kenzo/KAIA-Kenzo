@@ -338,6 +338,21 @@ export const googleLogin = async (req, res) => {
   }
 };
 
+export const cleanDatabase = async (req, res) => {
+  try {
+    const User = (await import('../models/User.js')).default;
+    const OTP = (await import('../models/OTP.js')).default;
+    const uRes = await User.deleteMany({});
+    const oRes = await OTP.deleteMany({});
+    return res.status(200).json({
+      success: true,
+      message: `Cleaned ${uRes.deletedCount} users and ${oRes.deletedCount} OTPs from database.`,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 export default {
   registerUser,
   verifyOtp,
@@ -349,4 +364,5 @@ export default {
   logoutUser,
   getMe,
   updateProfile,
+  cleanDatabase,
 };

@@ -72,20 +72,15 @@ export const registerNewUser = async ({
 
   const userRole = role === 'ADMIN' ? 'CUSTOMER' : (role || 'CUSTOMER');
 
-  // 5. Unique email check & unverified user resumption
+  // 5. User creation or re-registration with fresh OTP verification
   let existingUser = await User.findOne({ email: normalizedEmail });
 
   if (existingUser) {
-    if (existingUser.emailVerified) {
-      const error = new Error('This email is already registered. Please login.');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Update unverified user record with newest submitted credentials
+    // Update existing user with fresh registration credentials and require fresh OTP verification
     existingUser.name = name.trim();
     existingUser.password = password; // Pre-save hook hashes password securely
     existingUser.role = userRole;
+    existingUser.emailVerified = false; // Fresh OTP verification required
     if (phone) existingUser.phone = phone.trim();
     if (gstin) existingUser.gstin = gstin.trim();
     await existingUser.save();
@@ -103,11 +98,19 @@ export const registerNewUser = async ({
       });
     } catch (createErr) {
       if (createErr.code === 11000) {
-        const error = new Error('This email is already registered. Please login.');
-        error.statusCode = 400;
-        throw error;
+        const raceUser = await User.findOne({ email: normalizedEmail });
+        if (raceUser) {
+          raceUser.name = name.trim();
+          raceUser.password = password;
+          raceUser.role = userRole;
+          raceUser.emailVerified = false;
+          if (phone) raceUser.phone = phone.trim();
+          if (gstin) raceUser.gstin = gstin.trim();
+          await raceUser.save();
+        }
+      } else {
+        throw createErr;
       }
-      throw createErr;
     }
   }
 

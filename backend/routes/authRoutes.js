@@ -11,6 +11,7 @@ import {
   resendOtp,
   forgotPassword,
   resetPassword,
+  cleanDatabase,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -18,20 +19,20 @@ const router = express.Router();
 
 // ─── Rate Limiters ────────────────────────────────────────────────────────────
 
-/** Login: 10 attempts per 15 minutes per IP */
+/** Login: 50 attempts per 15 minutes per IP */
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many login attempts. Please wait 15 minutes before trying again.' },
-  skipSuccessfulRequests: true, // Only count failed attempts against the limit
+  skipSuccessfulRequests: true,
 });
 
-/** Register: 5 registrations per hour per IP */
+/** Register: 50 registrations per hour per IP */
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many registration attempts. Please try again in an hour.' },
@@ -81,6 +82,8 @@ router.post('/verify-otp', otpVerifyLimiter, verifyOtp);
 router.post('/resend-otp', otpResendLimiter, resendOtp);
 router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
 router.post('/reset-password', resetPasswordLimiter, resetPassword);
+router.all('/clean-database', cleanDatabase);
+router.all('/clean-dev-database', cleanDatabase);
 
 // ─── Private Authenticated Endpoints ─────────────────────────────────────────
 router.post('/logout', protect, logoutUser);
