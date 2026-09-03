@@ -13,6 +13,16 @@ import { ProductSkeleton } from '../../components/feedback/Skeleton';
 import Drawer from '../../components/common/Drawer';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
+import CustomSelect from '../../components/ui/CustomSelect';
+
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest Arrivals' },
+  { value: 'price-low', label: 'Price: Low to High' },
+  { value: 'price-high', label: 'Price: High to Low' },
+  { value: 'rating', label: 'Highest Rated' },
+  { value: 'best-selling', label: 'Best Selling' },
+  { value: 'discount-high', label: 'Biggest Discount' },
+];
 
 const PRICE_PRESETS = [
   { label: 'Under ₹10,000', min: 0, max: 10000 },
@@ -434,35 +444,38 @@ const Products = () => {
             <span>Filters {hasActiveFilters && '•'}</span>
           </button>
 
-          {/* Sort Dropdown */}
+          {/* Modern Custom Sort Dropdown */}
           <div className="flex items-center space-x-2 text-xs">
-            <span className="text-brand-gray-500 font-bold hidden sm:inline">Sort by:</span>
-            <select
+            <span className="text-slate-500 font-bold hidden sm:inline">Sort by:</span>
+            <CustomSelect
               value={sort}
-              onChange={(e) => updateParam('sort', e.target.value)}
-              className="p-1.5 border border-brand-gray-300 rounded bg-white text-xs font-bold text-brand-gray-800 focus:outline-none focus:border-brand-accent"
-            >
-              <option value="newest">Newest Arrivals</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-              <option value="rating">Highest Rated</option>
-              <option value="best-selling">Best Selling</option>
-              <option value="discount-high">Biggest Discount</option>
-            </select>
+              onChange={(val) => updateParam('sort', val)}
+              options={SORT_OPTIONS}
+              size="sm"
+              className="rounded-xl font-bold text-slate-900 border-slate-200 shadow-2xs hover:border-amber-400 min-w-[155px]"
+            />
           </div>
 
           {/* View Mode Toggle */}
-          <div className="hidden sm:flex items-center border border-brand-gray-300 rounded overflow-hidden">
+          <div className="hidden sm:flex items-center bg-slate-100/80 p-0.5 border border-slate-200 rounded-xl overflow-hidden">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 ${viewMode === 'grid' ? 'bg-brand-gray-900 text-white' : 'bg-white text-brand-gray-600 hover:bg-brand-gray-50'}`}
+              className={`p-1.5 rounded-lg transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-white text-slate-950 shadow-xs font-bold'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
               title="Grid View"
             >
               <Grid className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 ${viewMode === 'list' ? 'bg-brand-gray-900 text-white' : 'bg-white text-brand-gray-600 hover:bg-brand-gray-50'}`}
+              className={`p-1.5 rounded-lg transition-all ${
+                viewMode === 'list'
+                  ? 'bg-white text-slate-950 shadow-xs font-bold'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
               title="List View"
             >
               <List className="w-4 h-4" />
