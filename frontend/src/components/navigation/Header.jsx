@@ -17,6 +17,7 @@ import axiosInstance from '../../api/axiosInstance';
 import Drawer from '../common/Drawer';
 import LocationSelectorModal from '../common/LocationSelectorModal';
 import KaiaLogo from '../common/KaiaLogo';
+import { getAvatarSrc } from '../../utils/imageUtils';
 
 const Header = () => {
   const { user, logout, updateProfile } = useContext(AuthContext) || {};
@@ -336,7 +337,7 @@ const Header = () => {
               <Link to={user ? '/account' : '/login'} className="flex items-center space-x-2 hover:text-[#F5B400] transition-colors py-1">
                 {user?.avatar ? (
                   <img
-                    src={user.avatar}
+                    src={getAvatarSrc(user.avatar)}
                     alt={user.name || 'User'}
                     className="w-6 h-6 rounded-full object-cover ring-2 ring-[#F5B400]/80 shadow-xs"
                   />
@@ -390,7 +391,7 @@ const Header = () => {
                             <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-[#F5B400] to-[#FFD043] text-slate-950 font-black flex items-center justify-center text-base shadow-sm ring-2 ring-amber-400/30">
                               {user.avatar ? (
                                 <img
-                                  src={user.avatar}
+                                  src={getAvatarSrc(user.avatar)}
                                   alt={user.name || 'User'}
                                   className="w-full h-full object-cover"
                                 />

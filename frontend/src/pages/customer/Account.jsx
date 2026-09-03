@@ -18,6 +18,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import KaiaIcon from '../../components/common/KaiaIcon';
 import DeliveryChecker from '../../components/common/DeliveryChecker';
 import { useLocationContext } from '../../context/LocationContext';
+import { getAvatarSrc } from '../../utils/imageUtils';
 
 const Account = () => {
   const { user, updateProfile, logout } = useContext(AuthContext);
@@ -451,7 +452,7 @@ const Account = () => {
               <div className="relative group/pic shrink-0">
                 <div className="w-16 h-16 md:w-18 md:h-18 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#F59E0B] to-[#FFD043] text-slate-950 font-black text-2xl shadow-md ring-4 ring-amber-400/25 flex items-center justify-center">
                   {user?.avatar ? (
-                    <img src={user.avatar} alt={user.name || 'User'} className="w-full h-full object-cover" />
+                    <img src={getAvatarSrc(user.avatar)} alt={user.name || 'User'} className="w-full h-full object-cover" />
                   ) : (
                     user?.name?.charAt(0) || 'K'
                   )}
@@ -1244,7 +1245,7 @@ const Account = () => {
                 <div className="flex items-center space-x-5 p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
                   <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#F59E0B] to-[#FFD043] text-slate-950 font-black text-2xl shadow-xs ring-2 ring-amber-400/20 flex items-center justify-center shrink-0">
                     {user?.avatar ? (
-                      <img src={user.avatar} alt={user.name || 'User'} className="w-full h-full object-cover" />
+                      <img src={getAvatarSrc(user.avatar)} alt={user.name || 'User'} className="w-full h-full object-cover" />
                     ) : (
                       user?.name?.charAt(0) || 'K'
                     )}

@@ -66,7 +66,8 @@ router.use(protect);
 router.get('/overview', getAccountOverview);
 router.get('/profile', getProfile);
 router.patch('/profile', updateProfile);
-router.post('/avatar', avatarUpload.single('avatar'), uploadAvatar);
+router.put('/profile', updateProfile);
+router.post('/avatar', avatarUpload.any(), uploadAvatar);
 router.delete('/avatar', removeAvatar);
 router.post('/change-password', changePassword);
 

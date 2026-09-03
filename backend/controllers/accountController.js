@@ -116,11 +116,20 @@ export const updateProfile = async (req, res) => {
 
 export const uploadAvatar = async (req, res) => {
   try {
-    if (!req.file && !req.body.avatarUrl) {
+    const file = req.file || (req.files && req.files.length > 0 ? req.files[0] : null);
+
+    if (!file && !req.body.avatarUrl && !req.body.avatar) {
       return res.status(400).json({ success: false, message: 'No avatar image file or URL provided.' });
     }
 
-    const avatarUrl = req.file ? `/${req.file.path.replace(/\\/g, '/')}` : req.body.avatarUrl;
+    let avatarUrl = '';
+    if (file) {
+      const normalized = file.path.replace(/\\/g, '/');
+      avatarUrl = normalized.startsWith('/') ? normalized : `/${normalized}`;
+    } else {
+      avatarUrl = req.body.avatarUrl || req.body.avatar;
+    }
+
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
@@ -134,14 +143,17 @@ export const uploadAvatar = async (req, res) => {
       user: {
         _id: user._id,
         name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
+        phone: user.phone,
         avatar: user.avatar,
         role: user.role,
       },
     });
   } catch (error) {
     console.error('Error uploading avatar:', error);
-    return res.status(500).json({ success: false, message: 'Failed to upload profile avatar.' });
+    return res.status(500).json({ success: false, message: error.message || 'Failed to upload profile avatar.' });
   }
 };
 
