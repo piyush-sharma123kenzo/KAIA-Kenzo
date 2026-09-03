@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import KaiaLogo from '../../components/common/KaiaLogo';
+import GoogleAuthButton from '../../components/auth/GoogleAuthButton';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -79,6 +80,19 @@ const Login = () => {
             <span className="font-semibold">{error}</span>
           </div>
         )}
+
+        {/* Continue with Google */}
+        <div className="space-y-4">
+          <GoogleAuthButton text="Continue with Google" mode="login" />
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-slate-200" />
+            <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Or with email
+            </span>
+            <div className="flex-grow border-t border-slate-200" />
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">

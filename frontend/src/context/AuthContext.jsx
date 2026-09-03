@@ -67,6 +67,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Google OAuth Sign In / Sign Up handler
+  const googleSignIn = async (googlePayload) => {
+    setError(null);
+    try {
+      const res = await authApi.googleAuth(googlePayload);
+      if (res.success && res.user) {
+        if (res.token) {
+          localStorage.setItem('kaia_token', res.token);
+        }
+        setUser(res.user);
+        const meRes = await authApi.getCurrentUser().catch(() => ({}));
+        if (meRes.success) {
+          setBrand(meRes.brand);
+        }
+        return res;
+      }
+    } catch (err) {
+      const errMsg = err.response?.data?.message || 'Google authentication failed.';
+      setError(errMsg);
+      throw new Error(errMsg);
+    }
+  };
+
   // Registration handler
   const register = async (name, email, password, confirmPassword, role = 'CUSTOMER', phone = '') => {
     setError(null);
@@ -194,6 +217,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         error,
         login,
+        googleSignIn,
         register,
         logout,
         updateProfile,

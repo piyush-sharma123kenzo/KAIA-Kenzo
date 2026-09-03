@@ -250,6 +250,94 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Google OAuth Sign In / Sign Up
+ * @route   POST /api/auth/google
+ * @access  Public
+ */
+export const googleLogin = async (req, res) => {
+  try {
+    const { credential, email, name, picture, googleId } = req.body;
+
+    let userEmail = email;
+    let userName = name;
+    let userAvatar = picture;
+    let userGoogleId = googleId;
+
+    // If credential JWT string is sent from Google Identity Services
+    if (credential && typeof credential === 'string') {
+      try {
+        const base64Url = credential.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          Buffer.from(base64, 'base64').toString('utf8')
+        );
+        const decoded = JSON.parse(jsonPayload);
+        userEmail = decoded.email;
+        userName = decoded.name || `${decoded.given_name || ''} ${decoded.family_name || ''}`.trim();
+        userAvatar = decoded.picture;
+        userGoogleId = decoded.sub;
+      } catch (e) {
+        console.warn('Could not decode Google credential JWT, using payload fields:', e.message);
+      }
+    }
+
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid Google email is required for Google Sign-In.',
+      });
+    }
+
+    const normalizedEmail = String(userEmail).toLowerCase().trim();
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (user) {
+      if (user.status === 'Suspended') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account has been suspended. Please contact support.',
+        });
+      }
+
+      if (!user.googleId && userGoogleId) {
+        user.googleId = userGoogleId;
+      }
+      if (!user.avatar && userAvatar) {
+        user.avatar = userAvatar;
+      }
+      user.emailVerified = true;
+      await user.save();
+
+      return sendAuthTokenResponse(user, 200, res, {
+        message: 'Successfully signed in with Google.',
+      });
+    }
+
+    // Register new user via Google
+    const newUser = await User.create({
+      name: userName || 'Customer',
+      email: normalizedEmail,
+      avatar: userAvatar || '',
+      googleId: userGoogleId || `google_${Date.now()}`,
+      authProvider: 'google',
+      role: 'CUSTOMER',
+      emailVerified: true,
+      status: 'Active',
+    });
+
+    return sendAuthTokenResponse(newUser, 201, res, {
+      message: 'Account created with Google successfully.',
+    });
+  } catch (error) {
+    console.error('Google Sign-In Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Google Sign-In failed. Please try again.',
+    });
+  }
+};
+
 export default {
   registerUser,
   verifyOtp,
@@ -257,6 +345,7 @@ export default {
   forgotPassword,
   resetPassword,
   loginUser,
+  googleLogin,
   logoutUser,
   getMe,
   updateProfile,

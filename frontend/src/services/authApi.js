@@ -116,6 +116,16 @@ export const updateUserProfile = async (updates) => {
 };
 
 /**
+ * Log in or register with Google OAuth credentials.
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const googleAuth = async (payload) => {
+  const response = await axiosInstance.post('/auth/google', payload);
+  return response.data;
+};
+
+/**
  * Terminate user session and clear authentication cookie.
  * @returns {Promise<object>}
  */
@@ -127,6 +137,7 @@ export const logoutUser = async () => {
 export default {
   registerUser,
   loginUser,
+  googleAuth,
   verifyEmailOtp,
   resendEmailOtp,
   forgotPassword,

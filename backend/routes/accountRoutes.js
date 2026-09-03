@@ -1,8 +1,13 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import {
   getAccountOverview,
   getProfile,
   updateProfile,
+  uploadAvatar,
+  removeAvatar,
   changePassword,
   getAddresses,
   addAddress,
@@ -24,6 +29,36 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Avatar storage config
+const avatarStorage = multer.diskStorage({
+  destination(req, file, cb) {
+    const dir = 'uploads/avatars/';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename(req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `avatar-${uniqueSuffix}${path.extname(file.originalname)}`);
+  },
+});
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter(req, file, cb) {
+    const filetypes = /jpg|jpeg|png|webp|avif/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype) || file.mimetype.startsWith('image/');
+    if (extname || mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Images only (jpg, jpeg, png, webp, avif)!'));
+    }
+  },
+});
+
 // All account routes require customer authentication
 router.use(protect);
 
@@ -31,6 +66,8 @@ router.use(protect);
 router.get('/overview', getAccountOverview);
 router.get('/profile', getProfile);
 router.patch('/profile', updateProfile);
+router.post('/avatar', avatarUpload.single('avatar'), uploadAvatar);
+router.delete('/avatar', removeAvatar);
 router.post('/change-password', changePassword);
 
 // 2. Address Management

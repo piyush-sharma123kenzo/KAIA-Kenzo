@@ -4,7 +4,7 @@ import {
   User, ShoppingBag, Award, Landmark, ShieldCheck, Download, Truck, 
   ExternalLink, FileText, MapPin, Heart, Lock, Trash2, Plus, AlertCircle, 
   RotateCcw, MessageSquare, Bell, Star, CheckCircle, Edit, ChevronRight, QrCode,
-  Package, Clock, CheckCircle2, ArrowRight, Gift, Zap, Camera, CreditCard
+  Package, Clock, CheckCircle2, ArrowRight, Gift, Zap, Camera, CreditCard, Sparkles
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
@@ -294,21 +294,19 @@ const Account = () => {
     }
 
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('avatar', file);
 
     setUploadingAvatar(true);
     try {
-      const uploadRes = await axiosInstance.post('/upload/image', formData, {
+      const res = await axiosInstance.post('/account/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const imageUrl = uploadRes.data?.url || uploadRes.data?.imageUrl;
+      const updatedUser = res.data?.user || res.data;
+      const avatarUrl = res.data?.avatar || updatedUser?.avatar;
 
-      if (!imageUrl) throw new Error('Failed to retrieve image URL');
-
-      const profileRes = await axiosInstance.put('/account/profile', { avatar: imageUrl });
-      if (updateProfile) updateProfile(profileRes.data.user);
-      setProfileForm((prev) => ({ ...prev, avatar: imageUrl }));
-      toast?.success?.('Profile picture updated successfully');
+      if (updateProfile) updateProfile(updatedUser);
+      setProfileForm((prev) => ({ ...prev, avatar: avatarUrl }));
+      toast?.success?.('Profile photo updated successfully');
     } catch (err) {
       console.error('[KAIA Account] Avatar upload failed:', err);
       toast?.error?.(err.response?.data?.message || 'Failed to upload profile picture');
@@ -318,9 +316,25 @@ const Account = () => {
     }
   };
 
+  const handleGenerateAvatar = async () => {
+    const seed = `${user?.email || 'kaia'}-${Date.now()}`;
+    const generatedUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+    try {
+      setUploadingAvatar(true);
+      const res = await axiosInstance.patch('/account/profile', { avatar: generatedUrl });
+      if (updateProfile) updateProfile(res.data.user);
+      setProfileForm((prev) => ({ ...prev, avatar: generatedUrl }));
+      toast?.success?.('New 3D avatar generated and set!');
+    } catch (err) {
+      toast?.error?.('Failed to generate avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handleRemoveAvatar = async () => {
     try {
-      const res = await axiosInstance.put('/account/profile', { avatar: '' });
+      const res = await axiosInstance.delete('/account/avatar');
       if (updateProfile) updateProfile(res.data.user);
       setProfileForm((prev) => ({ ...prev, avatar: '' }));
       toast?.success?.('Profile photo removed');
@@ -1238,7 +1252,7 @@ const Account = () => {
                   <div className="space-y-1.5">
                     <h4 className="font-black text-xs text-slate-900">Profile Picture</h4>
                     <p className="text-[11px] text-slate-500">Upload a custom photo for your profile and order receipts (PNG, JPG, max 5MB)</p>
-                    <div className="flex items-center space-x-2 pt-1">
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
                       <label
                         htmlFor="settings-avatar-upload"
                         className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-black cursor-pointer transition-colors shadow-2xs"
@@ -1254,11 +1268,21 @@ const Account = () => {
                         className="hidden"
                         disabled={uploadingAvatar}
                       />
+                      <button
+                        type="button"
+                        onClick={handleGenerateAvatar}
+                        disabled={uploadingAvatar}
+                        className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                        title="Auto-create a unique 3D avatar"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Generate 3D Avatar</span>
+                      </button>
                       {user?.avatar && (
                         <button
                           type="button"
                           onClick={handleRemoveAvatar}
-                          className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 border border-slate-200 rounded-lg text-xs font-bold transition-colors"
+                          className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 border border-slate-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
                         >
                           Remove
                         </button>

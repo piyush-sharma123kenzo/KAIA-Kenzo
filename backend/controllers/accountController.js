@@ -109,7 +109,64 @@ export const updateProfile = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('Error updating profile:', error);
     res.status(500).json({ message: 'Error updating profile.' });
+  }
+};
+
+export const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file && !req.body.avatarUrl) {
+      return res.status(400).json({ success: false, message: 'No avatar image file or URL provided.' });
+    }
+
+    const avatarUrl = req.file ? `/${req.file.path.replace(/\\/g, '/')}` : req.body.avatarUrl;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    user.avatar = avatarUrl;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile avatar updated successfully.',
+      avatar: user.avatar,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    return res.status(500).json({ success: false, message: 'Failed to upload profile avatar.' });
+  }
+};
+
+export const removeAvatar = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    user.avatar = '';
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile picture removed successfully.',
+      avatar: '',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: '',
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to remove avatar.' });
   }
 };
 

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ShieldAlert, Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import KaiaLogo from '../../components/common/KaiaLogo';
+import GoogleAuthButton from '../../components/auth/GoogleAuthButton';
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
@@ -132,6 +133,19 @@ const Register = () => {
             <span className="font-semibold">{error || validationError}</span>
           </div>
         )}
+
+        {/* Continue with Google */}
+        <div className="space-y-4">
+          <GoogleAuthButton text="Sign up with Google" mode="register" />
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-slate-200" />
+            <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Or with email & password
+            </span>
+            <div className="flex-grow border-t border-slate-200" />
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {/* Full Name */}

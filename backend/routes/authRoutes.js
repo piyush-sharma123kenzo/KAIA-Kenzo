@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import {
   registerUser,
   loginUser,
+  googleLogin,
   logoutUser,
   getMe,
   updateProfile,
@@ -75,6 +76,7 @@ const resetPasswordLimiter = rateLimit({
 // ─── Public Authentication Endpoints ─────────────────────────────────────────
 router.post('/register', registerLimiter, registerUser);
 router.post('/login', loginLimiter, loginUser);
+router.post('/google', googleLogin);
 router.post('/verify-otp', otpVerifyLimiter, verifyOtp);
 router.post('/resend-otp', otpResendLimiter, resendOtp);
 router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
