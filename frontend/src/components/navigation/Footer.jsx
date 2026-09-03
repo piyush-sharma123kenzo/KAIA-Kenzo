@@ -5,6 +5,7 @@ import {
   Mail, Phone, Clock, Compass, Navigation, Lock, CheckCircle2, RotateCcw
 } from 'lucide-react';
 import { KAIA_OFFICE_LOCATION } from '../../constants/companyInfo';
+import KaiaLogo from '../common/KaiaLogo';
 
 const Footer = ({ mode = 'full' }) => {
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -180,15 +181,14 @@ const Footer = ({ mode = 'full' }) => {
 
       {/* 3. CENTERED WORDMARK & LOCALE STRIP */}
       <div className="bg-amz-navy text-white py-6 border-b border-brand-gray-850">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-6 px-4">
-          <Link to="/" className="flex items-baseline space-x-1.5">
-            <span className="text-xl font-black tracking-tight text-white leading-none">
-              KAIA
-            </span>
-            <span className="text-xs font-bold text-amz-orange tracking-normal">
-              Technologies
-            </span>
-          </Link>
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 px-4">
+          <KaiaLogo
+            to="/"
+            variant="full"
+            theme="dark"
+            size="md"
+            className="hover:opacity-90 transition-opacity"
+          />
 
           <div className="flex items-center space-x-3 text-xs text-brand-gray-300">
             <div className="border border-brand-gray-600 rounded-[3px] px-3 py-1.5 flex items-center space-x-1.5 hover:border-white cursor-pointer">

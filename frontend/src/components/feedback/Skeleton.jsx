@@ -1,4 +1,5 @@
 import React from 'react';
+import KaiaIcon from '../common/KaiaIcon';
 
 // General block element shimmer
 export const Skeleton = ({
@@ -44,12 +45,14 @@ export const ProductSkeleton = () => {
 // Full screen overlay blocker
 export const PageLoader = ({ message = 'Connecting to KAIA Technologies...' }) => {
   return (
-    <div className="fixed inset-0 z-[9999] bg-brand-light/95 backdrop-blur-sm flex flex-col items-center justify-center space-y-4">
-      <div className="relative w-12 h-12">
-        <div className="absolute inset-0 rounded-full border-4 border-brand-gray-200"></div>
-        <div className="absolute inset-0 rounded-full border-4 border-brand-accent border-t-transparent animate-spin"></div>
+    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4">
+      <div className="relative flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full border-2 border-slate-700 border-t-amber-500 animate-spin" />
+        <div className="absolute">
+          <KaiaIcon size={24} variant="dark" animated={true} />
+        </div>
       </div>
-      <p className="text-xs font-bold text-brand-gray-700 tracking-wider uppercase animate-pulse">{message}</p>
+      <p className="text-xs font-bold text-slate-300 tracking-widest uppercase animate-pulse">{message}</p>
     </div>
   );
 };

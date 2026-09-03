@@ -12,6 +12,7 @@ import { CheckCircle, ShoppingBag, ArrowRight, Loader2, AlertCircle, Package } f
 import Container from '../../components/ui/Container';
 import Button from '../../components/ui/Button';
 import axiosInstance from '../../api/axiosInstance';
+import KaiaLogo from '../../components/common/KaiaLogo';
 
 const OrderSuccess = () => {
   const location = useLocation();
@@ -106,7 +107,10 @@ const OrderSuccess = () => {
 
   return (
     <Container className="py-16 text-left select-none max-w-xl mx-auto">
-      <div className="bg-white border border-brand-gray-250 p-8 rounded-sm shadow-premium text-center space-y-6">
+      <div className="bg-white border border-brand-gray-250 p-8 rounded-sm shadow-premium text-center space-y-6 flex flex-col items-center">
+        
+        {/* Brand Lockup */}
+        <KaiaLogo to="/" variant="full" theme="light" size="md" />
 
         {/* Success Icon */}
         <div className="inline-block p-4 bg-green-50 border border-green-200 rounded-full text-green-700">

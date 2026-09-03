@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Lock, CheckCircle2, ShieldAlert, Eye, EyeOff, XCircle } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
+import KaiaLogo from '../../components/common/KaiaLogo';
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
@@ -82,13 +83,8 @@ const ResetPassword = () => {
   if (done) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center py-12 px-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-center space-y-6">
-          <Link to="/" className="flex flex-col items-center select-none">
-            <span className="text-2xl font-extrabold tracking-tight text-brand-gray-900 leading-none">
-              KAIA
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.2em] font-medium text-brand-gray-500 mt-1">TECHNOLOGIES</span>
-          </Link>
+        <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-center space-y-6 flex flex-col items-center">
+          <KaiaLogo to="/" variant="full" theme="light" size="lg" />
 
           <div className="inline-flex p-3 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-600 mx-auto">
             <CheckCircle2 className="w-12 h-12" />
@@ -117,13 +113,8 @@ const ResetPassword = () => {
       <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-left space-y-8">
 
         {/* Header */}
-        <div className="text-center space-y-2">
-          <Link to="/" className="flex flex-col items-center select-none">
-            <span className="text-2xl font-extrabold tracking-tight text-brand-gray-900 leading-none">
-              KAIA
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.2em] font-medium text-brand-gray-500 mt-1">TECHNOLOGIES</span>
-          </Link>
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <KaiaLogo to="/" variant="full" theme="light" size="lg" />
           <h1 className="text-xl font-extrabold text-brand-gray-900 tracking-tight uppercase pt-2">Create New Password</h1>
           <p className="text-xs text-brand-gray-500">
             Setting a new password for: <strong>{email}</strong>

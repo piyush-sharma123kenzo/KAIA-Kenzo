@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Package, PlusCircle, ShoppingBag, Barcode, Truck, ClipboardList, TrendingUp, Building2, Settings, Bell, LogOut, ShieldAlert, Menu, X, CheckCircle, ExternalLink, FileText, RotateCcw, Landmark, DollarSign
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import KaiaIcon from '../components/common/KaiaIcon';
 
 const BrandLayout = () => {
   const { user, brand, logout } = useContext(AuthContext);
@@ -119,8 +120,8 @@ const BrandLayout = () => {
           {/* Sidebar Brand Header */}
           <div className="p-6 border-b border-brand-gray-850 flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded bg-brand-accent flex items-center justify-center text-white font-black text-sm tracking-wider shadow">
-                K
+              <div className="shrink-0">
+                <KaiaIcon size={32} variant="dark" glow={true} />
               </div>
               <div className="text-left">
                 <h2 className="text-sm font-black text-white tracking-tight leading-none uppercase">KAIA PARTNER</h2>

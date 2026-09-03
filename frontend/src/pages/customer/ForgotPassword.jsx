@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, ArrowLeft, ShieldAlert, CheckCircle2, ArrowRight, Send } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
+import KaiaLogo from '../../components/common/KaiaLogo';
 
 const ForgotPassword = () => {
   const { forgotPassword, clearError } = useContext(AuthContext);
@@ -50,15 +51,8 @@ const ForgotPassword = () => {
       <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-left space-y-8">
 
         {/* Header */}
-        <div className="text-center space-y-2">
-          <Link to="/" className="flex flex-col items-center select-none">
-            <span className="text-2xl font-extrabold tracking-tight text-brand-gray-900 leading-none">
-              KAIA
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.2em] font-medium text-brand-gray-500 mt-1">
-              TECHNOLOGIES
-            </span>
-          </Link>
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <KaiaLogo to="/" variant="full" theme="light" size="lg" />
           <h1 className="text-xl font-extrabold text-brand-gray-900 tracking-tight uppercase pt-2">Reset Password</h1>
           <p className="text-xs text-brand-gray-500 leading-relaxed">
             Enter your registered email to receive a 6-digit security verification code.

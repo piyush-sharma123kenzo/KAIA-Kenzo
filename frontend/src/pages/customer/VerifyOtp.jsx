@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ShieldCheck, RotateCcw, ArrowLeft, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
+import KaiaLogo from '../../components/common/KaiaLogo';
 
 const RESEND_COOLDOWN = 30; // seconds
 
@@ -154,18 +155,11 @@ const VerifyOtp = () => {
       <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-center space-y-8">
 
         {/* Header */}
-        <div className="space-y-3">
-          <Link to="/" className="flex flex-col items-center select-none">
-            <span className="text-2xl font-extrabold tracking-tight text-brand-gray-900 leading-none">
-              KAIA
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.2em] font-medium text-brand-gray-500 mt-1">
-              TECHNOLOGIES
-            </span>
-          </Link>
+        <div className="space-y-4 flex flex-col items-center">
+          <KaiaLogo to="/" variant="full" theme="light" size="lg" />
 
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-accent/10 border border-brand-accent/20 mx-auto">
-            <ShieldCheck className="w-7 h-7 text-brand-accent" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 mx-auto">
+            <ShieldCheck className="w-7 h-7 text-amber-500" />
           </div>
 
           <div>

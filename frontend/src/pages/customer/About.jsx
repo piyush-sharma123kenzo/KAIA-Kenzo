@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShieldCheck, Cpu, Building2, Truck, Award, CheckCircle2, ArrowRight } from 'lucide-react';
 import Container from '../../components/ui/Container';
 import Button from '../../components/ui/Button';
+import KaiaLogo from '../../components/common/KaiaLogo';
 
 const About = () => {
   return (
@@ -10,16 +11,22 @@ const About = () => {
       
       {/* Hero Header */}
       <section className="bg-amz-navy text-white py-16 px-4 md:px-8 border-b border-brand-gray-800">
-        <Container className="max-w-5xl space-y-4">
-          <span className="text-amz-orange font-bold text-xs uppercase tracking-widest bg-white/10 px-3 py-1 rounded-[3px] inline-block">
-            About KAIA Technologies
-          </span>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
-            Curating India's Premier Multi-Brand Electronics Marketplace.
-          </h1>
-          <p className="text-sm text-brand-gray-300 max-w-2xl font-normal leading-relaxed">
-            KAIA Technologies bridges the gap between authorized hardware manufacturers and technology enthusiasts, enterprises, and everyday consumers with verified inventory, immutable serial tracking, and full GST compliance.
-          </p>
+        <Container className="max-w-5xl flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+          <div className="space-y-4 max-w-2xl">
+            <span className="text-amber-400 font-bold text-xs uppercase tracking-widest bg-white/10 px-3 py-1 rounded-[3px] inline-block">
+              Official Identity & Marketplace
+            </span>
+            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
+              Curating India's Premier Multi-Brand Electronics Marketplace.
+            </h1>
+            <p className="text-sm text-brand-gray-300 font-normal leading-relaxed">
+              KAIA Technologies bridges the gap between authorized hardware manufacturers and technology enthusiasts, enterprises, and everyday consumers with verified inventory, immutable serial tracking, and full GST compliance.
+            </p>
+          </div>
+
+          <div className="p-6 bg-slate-950/80 border border-slate-800 rounded-2xl shadow-2xl shrink-0 backdrop-blur-sm hidden md:block">
+            <KaiaLogo variant="full" theme="dark" size="lg" animated={true} />
+          </div>
         </Container>
       </section>
 

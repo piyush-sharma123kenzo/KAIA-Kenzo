@@ -14,6 +14,7 @@ import categoryService from '../../services/categoryService';
 import productService from '../../services/productService';
 import Drawer from '../common/Drawer';
 import LocationSelectorModal from '../common/LocationSelectorModal';
+import KaiaLogo from '../common/KaiaLogo';
 
 const Header = () => {
   const { user, logout, updateProfile } = useContext(AuthContext) || {};
@@ -182,23 +183,13 @@ const Header = () => {
         <div className="bg-black px-4 md:px-8 py-3 flex items-center justify-between gap-3 md:gap-6 h-[74px]">
           
           {/* 1. Brand Logo */}
-          <Link
-            to="/"
-            className="flex items-center space-x-2.5 shrink-0 group"
-            title="KAIA Technologies Home"
-          >
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#F5B400] to-[#FFD043] flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-sm group-hover:scale-105 transition-transform">
-              K
-            </div>
-            <div className="text-left">
-              <span className="text-xl md:text-2xl font-black tracking-tight text-white block leading-none">
-                KAIA
-              </span>
-              <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase block mt-0.5">
-                TECHNOLOGIES
-              </span>
-            </div>
-          </Link>
+          <KaiaLogo 
+            to="/" 
+            variant="horizontal" 
+            theme="dark" 
+            size="md" 
+            className="group-hover:opacity-95 transition-opacity"
+          />
 
           {/* 2. Deliver To Location (Directly Beside KAIA Logo) */}
           <div

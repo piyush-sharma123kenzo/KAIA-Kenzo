@@ -9,6 +9,7 @@ import {
   Zap, ArrowUpRight, Cpu
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import KaiaIcon from '../components/common/KaiaIcon';
 
 const AdminLayout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -150,8 +151,8 @@ const AdminLayout = () => {
           {/* Logo Header */}
           <div className="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between bg-[#080C18]">
             <Link to="/admin/dashboard" className="flex items-center space-x-3 overflow-hidden group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                <Cpu className="w-5 h-5" />
+              <div className="shrink-0 group-hover:scale-105 transition-transform">
+                <KaiaIcon size={34} variant="dark" glow={true} animated={false} />
               </div>
               {(!collapsed || mobileOpen) && (
                 <div className="transition-opacity duration-200">
