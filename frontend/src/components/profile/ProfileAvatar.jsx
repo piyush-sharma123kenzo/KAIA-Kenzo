@@ -4,7 +4,7 @@
  * Ultra-premium circular avatar component that:
  *  - Displays user profile picture if available (with fallback error protection)
  *  - Generates crisp 1-2 letter uppercase initials for users without custom photo (e.g. "Piyush Sharma" -> "PS")
- *  - Supports multiple sizes, ring accents, role indicators, and custom styling
+ *  - Strictly enforces fixed dimensions across all sizes
  *  - Supports integrated Lightbox Zoom Viewer (allowPreview) when an image exists
  */
 
@@ -15,53 +15,53 @@ import ProfileImageViewer from './ProfileImageViewer';
 
 const sizeMap = {
   xs: {
-    container: 'w-6 h-6 text-[10px]',
+    container: 'w-6 h-6 min-w-[24px] max-w-[24px] min-h-[24px] max-h-[24px] text-[10px]',
     icon: 'w-3 h-3',
     badge: 'w-2.5 h-2.5 -bottom-0.5 -right-0.5',
     badgeIcon: 'w-1.5 h-1.5',
     zoomIcon: 'w-2.5 h-2.5',
   },
   sm: {
-    container: 'w-8 h-8 text-xs',
+    container: 'w-8 h-8 min-w-[32px] max-w-[32px] min-h-[32px] max-h-[32px] text-xs',
     icon: 'w-4 h-4',
     badge: 'w-3.5 h-3.5 -bottom-0.5 -right-0.5',
     badgeIcon: 'w-2 h-2',
     zoomIcon: 'w-3 h-3',
   },
   md: {
-    container: 'w-10 h-10 text-sm font-bold',
+    container: 'w-10 h-10 min-w-[40px] max-w-[40px] min-h-[40px] max-h-[40px] text-sm font-bold',
     icon: 'w-5 h-5',
     badge: 'w-4 h-4 -bottom-1 -right-1',
     badgeIcon: 'w-2.5 h-2.5',
     zoomIcon: 'w-3.5 h-3.5',
   },
   lg: {
-    container: 'w-14 h-14 text-lg font-black',
+    container: 'w-14 h-14 min-w-[56px] max-w-[56px] min-h-[56px] max-h-[56px] text-lg font-black',
     icon: 'w-7 h-7',
     badge: 'w-5 h-5 -bottom-1 -right-1',
     badgeIcon: 'w-3 h-3',
     zoomIcon: 'w-4 h-4',
   },
   xl: {
-    container: 'w-18 h-18 text-2xl font-black',
-    icon: 'w-9 h-9',
+    container: 'w-16 h-16 min-w-[64px] max-w-[64px] min-h-[64px] max-h-[64px] text-2xl font-black',
+    icon: 'w-8 h-8',
+    badge: 'w-5 h-5 bottom-0 right-0',
+    badgeIcon: 'w-3 h-3',
+    zoomIcon: 'w-4 h-4',
+  },
+  '2xl': {
+    container: 'w-20 h-20 min-w-[80px] max-w-[80px] min-h-[80px] max-h-[80px] text-3xl font-black',
+    icon: 'w-10 h-10',
     badge: 'w-6 h-6 bottom-0 right-0',
     badgeIcon: 'w-3.5 h-3.5',
     zoomIcon: 'w-5 h-5',
   },
-  '2xl': {
-    container: 'w-24 h-24 text-3xl font-black',
+  '3xl': {
+    container: 'w-24 h-24 min-w-[96px] max-w-[96px] min-h-[96px] max-h-[96px] text-4xl font-black',
     icon: 'w-12 h-12',
-    badge: 'w-7 h-7 bottom-0 right-0',
+    badge: 'w-7 h-7 bottom-1 right-1',
     badgeIcon: 'w-4 h-4',
     zoomIcon: 'w-6 h-6',
-  },
-  '3xl': {
-    container: 'w-32 h-32 text-4xl font-black',
-    icon: 'w-16 h-16',
-    badge: 'w-8 h-8 bottom-1 right-1',
-    badgeIcon: 'w-5 h-5',
-    zoomIcon: 'w-8 h-8',
   },
 };
 
@@ -129,7 +129,7 @@ export const ProfileAvatar = ({
         }
       >
         <div
-          className={`w-full h-full overflow-hidden ${radiusClass} ${ringClass} shadow-xs flex items-center justify-center transition-all duration-200 ${
+          className={`w-full h-full max-w-full max-h-full overflow-hidden ${radiusClass} ${ringClass} shadow-xs flex items-center justify-center relative shrink-0 transition-all duration-200 ${
             allowPreview && hasValidImage ? 'group-hover/avatar:ring-amber-400 group-hover/avatar:scale-105' : ''
           }`}
         >
@@ -140,7 +140,7 @@ export const ProfileAvatar = ({
                 alt={alt || userName || 'User Avatar'}
                 onError={() => setImageError(true)}
                 onLoad={() => setImageLoaded(true)}
-                className={`w-full h-full object-cover transition-opacity duration-200 ${
+                className={`w-full h-full max-w-full max-h-full object-cover shrink-0 block transition-opacity duration-200 ${
                   imageLoaded ? 'opacity-100' : 'opacity-80'
                 }`}
               />
@@ -153,7 +153,7 @@ export const ProfileAvatar = ({
             </>
           ) : (
             <div
-              className={`w-full h-full bg-gradient-to-tr from-[#F59E0B] via-[#F5B400] to-[#FFD043] text-slate-950 flex items-center justify-center font-black tracking-tight`}
+              className={`w-full h-full max-w-full max-h-full bg-gradient-to-tr from-[#F59E0B] via-[#F5B400] to-[#FFD043] text-slate-950 flex items-center justify-center font-black tracking-tight shrink-0`}
             >
               <span>{initials}</span>
             </div>
@@ -163,7 +163,7 @@ export const ProfileAvatar = ({
         {/* Role Badge if requested */}
         {showRoleBadge && (
           <div
-            className={`absolute ${currentSize.badge} rounded-full flex items-center justify-center shadow-xs border-2 border-white ${
+            className={`absolute ${currentSize.badge} rounded-full flex items-center justify-center shadow-xs border-2 border-white shrink-0 ${
               userRole === 'ADMIN'
                 ? 'bg-purple-600 text-white'
                 : userRole === 'BRAND'

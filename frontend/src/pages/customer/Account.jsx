@@ -448,25 +448,12 @@ const Account = () => {
           <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-slate-100/60 rounded-full blur-2xl pointer-events-none" />
 
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
-            <div className="flex items-center space-x-5">
-              
-              {/* Avatar with Photo View & Lightbox Preview */}
-              <div 
-                className="relative shrink-0"
-                title={user?.profileImage?.url || user?.avatar ? "Click to view photo" : "Manage profile picture"}
-              >
-                <ProfileAvatar
-                  user={user}
-                  size="xl"
-                  shape="rounded"
-                  ring={true}
-                  ringColor="ring-amber-400/30"
-                  allowPreview={Boolean(user?.profileImage?.url || user?.avatar)}
-                  className="shadow-md"
-                />
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-[#FFD043] text-slate-950 flex items-center justify-center font-black text-lg shadow-sm shrink-0 ring-2 ring-amber-400/20">
+                <User className="w-6 h-6 text-slate-950" />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
                   Hello, {user?.name || 'Customer'}
                 </h1>
