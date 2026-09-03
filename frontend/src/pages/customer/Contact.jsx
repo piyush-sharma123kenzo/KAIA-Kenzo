@@ -47,8 +47,8 @@ const Contact = () => {
                 <MapPin className="w-4 h-4 text-amz-orange shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-amz-bodyInk">KAIA Technologies Pvt. Ltd.</p>
-                  <p>100 Silicon Avenue, Electronic City Phase 1</p>
-                  <p>Bengaluru, Karnataka 560100, India</p>
+                  <p>Mayur Vihar Phase 1, Near Unna Enclave</p>
+                  <p>Delhi, India</p>
                 </div>
               </div>
 
@@ -110,7 +110,7 @@ const Contact = () => {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Rahul Sharma"
+                      placeholder="Enter your full name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full p-2.5 border border-amz-borderGray rounded-[2px] bg-white focus:outline-none focus:border-amz-orange text-xs"
@@ -122,7 +122,7 @@ const Contact = () => {
                     <input
                       type="email"
                       required
-                      placeholder="rahul@example.com"
+                      placeholder="Enter your email address"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full p-2.5 border border-amz-borderGray rounded-[2px] bg-white focus:outline-none focus:border-amz-orange text-xs"
@@ -134,7 +134,7 @@ const Contact = () => {
                   <label className="text-amz-secText">Subject / Order ID (Optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g. Order #KAIA-ORD-2026-00101 Inquiry"
+                    placeholder="Enter subject or Order ID"
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     className="w-full p-2.5 border border-amz-borderGray rounded-[2px] bg-white focus:outline-none focus:border-amz-orange text-xs"
