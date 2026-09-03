@@ -223,6 +223,7 @@ const BrandLayout = () => {
                 shape="circle" 
                 ring={true}
                 ringColor="ring-brand-accent/30"
+                allowPreview={Boolean(user?.profileImage?.url || user?.avatar)}
                 showRoleBadge={false}
               />
               <div className="text-left hidden md:block">

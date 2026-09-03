@@ -13,12 +13,13 @@
 import React, { useState, useRef, useContext } from 'react';
 import { 
   Camera, Trash2, Upload, ZoomIn, ZoomOut, RotateCw, Check, 
-  X, AlertCircle, Sparkles, Loader2, Image as ImageIcon 
+  X, AlertCircle, Sparkles, Loader2, Image as ImageIcon, Eye 
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import userApi from '../../services/userApi';
 import ProfileAvatar from './ProfileAvatar';
+import ProfileImageViewer from './ProfileImageViewer';
 
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -41,6 +42,7 @@ export const ProfileImageUploader = ({
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
 
@@ -250,17 +252,8 @@ export const ProfileImageUploader = ({
               ring={true}
               ringColor="ring-amber-400/30"
               className="shadow-sm"
+              allowPreview={hasCustomImage}
             />
-            <button
-              type="button"
-              onClick={handleOpenFileDialog}
-              disabled={uploading || removing}
-              className="absolute inset-0 bg-slate-950/60 rounded-full flex flex-col items-center justify-center text-white opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold backdrop-blur-2xs"
-              title="Change Profile Photo"
-            >
-              <Camera className="w-4 h-4 text-amber-400 mb-0.5" />
-              <span>Change</span>
-            </button>
           </div>
 
           {/* Details & Action Controls */}
@@ -294,6 +287,20 @@ export const ProfileImageUploader = ({
                 <Camera className="w-3.5 h-3.5" />
                 <span>{hasCustomImage ? 'Change Photo' : 'Upload Photo'}</span>
               </button>
+
+              {/* View Photo Button (When custom image exists) */}
+              {hasCustomImage && (
+                <button
+                  type="button"
+                  onClick={() => setViewerOpen(true)}
+                  disabled={uploading || removing}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                  title="Preview profile image in full size lightbox"
+                >
+                  <Eye className="w-3.5 h-3.5 text-amber-600" />
+                  <span>View Photo</span>
+                </button>
+              )}
 
               {/* Remove Button (Only visible if user has an uploaded image) */}
               {hasCustomImage && (
@@ -491,6 +498,15 @@ export const ProfileImageUploader = ({
 
           </div>
         </div>
+      )}
+
+      {/* Lightbox Viewer */}
+      {hasCustomImage && (
+        <ProfileImageViewer
+          isOpen={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+          user={user}
+        />
       )}
 
     </div>

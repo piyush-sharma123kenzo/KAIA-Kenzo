@@ -4,7 +4,7 @@ import {
   Search, ShoppingCart, MapPin, Menu, X, ChevronDown, 
   User, ShieldCheck, Heart, Building2, Package, ExternalLink,
   Navigation, Check, ArrowLeftRight, LogOut, Award, ShoppingBag, ChevronRight, Camera,
-  Sparkles, Flame, Tag
+  Sparkles, Flame, Tag, Eye
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
@@ -19,6 +19,7 @@ import LocationSelectorModal from '../common/LocationSelectorModal';
 import KaiaLogo from '../common/KaiaLogo';
 import { getAvatarSrc } from '../../utils/imageUtils';
 import ProfileAvatar from '../profile/ProfileAvatar';
+import ProfileImageViewer from '../profile/ProfileImageViewer';
 import userApi from '../../services/userApi';
 
 const Header = () => {
@@ -75,6 +76,7 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [accountDropdown, setAccountDropdown] = useState(false);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const categoryDropdownRef = useRef(null);
 
   // Close category dropdown on outside click
@@ -425,13 +427,32 @@ const Header = () => {
                             <p className="text-[11px] text-slate-500 truncate font-mono">
                               {user.email}
                             </p>
-                            <label
-                              htmlFor="header-avatar-upload"
-                              className="inline-flex items-center space-x-1 text-[11px] text-amber-700 hover:text-amber-800 font-bold cursor-pointer mt-1"
-                            >
-                              <Camera className="w-3 h-3 text-amber-600" />
-                              <span>{uploadingAvatar ? 'Uploading...' : 'Change Photo'}</span>
-                            </label>
+                            <div className="flex items-center space-x-2.5 mt-1">
+                              <label
+                                htmlFor="header-avatar-upload"
+                                className="inline-flex items-center space-x-1 text-[11px] text-amber-700 hover:text-amber-800 font-bold cursor-pointer"
+                              >
+                                <Camera className="w-3 h-3 text-amber-600" />
+                                <span>{uploadingAvatar ? 'Uploading...' : 'Change Photo'}</span>
+                              </label>
+
+                              {(user.profileImage?.url || user.avatar) && (
+                                <>
+                                  <span className="text-slate-300 text-[10px]">|</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setAccountDropdown(false);
+                                      setPreviewModalOpen(true);
+                                    }}
+                                    className="inline-flex items-center space-x-1 text-[11px] text-slate-600 hover:text-slate-900 font-bold cursor-pointer"
+                                  >
+                                    <Eye className="w-3 h-3 text-slate-500" />
+                                    <span>View Photo</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -697,6 +718,15 @@ const Header = () => {
 
         </div>
       </Drawer>
+
+      {/* Lightbox Profile Image Viewer */}
+      {Boolean(user?.profileImage?.url || user?.avatar) && (
+        <ProfileImageViewer
+          isOpen={previewModalOpen}
+          onClose={() => setPreviewModalOpen(false)}
+          user={user}
+        />
+      )}
     </>
   );
 };

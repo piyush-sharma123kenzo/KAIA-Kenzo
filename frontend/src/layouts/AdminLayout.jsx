@@ -367,6 +367,7 @@ const AdminLayout = () => {
               shape="rounded" 
               ring={true}
               ringColor="ring-slate-300/80"
+              allowPreview={Boolean(user?.profileImage?.url || user?.avatar)}
               className="shadow-xs cursor-pointer"
             />
           </div>

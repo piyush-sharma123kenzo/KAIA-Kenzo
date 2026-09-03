@@ -450,11 +450,10 @@ const Account = () => {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
             <div className="flex items-center space-x-5">
               
-              {/* Avatar with Photo View */}
+              {/* Avatar with Photo View & Lightbox Preview */}
               <div 
-                className="relative shrink-0 cursor-pointer group/pic"
-                onClick={() => setSearchParams({ tab: 'profile' })}
-                title="Manage profile picture"
+                className="relative shrink-0"
+                title={user?.profileImage?.url || user?.avatar ? "Click to view photo" : "Manage profile picture"}
               >
                 <ProfileAvatar
                   user={user}
@@ -462,7 +461,8 @@ const Account = () => {
                   shape="rounded"
                   ring={true}
                   ringColor="ring-amber-400/30"
-                  className="shadow-md group-hover/pic:ring-amber-400 transition-all"
+                  allowPreview={Boolean(user?.profileImage?.url || user?.avatar)}
+                  className="shadow-md"
                 />
               </div>
 
