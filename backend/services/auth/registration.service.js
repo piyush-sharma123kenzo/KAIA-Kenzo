@@ -119,7 +119,6 @@ export const registerNewUser = async ({
     message: `Verification code sent to ${normalizedEmail}. Please verify your email to complete registration.`,
     email: normalizedEmail,
     requiresVerification: true,
-    ...(process.env.NODE_ENV !== 'production' && otpResult?.rawOtp ? { devOtp: otpResult.rawOtp } : {}),
   };
 };
 

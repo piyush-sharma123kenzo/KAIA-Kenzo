@@ -7,8 +7,12 @@
  *  - Fail-safe fallback logging in local development
  */
 
+import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import { buildOtpHtml } from './templates/authEmail.template.js';
+
+dotenv.config({ path: '../.env' });
+dotenv.config();
 
 const isProduction = () => process.env.NODE_ENV === 'production';
 
