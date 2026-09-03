@@ -392,14 +392,14 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-primary hover:bg-brand-primary-dark text-white font-bold py-3 px-4 rounded-sm text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition duration-150 disabled:opacity-50 cursor-pointer shadow-sm active:scale-[0.99]"
+            className="w-full bg-slate-950 hover:bg-amber-500 text-white hover:text-slate-950 font-black py-3.5 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all duration-200 disabled:opacity-50 cursor-pointer shadow-md active:scale-[0.98]"
           >
             {loading ? (
               <span>Creating Account & Sending OTP...</span>
             ) : (
               <>
                 <span>Create Account & Send OTP</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
               </>
             )}
           </button>
