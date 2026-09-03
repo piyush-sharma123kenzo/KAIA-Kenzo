@@ -71,9 +71,11 @@ const Register = () => {
     }
   }, [user, navigate]);
 
-  // Inline confirm password validation
-  const confirmPasswordError = confirmPassword && password !== confirmPassword
-    ? 'Passwords do not match.' : '';
+  const handleInputChange = (setter) => (e) => {
+    setter(e.target.value);
+    if (error) clearError();
+    if (validationError) setValidationError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -159,7 +161,7 @@ const Register = () => {
                 autoComplete="name"
                 placeholder="Your Full Name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={handleInputChange(setName)}
                 className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
               />
               <User className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
@@ -177,7 +179,7 @@ const Register = () => {
                 autoComplete="email"
                 placeholder="name@company.com or name@gmail.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleInputChange(setEmail)}
                 className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
               />
               <Mail className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
@@ -194,7 +196,7 @@ const Register = () => {
                 autoComplete="tel"
                 placeholder="9876543210"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={handleInputChange(setPhone)}
                 className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
               />
               <Phone className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
@@ -212,7 +214,7 @@ const Register = () => {
                 autoComplete="new-password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handleInputChange(setPassword)}
                 className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-14 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
               />
               <Lock className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
@@ -239,7 +241,7 @@ const Register = () => {
                 autoComplete="new-password"
                 placeholder="••••••••"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={handleInputChange(setConfirmPassword)}
                 className={`w-full bg-brand-light border pl-10 pr-14 py-2.5 rounded-sm text-sm focus:outline-none ${
                   confirmPasswordError ? 'border-red-400 focus:border-red-500' : 'border-brand-gray-250 focus:border-brand-accent'
                 }`}
