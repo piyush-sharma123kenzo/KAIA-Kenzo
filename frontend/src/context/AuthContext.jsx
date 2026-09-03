@@ -194,9 +194,18 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (updates) => {
     setError(null);
     try {
+      if (!updates) return;
+      // If full user object passed from avatar upload
+      if (updates._id && updates.email) {
+        setUser((prev) => ({ ...prev, ...updates }));
+        return { success: true, user: updates };
+      }
+      if (updates.avatar !== undefined && !updates.name && !updates.phone && !updates.gstin) {
+        setUser((prev) => ({ ...prev, avatar: updates.avatar }));
+      }
       const payload = typeof updates === 'object' ? updates : { name: arguments[0], phone: arguments[1], gstin: arguments[2] };
       const res = await authApi.updateUserProfile(payload);
-      if (res.success) {
+      if (res.success && res.user) {
         setUser((prev) => ({ ...prev, ...res.user }));
         return res;
       }

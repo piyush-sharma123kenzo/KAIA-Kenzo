@@ -13,6 +13,7 @@ import { useCompare } from '../../context/CompareContext';
 import { useToast } from '../../context/ToastContext';
 import categoryService from '../../services/categoryService';
 import productService from '../../services/productService';
+import axiosInstance from '../../api/axiosInstance';
 import Drawer from '../common/Drawer';
 import LocationSelectorModal from '../common/LocationSelectorModal';
 import KaiaLogo from '../common/KaiaLogo';
@@ -33,30 +34,32 @@ const Header = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast?.showToast('Please select an image file (PNG, JPG, WebP).', 'error');
+      toast?.error?.('Please select an image file (PNG, JPG, WebP).');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast?.showToast('Image size must be less than 5MB.', 'error');
+      toast?.error?.('Image size must be less than 5MB.');
       return;
     }
 
+    const formData = new FormData();
+    formData.append('avatar', file);
+
     setUploadingAvatar(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64Image = event.target?.result;
-        if (base64Image && updateProfile) {
-          await updateProfile({ avatar: base64Image });
-          toast?.showToast('Profile picture updated successfully!', 'success');
-        }
-        setUploadingAvatar(false);
-      };
-      reader.readAsDataURL(file);
+      const res = await axiosInstance.post('/account/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const updatedUser = res.data?.user || res.data;
+      if (updateProfile) updateProfile(updatedUser);
+      toast?.success?.('Profile picture updated successfully!');
     } catch (err) {
-      toast?.showToast('Failed to update profile picture.', 'error');
+      console.error('[Header] Avatar upload failed:', err);
+      toast?.error?.(err.response?.data?.message || 'Failed to update profile picture.');
+    } finally {
       setUploadingAvatar(false);
+      e.target.value = '';
     }
   };
 
