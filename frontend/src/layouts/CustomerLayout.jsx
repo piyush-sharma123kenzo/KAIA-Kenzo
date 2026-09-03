@@ -32,7 +32,7 @@ const CustomerLayout = () => {
   const isAccount = path.startsWith('/account');
 
   return (
-    <div className={`flex flex-col min-h-screen ${isAccount ? 'bg-[#0B0F19]' : 'bg-[#F8F9FA]'} ${isCheckout ? '' : 'pb-14 md:pb-0'}`}>
+    <div className={`flex flex-col min-h-screen bg-[#F8FAFC] text-slate-900 ${isCheckout ? '' : 'pb-14 md:pb-0'}`}>
       {isCheckout ? <CheckoutHeader /> : <Header />}
       <main className="flex-1">
         <Outlet />
