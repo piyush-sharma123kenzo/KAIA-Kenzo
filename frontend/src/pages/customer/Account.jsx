@@ -4,7 +4,7 @@ import {
   User, ShoppingBag, Award, Landmark, ShieldCheck, Download, Truck, 
   ExternalLink, FileText, MapPin, Heart, Lock, Trash2, Plus, AlertCircle, 
   RotateCcw, MessageSquare, Bell, Star, CheckCircle, Edit, ChevronRight, QrCode,
-  Package, Clock, CheckCircle2, ArrowRight, Gift, Zap, Camera, Sparkles, CreditCard
+  Package, Clock, CheckCircle2, ArrowRight, Gift, Zap, Camera, CreditCard
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
@@ -456,18 +456,12 @@ const Account = () => {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center space-x-2.5">
-                  <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-                    Hello, {user?.name || 'Customer'}
-                  </h1>
-                  <span className="hidden sm:inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-50 text-amber-800 border border-amber-300/80">
-                    <Sparkles className="w-2.5 h-2.5 text-amber-600" />
-                    <span>Verified Customer</span>
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 font-mono flex items-center space-x-1.5">
-                  <span>{user?.email}</span>
+              <div className="space-y-1">
+                <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                  Hello, {user?.name || 'Customer'}
+                </h1>
+                <p className="text-xs text-slate-500 font-mono">
+                  {user?.email}
                 </p>
               </div>
             </div>
