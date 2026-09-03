@@ -115,6 +115,7 @@ const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
 const AdminCustomers = lazy(() => import('./pages/admin/Customers'));
 const AdminEnquiries = lazy(() => import('./pages/admin/Enquiries'));
 const AdminSupportTickets = lazy(() => import('./pages/admin/SupportTickets'));
+const AdminDeliveryLocations = lazy(() => import('./pages/admin/DeliveryLocations'));
 
 function App() {
   return (
@@ -254,6 +255,7 @@ function App() {
                     <Route path="system" element={<AdminSystemHealth />} />
                     <Route path="enquiries" element={<AdminEnquiries />} />
                     <Route path="support-tickets" element={<AdminSupportTickets />} />
+                    <Route path="delivery-locations" element={<AdminDeliveryLocations />} />
                     <Route path="settings" element={<AdminSettings />} />
                   </Route>
 

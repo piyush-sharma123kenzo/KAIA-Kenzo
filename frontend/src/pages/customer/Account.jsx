@@ -16,10 +16,13 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import Button from '../../components/ui/Button';
 import EmptyState from '../../components/ui/EmptyState';
 import KaiaIcon from '../../components/common/KaiaIcon';
+import DeliveryChecker from '../../components/common/DeliveryChecker';
+import { useLocationContext } from '../../context/LocationContext';
 
 const Account = () => {
   const { user, updateProfile, logout } = useContext(AuthContext);
   const { addToCart } = useContext(CartContext);
+  const { deliveryLocation, deliveryInfo, openLocationModal } = useLocationContext() || {};
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'overview';
@@ -100,12 +103,13 @@ const Account = () => {
   const tabs = [
     { id: 'overview', name: 'Account Overview', icon: User },
     { id: 'orders', name: 'My Orders', icon: ShoppingBag },
+    { id: 'delivery', name: 'My Delivery Location', icon: Truck },
+    { id: 'addresses', name: 'Saved Addresses', icon: MapPin },
     { id: 'returns', name: 'Returns & Refunds', icon: RotateCcw },
     { id: 'warranties', name: 'My Warranties', icon: Award },
     { id: 'invoices', name: 'Tax Invoices', icon: FileText },
     { id: 'reviews', name: 'My Reviews', icon: MessageSquare },
     { id: 'wishlist', name: 'My Wishlist', icon: Heart },
-    { id: 'addresses', name: 'Saved Addresses', icon: MapPin },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'profile', name: 'Profile Settings', icon: User },
     { id: 'security', name: 'Security & Password', icon: Lock },
@@ -698,6 +702,89 @@ const Account = () => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* =================================================================== */}
+            {/* TAB: MY DELIVERY LOCATION                                           */}
+            {/* =================================================================== */}
+            {activeTab === 'delivery' && (
+              <div className="space-y-6">
+                <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs p-6 md:p-7 space-y-5">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <div>
+                      <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                        <Truck className="w-5 h-5 text-amber-500" />
+                        <span>My Delivery Location & Serviceability</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        KAIA Technologies delivers exclusively within a 10 KM radius of authorized service centers.
+                      </p>
+                    </div>
+                    <button
+                      onClick={openLocationModal}
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-2 px-3.5 rounded-lg shadow-2xs flex items-center space-x-1.5 transition-all cursor-pointer"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>Change Location</span>
+                    </button>
+                  </div>
+
+                  {/* Current Active Location Card */}
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-amber-600" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Currently Active Location</span>
+                      </div>
+                      <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                        deliveryInfo?.isServiceable
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {deliveryInfo?.isServiceable ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Serviceable</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-3 h-3 text-rose-600" />
+                            <span>Outside Service Radius</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="text-xs space-y-1 text-slate-700">
+                      <p className="text-sm font-black text-slate-900">
+                        {deliveryLocation?.recipientName || user?.name || 'Customer'}
+                      </p>
+                      <p className="text-slate-600">
+                        {deliveryLocation?.addressLine1 || deliveryLocation?.area || 'No street address specified'}, {deliveryLocation?.city} - <strong className="font-mono text-slate-900">{deliveryLocation?.postalCode || 'Not set'}</strong>
+                      </p>
+                      {deliveryLocation?.latitude && deliveryLocation?.longitude && (
+                        <p className="font-mono text-[11px] text-slate-400">
+                          GPS Coordinates: {deliveryLocation.latitude.toFixed(4)}, {deliveryLocation.longitude.toFixed(4)}
+                        </p>
+                      )}
+                    </div>
+
+                    {deliveryInfo && deliveryInfo.nearestLocation && (
+                      <div className="pt-2 border-t border-slate-200/60 text-xs flex items-center justify-between text-slate-600">
+                        <span>Nearest Fulfillment Center: <strong>{deliveryInfo.nearestLocation}</strong></span>
+                        {deliveryInfo.distance !== null && (
+                          <span className="font-mono font-bold text-amber-700">
+                            {deliveryInfo.distance} KM away (Max: {deliveryInfo.deliveryRadius || 10} KM)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Delivery Checker Tool */}
+                <DeliveryChecker showTitle={true} />
               </div>
             )}
 

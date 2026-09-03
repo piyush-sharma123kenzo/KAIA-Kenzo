@@ -16,6 +16,7 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import ProductCard from '../../components/product/ProductCard';
 import { Skeleton } from '../../components/feedback/Skeleton';
+import DeliveryChecker from '../../components/common/DeliveryChecker';
 
 const ProductDetails = () => {
   const { slug } = useParams();
@@ -509,33 +510,8 @@ const ProductDetails = () => {
             </div>
           </div>
 
-          {/* Pincode Serviceability Checker */}
-          <div className="p-4 border border-brand-gray-200 rounded-sm bg-white space-y-3">
-            <span className="text-xs font-black uppercase text-brand-gray-900 flex items-center space-x-1.5">
-              <Truck className="w-4 h-4 text-brand-accent" />
-              <span>Check Delivery & Serviceability</span>
-            </span>
-
-            <form onSubmit={handleCheckDelivery} className="flex space-x-2">
-              <input
-                type="text"
-                maxLength={6}
-                placeholder="Enter 6-digit PIN code"
-                value={pincode}
-                onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
-                className="flex-1 p-2 border rounded text-xs font-mono"
-              />
-              <Button size="sm" type="submit" disabled={checkingPincode} className="text-xs uppercase font-bold">
-                {checkingPincode ? 'Checking...' : 'Check'}
-              </Button>
-            </form>
-
-            {deliveryStatus && (
-              <p className={`text-xs font-semibold ${deliveryStatus.type === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
-                {deliveryStatus.text}
-              </p>
-            )}
-          </div>
+          {/* Delivery Availability Checker */}
+          <DeliveryChecker />
 
           {/* Trust Highlights */}
           <div className="grid grid-cols-3 gap-2 pt-2 text-center text-[11px] text-brand-gray-600">

@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthContext } from './AuthContext';
 import axiosInstance from '../api/axiosInstance';
 import { reverseGeocodeCoordinates } from '../services/locationService';
+import deliveryService from '../services/deliveryService';
 
 export const LocationContext = createContext();
 
@@ -43,9 +44,70 @@ export const LocationProvider = ({ children }) => {
     return [];
   });
 
+  const [deliveryInfo, setDeliveryInfo] = useState({
+    isServiceable: null,
+    distance: null,
+    deliveryRadius: 10,
+    nearestLocation: null,
+    message: '',
+    loading: false,
+  });
+
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [locationError, setLocationError] = useState(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+
+  // Check delivery availability with backend
+  const checkServiceability = async (targetLoc = deliveryLocation) => {
+    const pin = targetLoc?.postalCode || targetLoc?.pincode;
+    const lat = targetLoc?.latitude;
+    const lng = targetLoc?.longitude;
+
+    if (!pin && (lat === null || lat === undefined)) {
+      setDeliveryInfo((prev) => ({ ...prev, isServiceable: null, message: '', loading: false }));
+      return null;
+    }
+
+    setDeliveryInfo((prev) => ({ ...prev, loading: true }));
+    try {
+      const res = await deliveryService.checkDelivery({
+        pincode: pin,
+        latitude: lat,
+        longitude: lng,
+      });
+
+      if (res.success) {
+        const info = {
+          isServiceable: res.isServiceable,
+          distance: res.distance,
+          deliveryRadius: res.deliveryRadius || 10,
+          nearestLocation: res.nearestLocation,
+          message: res.message,
+          loading: false,
+        };
+        setDeliveryInfo(info);
+        return info;
+      }
+    } catch (err) {
+      console.error('Delivery check error:', err);
+      const fallback = {
+        isServiceable: false,
+        distance: null,
+        deliveryRadius: 10,
+        nearestLocation: null,
+        message: 'Could not verify delivery at this time.',
+        loading: false,
+      };
+      setDeliveryInfo(fallback);
+      return fallback;
+    }
+  };
+
+  useEffect(() => {
+    if (deliveryLocation?.postalCode || deliveryLocation?.latitude) {
+      checkServiceability(deliveryLocation);
+    }
+  }, [deliveryLocation?.postalCode, deliveryLocation?.latitude, deliveryLocation?.longitude]);
 
   // Sync saved addresses from backend when user is logged in
   useEffect(() => {
@@ -295,6 +357,8 @@ export const LocationProvider = ({ children }) => {
     <LocationContext.Provider
       value={{
         deliveryLocation,
+        deliveryInfo,
+        checkServiceability,
         savedAddresses,
         isDetectingLocation,
         locationError,

@@ -9,6 +9,7 @@ import { searchLocations } from '../../services/locationService';
 const LocationSelectorModal = () => {
   const {
     deliveryLocation,
+    deliveryInfo,
     savedAddresses,
     isDetectingLocation,
     locationError,
@@ -477,13 +478,21 @@ const LocationSelectorModal = () => {
 
         </div>
 
-        {/* Footer info pill */}
+        {/* Footer info pill with real delivery serviceability status */}
         <div className="bg-slate-50 px-4 py-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-          <span className="flex items-center space-x-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Currently: <strong>{deliveryLocation.area || deliveryLocation.city || 'Delhi, India'}</strong></span>
-          </span>
-          <button onClick={closeLocationModal} className="text-slate-600 hover:text-slate-900 font-semibold">
+          <div className="flex items-center space-x-1.5 truncate max-w-[340px]">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${deliveryInfo?.isServiceable ? 'bg-emerald-500' : deliveryInfo?.isServiceable === false ? 'bg-rose-500' : 'bg-slate-400'}`} />
+            <span className="truncate">
+              Currently: <strong>{deliveryLocation.area || deliveryLocation.city || 'Delhi, India'}</strong>
+              {deliveryInfo?.distance !== null && deliveryInfo?.distance !== undefined ? ` (${deliveryInfo.distance} KM from hub)` : ''}
+            </span>
+            {deliveryInfo && deliveryInfo.isServiceable !== null && (
+              <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] shrink-0 ${deliveryInfo.isServiceable ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                {deliveryInfo.isServiceable ? 'Serviceable' : 'Outside 10 KM'}
+              </span>
+            )}
+          </div>
+          <button onClick={closeLocationModal} className="text-slate-600 hover:text-slate-900 font-semibold cursor-pointer shrink-0 ml-2">
             Close
           </button>
         </div>

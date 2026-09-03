@@ -6,7 +6,7 @@ import {
   RotateCcw, TrendingUp, DollarSign, CreditCard, Tag, Sparkles, 
   Activity, Radio, BarChart3, Menu, X, ExternalLink, QrCode,
   Search, ChevronRight, PlusCircle, Bell, ChevronLeft, Store,
-  Zap, ArrowUpRight, Cpu, Headphones, MessageSquare
+  Zap, ArrowUpRight, Cpu, Headphones, MessageSquare, MapPin
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import KaiaIcon from '../components/common/KaiaIcon';
@@ -50,6 +50,7 @@ const AdminLayout = () => {
     {
       group: 'LOGISTICS & OPERATIONS',
       items: [
+        { name: 'Delivery Management', path: '/admin/delivery-locations', icon: MapPin, badge: '10 KM' },
         { name: 'Shipments & Logistics', path: '/admin/shipments', icon: Truck, badge: null },
         { name: 'Warehouse Inventory', path: '/admin/inventory', icon: Layers, badge: null },
         { name: 'Physical Serials', path: '/admin/serials', icon: QrCode, badge: null },

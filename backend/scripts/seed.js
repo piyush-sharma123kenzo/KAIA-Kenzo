@@ -9,6 +9,7 @@ import Product from '../models/Product.js';
 import Inventory from '../models/Inventory.js';
 import SerialNumber from '../models/SerialNumber.js';
 import Coupon from '../models/Coupon.js';
+import DeliveryLocation from '../models/DeliveryLocation.js';
 
 dotenv.config({ path: '../.env' }); // Load .env from backend / root
 dotenv.config();
@@ -26,6 +27,7 @@ const seed = async () => {
     await Inventory.deleteMany({});
     await SerialNumber.deleteMany({});
     await Coupon.deleteMany({});
+    await DeliveryLocation.deleteMany({});
 
     console.log('Creating Admin & Customer accounts...');
 

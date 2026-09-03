@@ -10,6 +10,7 @@ import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import SerialNumber from '../models/SerialNumber.js';
 import Warranty from '../models/Warranty.js';
+import { validateOrderDelivery } from './deliveryController.js';
 
 /**
  * Helper: Derive the Master Order status from its child SellerOrders.
@@ -98,6 +99,15 @@ export const initiateCheckout = async (req, res) => {
   };
 
   try {
+    // 0. Enforce Delivery Availability Check (10 KM radius from active service centers)
+    const deliveryValidation = await validateOrderDelivery(normalizedShippingAddress);
+    if (!deliveryValidation.isValid) {
+      return res.status(400).json({
+        message: deliveryValidation.error || 'Sorry, delivery is currently unavailable at this address.',
+        isDeliveryUnavailable: true,
+      });
+    }
+
     // 1. Fetch user's cart from database
     const cart = await Cart.findOne({ user: req.user._id });
     if (!cart || cart.items.length === 0) {
@@ -278,6 +288,7 @@ export const initiateCheckout = async (req, res) => {
       couponApplied: appliedCoupon,
       paymentStatus: 'Pending',
       orderStatus: 'pending_payment',
+      deliveryValidation: deliveryValidation.validationSnapshot,
       childOrders: [],
     });
 

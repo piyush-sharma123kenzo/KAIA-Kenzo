@@ -164,6 +164,23 @@ const orderSchema = new mongoose.Schema(
     cancelledAt: {
       type: Date,
     },
+    // Snapshot of geographical delivery validation at purchase time
+    deliveryValidation: {
+      isServiceable: { type: Boolean, default: true },
+      deliveryLocationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'DeliveryLocation',
+        default: null,
+      },
+      nearestLocationName: { type: String, default: '' },
+      calculatedDistance: { type: Number, default: 0 },
+      deliveryRadius: { type: Number, default: 10 },
+      validatedAt: { type: Date, default: Date.now },
+      coordinates: {
+        latitude: { type: Number, default: null },
+        longitude: { type: Number, default: null },
+      },
+    },
   },
   {
     timestamps: true,

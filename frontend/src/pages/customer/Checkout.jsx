@@ -23,6 +23,7 @@ const Checkout = () => {
   const toast = useToast();
   const { 
     deliveryLocation, 
+    deliveryInfo,
     savedAddresses, 
     openLocationModal, 
     selectDeliveryAddress,
@@ -131,6 +132,12 @@ const Checkout = () => {
       toast.showToast('Please select or configure a delivery address.', 'warning');
       return;
     }
+
+    if (deliveryInfo && deliveryInfo.isServiceable === false) {
+      toast.showToast(deliveryInfo.message || 'Delivery is currently unavailable at this address (Outside 10 KM radius).', 'error');
+      return;
+    }
+
     selectDeliveryAddress(currentAddr);
     setStep(2);
   };
@@ -461,6 +468,40 @@ const Checkout = () => {
                     })}
                   </div>
 
+                  {/* Live Delivery Serviceability Status Indicator */}
+                  {deliveryInfo && deliveryInfo.isServiceable !== null && (
+                    <div className={`p-4 rounded-xl border text-xs ${
+                      deliveryInfo.isServiceable 
+                        ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800' 
+                        : 'bg-rose-50/90 border-rose-200 text-rose-800'
+                    }`}>
+                      <div className="flex items-center space-x-2 font-bold">
+                        {deliveryInfo.isServiceable ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        )}
+                        <span>
+                          {deliveryInfo.isServiceable 
+                            ? 'Delivery Available to this address' 
+                            : 'Delivery Unavailable to this address'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed pl-6">
+                        {deliveryInfo.isServiceable ? (
+                          <>
+                            Serviceable via <strong>{deliveryInfo.nearestLocation || 'Authorized Hub'}</strong>
+                            {deliveryInfo.distance !== null ? ` (${deliveryInfo.distance} KM away • Max limit: ${deliveryInfo.deliveryRadius || 10} KM)` : ''}.
+                          </>
+                        ) : (
+                          <>
+                            {deliveryInfo.message || 'This address is outside our 10 KM delivery radius. Please choose or add a serviceable location.'}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
                     <button
                       type="button"
@@ -472,7 +513,8 @@ const Checkout = () => {
                     </button>
                     <button
                       type="submit"
-                      className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2.5 px-6 rounded-lg shadow-sm transition-all flex items-center space-x-2"
+                      disabled={deliveryInfo?.isServiceable === false}
+                      className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-amber-400 font-bold text-xs py-2.5 px-6 rounded-lg shadow-sm transition-all flex items-center space-x-2 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <span>Proceed to GST Details</span>
                       <ChevronRight className="w-4 h-4" />
@@ -630,9 +672,9 @@ const Checkout = () => {
                 </button>
                 <button 
                   type="button" 
-                  disabled={loading}
+                  disabled={loading || deliveryInfo?.isServiceable === false}
                   onClick={handleInitiateOrderDraft}
-                  className="bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs py-2.5 px-6 rounded-lg shadow-sm transition-all flex items-center space-x-2"
+                  className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-amber-400 font-bold text-xs py-2.5 px-6 rounded-lg shadow-sm transition-all flex items-center space-x-2 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <span>{loading ? 'Creating Order...' : 'Proceed to Payment'}</span>
                   <ChevronRight className="w-4 h-4" />
