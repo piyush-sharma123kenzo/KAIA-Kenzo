@@ -10,61 +10,61 @@ import brandService from '../../services/brandService';
 import { getBrandLogo } from '../../utils/brandLogos';
 import { getAccurateProductImage } from '../../utils/productImageMap';
 
-// 10 Key Component Categories with Real Authentic Imagery
+// 10 Key Component Categories with Premium 3D Hardware Renders
 const hardwareCategories = [
   {
     name: 'Processors',
     slug: 'pc-components',
     query: 'processor',
-    img: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&auto=format&fit=crop&q=80',
+    img: '/assets/categories/3d/cpu_3d.jpg',
   },
   {
     name: 'Motherboards',
     slug: 'pc-components',
     query: 'motherboard',
-    img: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&auto=format&fit=crop&q=80',
+    img: '/assets/categories/3d/motherboard_3d.jpg',
   },
   {
     name: 'Graphics Cards',
     slug: 'pc-components',
     query: 'graphics',
-    img: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&auto=format&fit=crop&q=80',
+    img: '/assets/categories/3d/gpu_3d.jpg',
   },
   {
     name: 'RAM',
     slug: 'pc-components',
     query: 'ram',
-    img: 'https://images.unsplash.com/photo-1562976540-1502c2145186?w=400&auto=format&fit=crop&q=80',
+    img: '/assets/categories/3d/ram_3d.jpg',
   },
   {
     name: 'SSDs',
     slug: 'storage',
     query: 'ssd',
-    img: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=400&auto=format&fit=crop&q=80',
+    img: '/assets/categories/3d/ssd_3d.jpg',
   },
   {
     name: 'Power Supplies',
     slug: 'pc-components',
     query: 'psu',
-    img: 'https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=400&auto=format&fit=crop&q=80',
+    img: '/assets/categories/3d/psu_3d.jpg',
   },
   {
     name: 'Cooling',
     slug: 'pc-components',
     query: 'cooler',
-    img: 'https://images.unsplash.com/photo-1555680202-c86f0e12f086?w=400&auto=format&fit=crop&q=80',
+    img: '/assets/categories/3d/cooler_3d.jpg',
   },
   {
     name: 'PC Cases',
     slug: 'pc-components',
     query: 'case',
-    img: '/assets/categories/pc_case.jpg',
+    img: '/assets/categories/3d/case_3d.jpg',
   },
   {
     name: 'Monitors',
     slug: 'monitors-and-displays',
     query: 'monitor',
-    img: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400&auto=format&fit=crop&q=80',
+    img: '/assets/categories/3d/monitor_3d.jpg',
   },
   {
     name: 'View All',
@@ -215,7 +215,7 @@ const Home = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. HARDWARE CATEGORIES (10 Rounded Cards Carousel)                        */}
+      {/* 3. HARDWARE CATEGORIES (10 3D Rounded Cards Grid)                         */}
       {/* ========================================================================= */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
         <div className="grid grid-cols-5 md:grid-cols-10 gap-3 text-center">
@@ -223,21 +223,23 @@ const Home = () => {
             <Link
               key={idx}
               to={cat.isViewAll ? '/categories' : `/products?category=${cat.slug}&q=${cat.query || ''}`}
-              className="bg-white rounded-2xl border border-slate-200/80 p-2.5 flex flex-col items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all group shadow-2xs"
+              className="bg-white rounded-2xl border border-slate-200/90 p-2.5 flex flex-col items-center justify-between hover:shadow-xl hover:border-amber-400/50 hover:-translate-y-1.5 transition-all duration-300 group shadow-xs"
             >
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center overflow-hidden mb-1.5 p-1 bg-slate-50">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center overflow-hidden mb-1.5 p-1 bg-gradient-to-b from-slate-50/80 to-white border border-slate-100">
                 {cat.isViewAll ? (
-                  <LayoutGrid className="w-7 h-7 text-slate-800 group-hover:text-[#F5B400] transition-colors" />
+                  <div className="w-full h-full rounded-lg bg-slate-900 flex items-center justify-center group-hover:bg-[#F5B400] transition-colors shadow-sm">
+                    <LayoutGrid className="w-6 h-6 text-white group-hover:text-slate-950 transition-colors" />
+                  </div>
                 ) : (
                   <img
                     src={cat.img}
                     alt={cat.name}
-                    className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform duration-300"
+                    className="max-h-full max-w-full object-contain filter drop-shadow-md group-hover:scale-115 group-hover:drop-shadow-xl transition-all duration-300"
                     loading="lazy"
                   />
                 )}
               </div>
-              <span className="text-[11px] font-bold text-slate-800 group-hover:text-amber-700 transition-colors truncate w-full">
+              <span className="text-[11px] font-bold text-slate-800 group-hover:text-amber-600 transition-colors truncate w-full tracking-tight">
                 {cat.name}
               </span>
             </Link>
