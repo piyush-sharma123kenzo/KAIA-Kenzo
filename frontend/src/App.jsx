@@ -56,6 +56,12 @@ import RefundPolicy from './pages/customer/RefundPolicy';
 import ShippingPolicy from './pages/customer/ShippingPolicy';
 import WarrantyPolicy from './pages/customer/WarrantyPolicy';
 import SellerPolicy from './pages/customer/SellerPolicy';
+import DirectBrandSupply from './pages/customer/DirectBrandSupply';
+import CustomerSupport from './pages/customer/CustomerSupport';
+import WarrantyVerification from './pages/customer/WarrantyVerification';
+import ShippingRates from './pages/customer/ShippingRates';
+import GenuineGuarantee from './pages/customer/GenuineGuarantee';
+import KenzoInfoSystems from './pages/customer/KenzoInfoSystems';
 import ProtectedRoute from './routes/ProtectedRoute';
 
 // Brand Seller Pages (Lazy Loaded)
@@ -107,6 +113,8 @@ const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 const AdminRefunds = lazy(() => import('./pages/admin/Refunds'));
 const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
 const AdminCustomers = lazy(() => import('./pages/admin/Customers'));
+const AdminEnquiries = lazy(() => import('./pages/admin/Enquiries'));
+const AdminSupportTickets = lazy(() => import('./pages/admin/SupportTickets'));
 
 function App() {
   return (
@@ -162,11 +170,22 @@ function App() {
                     <Route path="verify-email" element={<VerifyEmail />} />
                     <Route path="verify-otp" element={<VerifyOtp />} />
                     <Route path="about" element={<About />} />
+                    <Route path="catalog" element={<Products />} />
+                    <Route path="direct-brand-supply" element={<DirectBrandSupply />} />
+                    <Route path="kenzo-info-systems" element={<KenzoInfoSystems />} />
+                    <Route path="warranty-verification" element={<WarrantyVerification />} />
+                    <Route path="serial-check" element={<WarrantyVerification />} />
+                    <Route path="support" element={<CustomerSupport />} />
+                    <Route path="customer-support" element={<CustomerSupport />} />
+                    <Route path="shipping-rates" element={<ShippingRates />} />
+                    <Route path="genuine-product-guarantee" element={<GenuineGuarantee />} />
                     <Route path="contact" element={<Contact />} />
                     <Route path="help" element={<Help />} />
                     <Route path="privacy" element={<Privacy />} />
+                    <Route path="privacy-policy" element={<Privacy />} />
                     <Route path="terms" element={<Terms />} />
                     <Route path="refund-policy" element={<RefundPolicy />} />
+                    <Route path="refund-return-policy" element={<RefundPolicy />} />
                     <Route path="return-policy" element={<RefundPolicy />} />
                     <Route path="shipping-policy" element={<ShippingPolicy />} />
                     <Route path="warranty-policy" element={<WarrantyPolicy />} />
@@ -233,6 +252,8 @@ function App() {
                     <Route path="webhooks" element={<AdminWebhooks />} />
                     <Route path="system-health" element={<AdminSystemHealth />} />
                     <Route path="system" element={<AdminSystemHealth />} />
+                    <Route path="enquiries" element={<AdminEnquiries />} />
+                    <Route path="support-tickets" element={<AdminSupportTickets />} />
                     <Route path="settings" element={<AdminSettings />} />
                   </Route>
 

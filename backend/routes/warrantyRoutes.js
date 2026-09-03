@@ -1,12 +1,18 @@
 import express from 'express';
-import { getUserWarranties, claimWarranty } from '../controllers/warrantyController.js';
+import { 
+  getUserWarranties, 
+  claimWarranty, 
+  verifyPublicWarranty 
+} from '../controllers/warrantyController.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.use(protect); // Secure routes
+// Public verification endpoint
+router.get('/verify', verifyPublicWarranty);
 
-router.get('/', getUserWarranties);
-router.post('/:id/claim', claimWarranty);
+// Customer protected endpoints
+router.get('/', protect, getUserWarranties);
+router.post('/:id/claim', protect, claimWarranty);
 
 export default router;

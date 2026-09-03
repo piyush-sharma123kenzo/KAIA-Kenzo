@@ -126,10 +126,10 @@ const Footer = ({ mode = 'full' }) => {
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </li>
-              <li><Link to="/about" className="hover:underline hover:text-white">Direct Brand Supply</Link></li>
-              <li><Link to="/categories" className="hover:underline hover:text-white">Hardware Catalog</Link></li>
+              <li><Link to="/direct-brand-supply" className="hover:underline hover:text-white">Direct Brand Supply</Link></li>
+              <li><Link to="/catalog" className="hover:underline hover:text-white">Hardware Catalog</Link></li>
               <li><Link to="/compare" className="hover:underline hover:text-amber-400">Product Comparison</Link></li>
-              <li><Link to="/about" className="hover:underline hover:text-white">Warranty Verification</Link></li>
+              <li><Link to="/warranty-verification" className="hover:underline hover:text-white">Warranty Verification</Link></li>
             </ul>
           </div>
 
@@ -137,10 +137,10 @@ const Footer = ({ mode = 'full' }) => {
           <div className="space-y-3">
             <h4 className="font-extrabold text-sm text-white tracking-tight">Connect with Us</h4>
             <ul className="space-y-2 text-brand-gray-300 text-xs">
-              <li><Link to="/contact" className="hover:underline hover:text-white">Customer Support</Link></li>
+              <li><Link to="/support" className="hover:underline hover:text-white">Customer Support</Link></li>
               <li><Link to="/help" className="hover:underline hover:text-white">Help Assistant</Link></li>
               <li><Link to="/brands" className="hover:underline hover:text-white">Authorized Brand Directory</Link></li>
-              <li><a href="mailto:support@kaia.tech" className="hover:underline hover:text-white">support@kaia.tech</a></li>
+              <li><a href={`mailto:${KAIA_OFFICE_LOCATION.supportEmail}`} className="hover:underline hover:text-white">{KAIA_OFFICE_LOCATION.supportEmail}</a></li>
             </ul>
           </div>
 
@@ -148,11 +148,11 @@ const Footer = ({ mode = 'full' }) => {
           <div className="space-y-3">
             <h4 className="font-extrabold text-sm text-white tracking-tight">Policies & Trust</h4>
             <ul className="space-y-2 text-brand-gray-300 text-xs">
-              <li><Link to="/privacy" className="hover:underline hover:text-white">Privacy Policy</Link></li>
+              <li><Link to="/privacy-policy" className="hover:underline hover:text-white">Privacy Policy</Link></li>
               <li><Link to="/terms" className="hover:underline hover:text-white">Terms of Service</Link></li>
               <li><Link to="/shipping-policy" className="hover:underline hover:text-white">Shipping & Delivery Policy</Link></li>
-              <li><Link to="/refund-policy" className="hover:underline hover:text-white">Refund & Return Policy</Link></li>
-              <li><Link to="/about" className="hover:underline hover:text-white">Genuine Product Guarantee</Link></li>
+              <li><Link to="/refund-return-policy" className="hover:underline hover:text-white">Refund & Return Policy</Link></li>
+              <li><Link to="/genuine-product-guarantee" className="hover:underline hover:text-white">Genuine Product Guarantee</Link></li>
             </ul>
           </div>
 
@@ -161,9 +161,9 @@ const Footer = ({ mode = 'full' }) => {
             <h4 className="font-extrabold text-sm text-white tracking-tight">Let Us Help You</h4>
             <ul className="space-y-2 text-brand-gray-300 text-xs">
               <li><Link to="/account" className="hover:underline hover:text-white">Your Account</Link></li>
-              <li><Link to="/orders" className="hover:underline hover:text-white">Returns & RMA Claims</Link></li>
-              <li><Link to="/account?tab=warranties" className="hover:underline hover:text-white">Serial Warranty Check</Link></li>
-              <li><Link to="/shipping-policy" className="hover:underline hover:text-white">Shipping & Delivery Rates</Link></li>
+              <li><Link to="/returns" className="hover:underline hover:text-white">Returns & RMA Claims</Link></li>
+              <li><Link to="/serial-check" className="hover:underline hover:text-white">Serial Warranty Check</Link></li>
+              <li><Link to="/shipping-rates" className="hover:underline hover:text-white">Shipping & Delivery Rates</Link></li>
             </ul>
           </div>
 

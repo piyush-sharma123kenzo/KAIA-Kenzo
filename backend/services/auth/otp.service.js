@@ -4,9 +4,10 @@
  * Responsibilities:
  *  - Secure random 6-digit OTP generation (Node crypto.randomInt)
  *  - Bcrypt hashing before persistence (never plaintext in DB)
- *  - TTL expiration and attempt limiting
- *  - Anti-brute force and single-use invalidation
- *  - Per-email resend cooldown enforcement
+ *  - 10-minute expiration with MongoDB TTL auto-cleanup
+ *  - 5-attempt maximum anti-brute force protection
+ *  - 60-second per-email resend cooldown enforcement
+ *  - Dynamic recipient dispatching to any valid email domain
  */
 
 import crypto from 'crypto';
@@ -14,17 +15,17 @@ import bcrypt from 'bcryptjs';
 import OTP from '../../models/OTP.js';
 import { sendOtpEmail } from '../email/email.service.js';
 
-const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES || '5', 10);
+const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES || '10', 10);
 const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN_SECONDS = 60;
 
 /**
- * Generate, persist, and dispatch a 6-digit OTP code.
+ * Generate, persist, and dispatch a 6-digit OTP code to the user's dynamic email address.
  * 
- * @param {string} email - Recipient email
+ * @param {string} email - Recipient email address
  * @param {string} purpose - 'SIGNUP_VERIFICATION' | 'PASSWORD_RESET' | 'EMAIL_CHANGE'
  * @param {object} [options]
- * @param {boolean} [options.skipCooldown=false] - Bypass cooldown (used on initial registration)
+ * @param {boolean} [options.skipCooldown=false] - Bypass cooldown on initial registration
  * @returns {Promise<{ success: boolean, message: string, rawOtp: string }>}
  */
 export const generateAndSendOtp = async (email, purpose, { skipCooldown = false } = {}) => {
@@ -54,14 +55,14 @@ export const generateAndSendOtp = async (email, purpose, { skipCooldown = false 
   // 2. Generate secure 6-digit random code
   const rawOtp = crypto.randomInt(100000, 1000000).toString();
 
-  // 3. Hash OTP before database storage
+  // 3. Hash OTP before database storage (never store plain OTP in production DB)
   const salt = await bcrypt.genSalt(10);
   const hashedOtp = await bcrypt.hash(rawOtp, salt);
 
-  // 4. Remove previous active OTPs for this email + purpose
+  // 4. Invalidate and remove previous active OTPs for this email + purpose
   await OTP.deleteMany({ email: normalizedEmail, purpose });
 
-  // 5. Save hashed record with expiration
+  // 5. Save hashed record with 10-minute expiration
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
   await OTP.create({
     email: normalizedEmail,
@@ -73,15 +74,15 @@ export const generateAndSendOtp = async (email, purpose, { skipCooldown = false 
     expiresAt,
   });
 
-  // 6. Dispatch email
+  // 6. Dispatch email directly to the user's registered email
   try {
     const emailResult = await sendOtpEmail(normalizedEmail, rawOtp, purpose);
     if (!emailResult?.success) {
       throw new Error(emailResult?.error || 'Failed to send OTP email.');
     }
   } catch (emailErr) {
-    console.error('[KAIA OTP] Failed to send email:', emailErr.message);
-    const error = new Error('Unable to send verification code. Please try again later.');
+    console.error('[KAIA OTP] Failed to send email to', normalizedEmail, ':', emailErr.message);
+    const error = new Error('Unable to send verification code. Please check your email address or try again later.');
     error.statusCode = 503;
     throw error;
   }
@@ -104,7 +105,7 @@ export const generateAndSendOtp = async (email, purpose, { skipCooldown = false 
 export const verifyOtpCode = async (email, enteredOtp, purpose) => {
   const normalizedEmail = email.toLowerCase().trim();
 
-  // 1. Format check
+  // 1. Format validation
   if (!enteredOtp || !/^\d{6}$/.test(enteredOtp.trim())) {
     return { valid: false, error: 'OTP must be a 6-digit numeric code.' };
   }
@@ -120,13 +121,13 @@ export const verifyOtpCode = async (email, enteredOtp, purpose) => {
     return { valid: false, error: 'No active verification code found. Please request a new code.' };
   }
 
-  // 3. Check expiration
+  // 3. Check expiration (10 minutes)
   if (new Date() > otpDoc.expiresAt) {
     await OTP.deleteOne({ _id: otpDoc._id });
     return { valid: false, error: 'Verification code has expired. Please request a new code.' };
   }
 
-  // 4. Check maximum attempts
+  // 4. Check maximum attempts (5 attempts limit)
   if (otpDoc.attempts >= otpDoc.maxAttempts) {
     await OTP.deleteOne({ _id: otpDoc._id });
     return {
@@ -142,11 +143,18 @@ export const verifyOtpCode = async (email, enteredOtp, purpose) => {
     otpDoc.attempts += 1;
     await otpDoc.save();
     const remaining = otpDoc.maxAttempts - otpDoc.attempts;
+
+    if (remaining <= 0) {
+      await OTP.deleteOne({ _id: otpDoc._id });
+      return {
+        valid: false,
+        error: 'Too many incorrect attempts. This code has been invalidated. Please request a new verification code.',
+      };
+    }
+
     return {
       valid: false,
-      error: remaining > 0
-        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
-        : 'Invalid verification code. No attempts remaining — please request a new code.',
+      error: `Invalid verification code. ${remaining} attempt(s) remaining.`,
     };
   }
 

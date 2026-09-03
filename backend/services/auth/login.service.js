@@ -48,7 +48,7 @@ export const authenticateCredentials = async (email, password) => {
 
   // Block access if email is unverified
   if (user.emailVerified === false) {
-    const error = new Error('Please verify your email address before logging in.');
+    const error = new Error('Please verify your email before logging in.');
     error.statusCode = 403;
     error.requiresVerification = true;
     error.email = user.email;

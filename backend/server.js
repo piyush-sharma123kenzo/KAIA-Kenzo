@@ -31,6 +31,8 @@ import returnRoutes from './routes/returnRoutes.js';
 import accountRoutes from './routes/accountRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
 import wishlistRoutes from './routes/wishlist.routes.js';
+import enquiryRoutes from './routes/enquiryRoutes.js';
+import supportRoutes from './routes/supportRoutes.js';
 
 // Load dotenv pointing to parent directory if .env is at root
 dotenv.config({ path: '../.env' });
@@ -112,6 +114,8 @@ app.use('/api/returns', returnRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/enquiries', enquiryRoutes);
+app.use('/api/support', supportRoutes);
 
 // Health check endpoints for monitoring and container orchestrators
 app.get('/health', (req, res) => {

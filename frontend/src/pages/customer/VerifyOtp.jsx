@@ -4,7 +4,14 @@ import { ShieldCheck, RotateCcw, ArrowLeft, ShieldAlert, CheckCircle2 } from 'lu
 import { AuthContext } from '../../context/AuthContext';
 import KaiaLogo from '../../components/common/KaiaLogo';
 
-const RESEND_COOLDOWN = 30; // seconds
+const RESEND_COOLDOWN = 60; // 60 seconds cooldown
+
+const maskEmail = (str) => {
+  if (!str || !str.includes('@')) return str;
+  const [user, domain] = str.split('@');
+  if (user.length <= 2) return `${user[0]}***@${domain}`;
+  return `${user[0]}***@${domain}`;
+};
 
 const VerifyOtp = () => {
   const navigate = useNavigate();
@@ -41,7 +48,7 @@ const VerifyOtp = () => {
     }
   }, [user, navigate]);
 
-  // Countdown timer for resend cooldown
+  // Countdown timer for resend cooldown (60 seconds)
   useEffect(() => {
     if (cooldown <= 0) {
       setCanResend(true);
@@ -106,8 +113,6 @@ const VerifyOtp = () => {
       const result = await verifyOtp(email, otpString, purpose);
 
       if (purpose === 'PASSWORD_RESET') {
-        // The API returns a short-lived resetToken after OTP is consumed.
-        // We pass this token to the reset-password page — NOT the raw OTP.
         navigate('/reset-password', {
           state: { email, resetToken: result.resetToken, verified: true },
         });
@@ -117,7 +122,6 @@ const VerifyOtp = () => {
       setSuccess('Email verified! Signing you in...');
     } catch (err) {
       setError(err.message || 'Verification failed. Please check the code and try again.');
-      // Clear OTP on failure
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } finally {
@@ -152,7 +156,7 @@ const VerifyOtp = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-center space-y-8">
+      <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-sm border border-slate-200 text-center space-y-7">
 
         {/* Header */}
         <div className="space-y-4 flex flex-col items-center">
@@ -163,11 +167,16 @@ const VerifyOtp = () => {
           </div>
 
           <div>
-            <h1 className="text-xl font-extrabold text-brand-gray-900 tracking-tight uppercase">{purposeLabel}</h1>
-            <p className="text-xs text-brand-gray-500 mt-1 leading-relaxed">
-              A 6-digit verification code was sent to:<br />
-              <strong className="text-brand-gray-800 font-bold">{email}</strong>
+            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight uppercase">{purposeLabel}</h1>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              We sent a verification code to:<br />
+              <strong className="text-slate-900 font-bold font-mono text-sm">{maskEmail(email)}</strong>
             </p>
+            <div className="mt-1">
+              <Link to="/register" className="text-[11px] font-bold text-amber-600 hover:text-amber-700 hover:underline">
+                Wrong email address? Change Email
+              </Link>
+            </div>
           </div>
         </div>
 

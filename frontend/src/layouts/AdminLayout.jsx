@@ -6,7 +6,7 @@ import {
   RotateCcw, TrendingUp, DollarSign, CreditCard, Tag, Sparkles, 
   Activity, Radio, BarChart3, Menu, X, ExternalLink, QrCode,
   Search, ChevronRight, PlusCircle, Bell, ChevronLeft, Store,
-  Zap, ArrowUpRight, Cpu
+  Zap, ArrowUpRight, Cpu, Headphones, MessageSquare
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import KaiaIcon from '../components/common/KaiaIcon';
@@ -54,6 +54,13 @@ const AdminLayout = () => {
         { name: 'Warehouse Inventory', path: '/admin/inventory', icon: Layers, badge: null },
         { name: 'Physical Serials', path: '/admin/serials', icon: QrCode, badge: null },
         { name: 'RMA / Returns', path: '/admin/returns', icon: RotateCcw, badge: null },
+      ],
+    },
+    {
+      group: 'CUSTOMER CARE & INQUIRIES',
+      items: [
+        { name: 'Support Tickets', path: '/admin/support-tickets', icon: Headphones, badge: null },
+        { name: 'Direct Supply Inquiries', path: '/admin/enquiries', icon: MessageSquare, badge: null },
       ],
     },
     {
