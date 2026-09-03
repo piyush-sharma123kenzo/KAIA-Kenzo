@@ -137,9 +137,11 @@ const Home = () => {
               DESIGNED TO <span className="text-[#F5B400]">WIN.</span>
             </h1>
 
-            <p className="text-slate-300 text-xs md:text-sm max-w-md font-normal leading-relaxed">
-              Premium hardware. Trusted brands. Unmatched performance.
-            </p>
+            <div className="py-0.5 overflow-visible">
+              <p className="animate-tagline-float text-slate-200 text-xs md:text-sm max-w-md font-semibold tracking-wide leading-relaxed">
+                Premium hardware. Trusted brands. Unmatched performance.
+              </p>
+            </div>
 
             <div className="pt-2">
               <Link to="/products">

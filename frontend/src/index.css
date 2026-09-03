@@ -180,4 +180,28 @@ select option {
   font-weight: 500;
 }
 
+/* Subtle Luxury Floating Tagline Animation (Strictly vertical, 5px bounds) */
+@keyframes taglineFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-tagline-float {
+  display: inline-block;
+  animation: taglineFloat 3.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-tagline-float {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+
 
