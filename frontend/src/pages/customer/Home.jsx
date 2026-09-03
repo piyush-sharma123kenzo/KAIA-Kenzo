@@ -74,10 +74,8 @@ const hardwareCategories = [
 ];
 
 const topBrandNames = [
-  'ASUS', 'MSI', 'GIGABYTE', 'Acer', 'Lenovo', 'Dell', 'HP', 
-  'LG', 'Samsung', 'Crucial', 'Western Digital', 'Corsair', 
-  'Seagate', 'Kingston', 'NZXT', 'DeepCool', 'ZOTAC', 'Cooler Master',
-  'Thermaltake', 'Intel', 'AMD'
+  'ASUS', 'Acer', 'Lenovo', 'Dell', 'HP', 'LG', 'Samsung', 
+  'MI', 'OPPO', 'VIVO', 'ZEBRONICS', 'Intel', 'AMD', 'Logitech', 'Razer', 'Canon', 'JBL'
 ];
 
 const Home = () => {

@@ -13,15 +13,17 @@ const fallbackBrands = [
   { name: 'HP', slug: 'hp' },
   { name: 'Lenovo', slug: 'lenovo' },
   { name: 'LG', slug: 'lg' },
-  { name: 'Logitech', slug: 'logitech' },
-  { name: 'Razer', slug: 'razer' },
-  { name: 'Corsair', slug: 'corsair' },
-  { name: 'MSI', slug: 'msi' },
+  { name: 'MI', slug: 'mi' },
+  { name: 'OPPO', slug: 'oppo' },
+  { name: 'VIVO', slug: 'vivo' },
+  { name: 'ZEBRONICS', slug: 'zebronics' },
   { name: 'Intel', slug: 'intel' },
   { name: 'AMD', slug: 'amd' },
+  { name: 'Acer', slug: 'acer' },
+  { name: 'Logitech', slug: 'logitech' },
+  { name: 'Razer', slug: 'razer' },
   { name: 'Canon', slug: 'canon' },
-  { name: 'Kingston', slug: 'kingston' },
-  { name: 'Xiaomi', slug: 'xiaomi' },
+  { name: 'JBL', slug: 'jbl' },
 ];
 
 const Brands = () => {

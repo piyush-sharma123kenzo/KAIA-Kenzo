@@ -10,17 +10,16 @@ export const brandLogoMap = {
   lg: 'https://unpkg.com/simple-icons@v11/icons/lg.svg',
   logitech: 'https://unpkg.com/simple-icons@v11/icons/logitechg.svg',
   razer: 'https://unpkg.com/simple-icons@v11/icons/razer.svg',
-  corsair: 'https://unpkg.com/simple-icons@v11/icons/corsair.svg',
-  msi: 'https://unpkg.com/simple-icons@v11/icons/msi.svg',
   intel: 'https://unpkg.com/simple-icons@v11/icons/intel.svg',
   amd: 'https://unpkg.com/simple-icons@v11/icons/amd.svg',
   canon: 'https://unpkg.com/simple-icons@v11/icons/canon.svg',
-  kingston: 'https://unpkg.com/simple-icons@v11/icons/kingstontechnology.svg',
-  xiaomi: 'https://unpkg.com/simple-icons@v11/icons/xiaomi.svg',
-  jbl: 'https://unpkg.com/simple-icons@v11/icons/jbl.svg',
   acer: 'https://unpkg.com/simple-icons@v11/icons/acer.svg',
-  seagate: 'https://unpkg.com/simple-icons@v11/icons/seagate.svg',
-  'western-digital': 'https://unpkg.com/simple-icons@v11/icons/westerndigital.svg',
+  jbl: 'https://unpkg.com/simple-icons@v11/icons/jbl.svg',
+  mi: 'https://unpkg.com/simple-icons@v11/icons/xiaomi.svg',
+  xiaomi: 'https://unpkg.com/simple-icons@v11/icons/xiaomi.svg',
+  oppo: 'https://unpkg.com/simple-icons@v11/icons/oppo.svg',
+  vivo: 'https://unpkg.com/simple-icons@v11/icons/vivo.svg',
+  zebronics: 'https://unpkg.com/simple-icons@v11/icons/soundcharts.svg',
 };
 
 export const getBrandLogo = (brand) => {

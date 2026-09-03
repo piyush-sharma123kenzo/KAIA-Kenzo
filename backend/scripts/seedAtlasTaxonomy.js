@@ -47,14 +47,17 @@ const INITIAL_BRANDS = [
   { name: 'HP', slug: 'hp', status: 'Approved', verified: true },
   { name: 'Lenovo', slug: 'lenovo', status: 'Approved', verified: true },
   { name: 'LG', slug: 'lg', status: 'Approved', verified: true },
-  { name: 'Logitech', slug: 'logitech', status: 'Approved', verified: true },
-  { name: 'Razer', slug: 'razer', status: 'Approved', verified: true },
-  { name: 'Corsair', slug: 'corsair', status: 'Approved', verified: true },
-  { name: 'MSI', slug: 'msi', status: 'Approved', verified: true },
+  { name: 'MI', slug: 'mi', status: 'Approved', verified: true },
+  { name: 'OPPO', slug: 'oppo', status: 'Approved', verified: true },
+  { name: 'VIVO', slug: 'vivo', status: 'Approved', verified: true },
+  { name: 'ZEBRONICS', slug: 'zebronics', status: 'Approved', verified: true },
   { name: 'Intel', slug: 'intel', status: 'Approved', verified: true },
   { name: 'AMD', slug: 'amd', status: 'Approved', verified: true },
+  { name: 'Acer', slug: 'acer', status: 'Approved', verified: true },
+  { name: 'Logitech', slug: 'logitech', status: 'Approved', verified: true },
+  { name: 'Razer', slug: 'razer', status: 'Approved', verified: true },
   { name: 'Canon', slug: 'canon', status: 'Approved', verified: true },
-  { name: 'Kingston', slug: 'kingston', status: 'Approved', verified: true },
+  { name: 'JBL', slug: 'jbl', status: 'Approved', verified: true },
 ];
 
 const seedAtlasTaxonomy = async () => {
