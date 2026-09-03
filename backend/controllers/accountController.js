@@ -10,6 +10,8 @@ import Notification from '../models/Notification.js';
 import Invoice from '../models/Invoice.js';
 import Warranty from '../models/Warranty.js';
 import AuditLog from '../models/AuditLog.js';
+import profileImageService from '../services/storage/profileImage.service.js';
+import { formatUserResponse } from '../utils/jwt.utils.js';
 
 // ==========================================
 // 1. ACCOUNT OVERVIEW
@@ -118,85 +120,59 @@ export const uploadAvatar = async (req, res) => {
   try {
     const file = req.file || (req.files && req.files.length > 0 ? req.files[0] : null);
 
-    if (!file && !req.body.avatarUrl && !req.body.avatar) {
+    if (file) {
+      const updatedUser = await profileImageService.updateProfileImage(req.user._id, file);
+      return res.status(200).json({
+        success: true,
+        message: 'Profile avatar updated successfully.',
+        avatar: updatedUser.profileImage?.url || updatedUser.avatar,
+        user: formatUserResponse(updatedUser),
+      });
+    }
+
+    if (!req.body.avatarUrl && !req.body.avatar) {
       return res.status(400).json({ success: false, message: 'No avatar image file or URL provided.' });
     }
 
-    let avatarUrl = '';
-    if (file) {
-      const normalized = file.path.replace(/\\/g, '/');
-      avatarUrl = normalized.startsWith('/') ? normalized : `/${normalized}`;
-    } else {
-      avatarUrl = req.body.avatarUrl || req.body.avatar;
-    }
-
+    const avatarUrl = req.body.avatarUrl || req.body.avatar;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
-    // Clean up old local avatar file if it exists to prevent disk clutter
-    if (user.avatar && user.avatar.startsWith('/uploads/avatars/')) {
-      const oldFilePath = path.join(process.cwd(), user.avatar);
-      if (fs.existsSync(oldFilePath)) {
-        try { fs.unlinkSync(oldFilePath); } catch (e) { console.warn('Could not delete old avatar:', e.message); }
-      }
-    }
-
     user.avatar = avatarUrl;
+    if (!user.profileImage) user.profileImage = {};
+    user.profileImage.url = avatarUrl;
+    user.profileImage.updatedAt = new Date();
     await user.save();
 
     return res.status(200).json({
       success: true,
       message: 'Profile avatar updated successfully.',
       avatar: user.avatar,
-      user: {
-        _id: user._id,
-        name: user.name,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        avatar: user.avatar,
-        role: user.role,
-      },
+      user: formatUserResponse(user),
     });
   } catch (error) {
     console.error('Error uploading avatar:', error);
-    return res.status(500).json({ success: false, message: error.message || 'Failed to upload profile avatar.' });
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to upload profile avatar.',
+    });
   }
 };
 
 export const removeAvatar = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
-
-    // Delete existing file from disk if local
-    if (user.avatar && user.avatar.startsWith('/uploads/avatars/')) {
-      const oldFilePath = path.join(process.cwd(), user.avatar);
-      if (fs.existsSync(oldFilePath)) {
-        try { fs.unlinkSync(oldFilePath); } catch (e) {}
-      }
-    }
-
-    user.avatar = '';
-    await user.save();
-
+    const updatedUser = await profileImageService.deleteProfileImage(req.user._id);
     return res.status(200).json({
       success: true,
       message: 'Profile avatar removed successfully.',
-      user: {
-        _id: user._id,
-        name: user.name,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        avatar: '',
-        role: user.role,
-      },
+      user: formatUserResponse(updatedUser),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to remove avatar.' });
+    console.error('Error removing avatar:', error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to remove profile avatar.',
+    });
   }
 };
 

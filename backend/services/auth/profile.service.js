@@ -41,6 +41,8 @@ export const getUserProfile = async (userId) => {
  * @param {string} [updates.gstin]
  * @returns {Promise<object>}
  */
+import { formatUserResponse } from '../../utils/jwt.utils.js';
+
 export const updateUserProfile = async (userId, { name, phone, gstin, avatar }) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -51,7 +53,12 @@ export const updateUserProfile = async (userId, { name, phone, gstin, avatar }) 
 
   if (name) user.name = name.trim();
   if (phone) user.phone = phone.trim();
-  if (avatar !== undefined) user.avatar = avatar;
+  if (avatar !== undefined) {
+    user.avatar = avatar;
+    if (!user.profileImage) user.profileImage = {};
+    user.profileImage.url = avatar;
+    user.profileImage.updatedAt = new Date();
+  }
   if (gstin !== undefined) {
     if (gstin && !GSTIN_REGEX.test(gstin.trim())) {
       const error = new Error('Invalid Indian GSTIN format.');
@@ -63,15 +70,7 @@ export const updateUserProfile = async (userId, { name, phone, gstin, avatar }) 
 
   await user.save();
 
-  return {
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    phone: user.phone,
-    avatar: user.avatar,
-    gstin: user.gstin,
-  };
+  return formatUserResponse(user);
 };
 
 export default {

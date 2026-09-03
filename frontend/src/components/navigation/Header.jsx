@@ -18,6 +18,8 @@ import Drawer from '../common/Drawer';
 import LocationSelectorModal from '../common/LocationSelectorModal';
 import KaiaLogo from '../common/KaiaLogo';
 import { getAvatarSrc } from '../../utils/imageUtils';
+import ProfileAvatar from '../profile/ProfileAvatar';
+import userApi from '../../services/userApi';
 
 const Header = () => {
   const { user, logout, updateProfile } = useContext(AuthContext) || {};
@@ -34,30 +36,29 @@ const Header = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast?.error?.('Please select an image file (PNG, JPG, WebP).');
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type?.toLowerCase())) {
+      toast?.error?.('Only JPG, JPEG, PNG, and WEBP image files are allowed.');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast?.error?.('Image size must be less than 5MB.');
+      toast?.error?.('Profile image must be smaller than 5 MB.');
       return;
     }
 
     const formData = new FormData();
-    formData.append('avatar', file);
+    formData.append('profileImage', file);
 
     setUploadingAvatar(true);
     try {
-      const res = await axiosInstance.post('/account/avatar', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const updatedUser = res.data?.user || res.data;
+      const res = await userApi.uploadProfileImage(formData);
+      const updatedUser = res?.user || res;
       if (updateProfile) updateProfile(updatedUser);
-      toast?.success?.('Profile picture updated successfully!');
+      toast?.success?.(res.message || 'Profile picture updated successfully!');
     } catch (err) {
       console.error('[Header] Avatar upload failed:', err);
-      toast?.error?.(err.response?.data?.message || 'Failed to update profile picture.');
+      toast?.error?.(err.response?.data?.message || err.message || 'Failed to update profile picture.');
     } finally {
       setUploadingAvatar(false);
       e.target.value = '';
@@ -335,11 +336,13 @@ const Header = () => {
               onMouseLeave={() => setAccountDropdown(false)}
             >
               <Link to={user ? '/account' : '/login'} className="flex items-center space-x-2 hover:text-[#F5B400] transition-colors py-1">
-                {user?.avatar ? (
-                  <img
-                    src={getAvatarSrc(user.avatar)}
-                    alt={user.name || 'User'}
-                    className="w-6 h-6 rounded-full object-cover ring-2 ring-[#F5B400]/80 shadow-xs"
+                {user ? (
+                  <ProfileAvatar
+                    user={user}
+                    size="xs"
+                    shape="circle"
+                    ring={true}
+                    ringColor="ring-[#F5B400]/80"
                   />
                 ) : (
                   <User className="w-5 h-5 text-white" />
@@ -388,17 +391,14 @@ const Header = () => {
                         <div className="flex items-center space-x-3.5">
                           {/* Profile Picture with Change Photo Trigger */}
                           <div className="relative group/avatar shrink-0">
-                            <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-[#F5B400] to-[#FFD043] text-slate-950 font-black flex items-center justify-center text-base shadow-sm ring-2 ring-amber-400/30">
-                              {user.avatar ? (
-                                <img
-                                  src={getAvatarSrc(user.avatar)}
-                                  alt={user.name || 'User'}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                (user.name || user.email).charAt(0).toUpperCase()
-                              )}
-                            </div>
+                            <ProfileAvatar
+                              user={user}
+                              size="md"
+                              shape="circle"
+                              ring={true}
+                              ringColor="ring-amber-400/40"
+                              className="shadow-sm"
+                            />
                             
                             {/* Camera overlay on hover */}
                             <label

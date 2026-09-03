@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import KaiaIcon from '../components/common/KaiaIcon';
+import ProfileAvatar from '../components/profile/ProfileAvatar';
 
 const AdminLayout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -360,9 +361,14 @@ const AdminLayout = () => {
             </Link>
 
             {/* Admin Avatar */}
-            <div className="w-8 h-8 rounded-xl bg-slate-900 text-white font-black text-xs flex items-center justify-center shadow-xs">
-              {user.name?.charAt(0) || 'A'}
-            </div>
+            <ProfileAvatar 
+              user={user} 
+              size="sm" 
+              shape="rounded" 
+              ring={true}
+              ringColor="ring-slate-300/80"
+              className="shadow-xs cursor-pointer"
+            />
           </div>
         </header>
 

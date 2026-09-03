@@ -190,18 +190,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Update user avatar in local state reactively
+  const updateUserAvatar = (updatedUserOrAvatar) => {
+    if (!updatedUserOrAvatar) return;
+    if (typeof updatedUserOrAvatar === 'object') {
+      setUser((prev) => {
+        if (!prev) return prev;
+        const newProfileImage = updatedUserOrAvatar.profileImage || {
+          url: updatedUserOrAvatar.avatar || '',
+          publicId: '',
+          updatedAt: new Date(),
+        };
+        return {
+          ...prev,
+          ...updatedUserOrAvatar,
+          avatar: updatedUserOrAvatar.avatar || newProfileImage.url || '',
+          profileImage: newProfileImage,
+        };
+      });
+    } else if (typeof updatedUserOrAvatar === 'string') {
+      setUser((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          avatar: updatedUserOrAvatar,
+          profileImage: {
+            url: updatedUserOrAvatar,
+            publicId: '',
+            updatedAt: new Date(),
+          },
+        };
+      });
+    }
+  };
+
   // Update personal profile
   const updateProfile = async (updates) => {
     setError(null);
     try {
       if (!updates) return;
-      // If full user object passed from avatar upload
-      if (updates._id && updates.email) {
+      // If full user object passed from avatar upload or userApi
+      if (updates._id && (updates.email || updates.name)) {
         setUser((prev) => ({ ...prev, ...updates }));
         return { success: true, user: updates };
       }
-      if (updates.avatar !== undefined && !updates.name && !updates.phone && !updates.gstin) {
-        setUser((prev) => ({ ...prev, avatar: updates.avatar }));
+      if (updates.avatar !== undefined || updates.profileImage !== undefined) {
+        updateUserAvatar(updates);
       }
       const payload = typeof updates === 'object' ? updates : { name: arguments[0], phone: arguments[1], gstin: arguments[2] };
       const res = await authApi.updateUserProfile(payload);
@@ -230,6 +264,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateProfile,
+        updateUserAvatar,
         verifyOtp,
         resendOtp,
         forgotPassword,

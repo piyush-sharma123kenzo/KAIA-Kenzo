@@ -19,6 +19,8 @@ import KaiaIcon from '../../components/common/KaiaIcon';
 import DeliveryChecker from '../../components/common/DeliveryChecker';
 import { useLocationContext } from '../../context/LocationContext';
 import { getAvatarSrc } from '../../utils/imageUtils';
+import ProfileAvatar from '../../components/profile/ProfileAvatar';
+import ProfileImageUploader from '../../components/profile/ProfileImageUploader';
 
 const Account = () => {
   const { user, updateProfile, logout } = useContext(AuthContext);
@@ -448,30 +450,19 @@ const Account = () => {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
             <div className="flex items-center space-x-5">
               
-              {/* Avatar with Photo Upload Button */}
-              <div className="relative group/pic shrink-0">
-                <div className="w-16 h-16 md:w-18 md:h-18 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#F59E0B] to-[#FFD043] text-slate-950 font-black text-2xl shadow-md ring-4 ring-amber-400/25 flex items-center justify-center">
-                  {user?.avatar ? (
-                    <img src={getAvatarSrc(user.avatar)} alt={user.name || 'User'} className="w-full h-full object-cover" />
-                  ) : (
-                    user?.name?.charAt(0) || 'K'
-                  )}
-                </div>
-                <label
-                  htmlFor="account-header-avatar"
-                  className="absolute inset-0 bg-slate-950/70 rounded-2xl flex flex-col items-center justify-center text-white opacity-0 group-hover/pic:opacity-100 transition-all cursor-pointer text-[10px] font-bold backdrop-blur-xs"
-                  title="Click to change profile picture"
-                >
-                  <Camera className="w-4 h-4 text-amber-400" />
-                  <span>{uploadingAvatar ? '...' : 'Change'}</span>
-                </label>
-                <input
-                  id="account-header-avatar"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  className="hidden"
-                  disabled={uploadingAvatar}
+              {/* Avatar with Photo View */}
+              <div 
+                className="relative shrink-0 cursor-pointer group/pic"
+                onClick={() => setSearchParams({ tab: 'profile' })}
+                title="Manage profile picture"
+              >
+                <ProfileAvatar
+                  user={user}
+                  size="xl"
+                  shape="rounded"
+                  ring={true}
+                  ringColor="ring-amber-400/30"
+                  className="shadow-md group-hover/pic:ring-amber-400 transition-all"
                 />
               </div>
 
@@ -1242,55 +1233,7 @@ const Account = () => {
                 )}
 
                 {/* Profile Photo Upload Widget in Settings */}
-                <div className="flex items-center space-x-5 p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#F59E0B] to-[#FFD043] text-slate-950 font-black text-2xl shadow-xs ring-2 ring-amber-400/20 flex items-center justify-center shrink-0">
-                    {user?.avatar ? (
-                      <img src={getAvatarSrc(user.avatar)} alt={user.name || 'User'} className="w-full h-full object-cover" />
-                    ) : (
-                      user?.name?.charAt(0) || 'K'
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <h4 className="font-black text-xs text-slate-900">Profile Picture</h4>
-                    <p className="text-[11px] text-slate-500">Upload a custom photo for your profile and order receipts (PNG, JPG, max 5MB)</p>
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <label
-                        htmlFor="settings-avatar-upload"
-                        className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-black cursor-pointer transition-colors shadow-2xs"
-                      >
-                        <Camera className="w-3.5 h-3.5" />
-                        <span>{uploadingAvatar ? 'Uploading...' : 'Upload Photo'}</span>
-                      </label>
-                      <input
-                        id="settings-avatar-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                        className="hidden"
-                        disabled={uploadingAvatar}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleGenerateAvatar}
-                        disabled={uploadingAvatar}
-                        className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                        title="Auto-create a unique 3D avatar"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Generate 3D Avatar</span>
-                      </button>
-                      {user?.avatar && (
-                        <button
-                          type="button"
-                          onClick={handleRemoveAvatar}
-                          className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 border border-slate-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <ProfileImageUploader variant="card" size="xl" shape="rounded" />
 
                 <form onSubmit={handleUpdateProfile} className="space-y-4 text-xs">
                   <div className="grid grid-cols-2 gap-4">

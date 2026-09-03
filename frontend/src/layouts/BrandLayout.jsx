@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import KaiaIcon from '../components/common/KaiaIcon';
+import ProfileAvatar from '../components/profile/ProfileAvatar';
 
 const BrandLayout = () => {
   const { user, brand, logout } = useContext(AuthContext);
@@ -216,9 +217,14 @@ const BrandLayout = () => {
 
             {/* Operator details */}
             <div className="flex items-center space-x-3 border-l border-brand-gray-200 pl-4">
-              <div className="w-8 h-8 rounded-full bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center font-black text-brand-accent text-xs">
-                {brand?.name?.charAt(0) || user.name.charAt(0)}
-              </div>
+              <ProfileAvatar 
+                user={user} 
+                size="sm" 
+                shape="circle" 
+                ring={true}
+                ringColor="ring-brand-accent/30"
+                showRoleBadge={false}
+              />
               <div className="text-left hidden md:block">
                 <p className="text-xs font-bold text-brand-gray-900 leading-none">{brand?.name || user.name}</p>
                 <p className="text-[10px] text-emerald-600 font-bold uppercase mt-1">Authorized Seller</p>

@@ -77,6 +77,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    profileImage: {
+      url: {
+        type: String,
+        default: '',
+      },
+      publicId: {
+        type: String,
+        default: '',
+      },
+      updatedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
     addresses: [addressSchema],
     gstin: {
       type: String,

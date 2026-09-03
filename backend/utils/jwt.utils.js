@@ -69,16 +69,27 @@ export const clearAuthCookie = (res) => {
  * @param {object} user - Mongoose User document or plain object
  * @returns {object}
  */
-export const formatUserResponse = (user) => ({
-  _id: user._id,
-  name: user.name,
-  email: user.email,
-  role: user.role,
-  phone: user.phone,
-  gstin: user.gstin,
-  status: user.status,
-  emailVerified: user.emailVerified,
-});
+export const formatUserResponse = (user) => {
+  const profileImageUrl = user.profileImage?.url || user.avatar || '';
+  return {
+    _id: user._id,
+    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role,
+    phone: user.phone,
+    avatar: profileImageUrl,
+    profileImage: {
+      url: profileImageUrl,
+      publicId: user.profileImage?.publicId || '',
+      updatedAt: user.profileImage?.updatedAt || user.updatedAt || new Date(),
+    },
+    gstin: user.gstin,
+    status: user.status,
+    emailVerified: user.emailVerified,
+  };
+};
 
 /**
  * Generate JWT and send formatted authentication JSON response with HTTP-only cookie.
