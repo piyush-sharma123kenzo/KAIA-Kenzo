@@ -447,81 +447,81 @@ const Header = () => {
                       </div>
 
                       {/* Primary Navigation Links */}
-                      <div className="p-2.5 space-y-0.5 text-xs">
+                      <div className="p-2 space-y-1 text-xs">
                         <div className="px-3 pt-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
                           Your Account & Tech Hub
                         </div>
 
                         <Link
                           to="/account"
-                          className="flex items-center space-x-3 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-amber-100/70 flex items-center justify-center transition-colors">
-                            <User className="w-4 h-4 text-slate-600 group-hover:text-amber-700 transition-colors" />
+                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                            <User className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
                           </div>
-                          <span className="flex-1">Account Overview</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Account Overview</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
                         </Link>
 
                         <Link
                           to="/orders"
-                          className="flex items-center space-x-3 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-amber-100/70 flex items-center justify-center transition-colors">
-                            <ShoppingBag className="w-4 h-4 text-slate-600 group-hover:text-amber-700 transition-colors" />
+                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                            <ShoppingBag className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
                           </div>
-                          <span className="flex-1">Your Orders & Invoices</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Your Orders & Invoices</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
                         </Link>
 
                         <Link
                           to="/account/wishlist"
-                          className="flex items-center space-x-3 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-rose-100/70 flex items-center justify-center transition-colors">
-                            <Heart className="w-4 h-4 text-slate-600 group-hover:text-rose-600 transition-colors" />
+                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-rose-600 group-hover:border-rose-600 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                            <Heart className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
                           </div>
-                          <span className="flex-1">Saved Wishlist</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Saved Wishlist</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
                         </Link>
 
                         <Link
                           to="/compare"
-                          className="flex items-center space-x-3 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-amber-100/70 flex items-center justify-center transition-colors">
-                            <ArrowLeftRight className="w-4 h-4 text-slate-600 group-hover:text-amber-700 transition-colors" />
+                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                            <ArrowLeftRight className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
                           </div>
-                          <span className="flex-1">Compare Hardware</span>
+                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Compare Hardware</span>
                           {compareCount > 0 ? (
-                            <span className="bg-[#F5B400] text-slate-950 font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                            <span className="bg-[#F5B400] text-slate-950 font-black text-[10px] px-1.5 py-0.5 rounded-full">
                               {compareCount}
                             </span>
                           ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
                           )}
                         </Link>
 
                         <Link
                           to="/account?tab=warranties"
-                          className="flex items-center space-x-3 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-amber-100/70 flex items-center justify-center transition-colors">
-                            <Award className="w-4 h-4 text-slate-600 group-hover:text-amber-700 transition-colors" />
+                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                            <Award className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
                           </div>
-                          <span className="flex-1">Hardware Warranties</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Hardware Warranties</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
                         </Link>
 
                         <Link
                           to="/account?tab=addresses"
-                          className="flex items-center space-x-3 px-2.5 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-50 transition-colors group font-semibold"
+                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-amber-100/70 flex items-center justify-center transition-colors">
-                            <MapPin className="w-4 h-4 text-slate-600 group-hover:text-amber-700 transition-colors" />
+                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                            <MapPin className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
                           </div>
-                          <span className="flex-1">Saved Delivery Addresses</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Saved Delivery Addresses</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
                         </Link>
                       </div>
 
