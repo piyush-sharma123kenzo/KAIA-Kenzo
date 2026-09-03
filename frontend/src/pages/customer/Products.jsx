@@ -525,27 +525,27 @@ const Products = () => {
             />
           </div>
 
-          {/* View Mode Toggle */}
-          <div className="hidden sm:flex items-center bg-slate-100/80 p-0.5 border border-slate-200 rounded-xl overflow-hidden">
+          {/* View Mode Toggle Switch */}
+          <div className="hidden sm:flex items-center bg-slate-100/90 p-1 border border-slate-200/90 rounded-2xl shadow-inner gap-1 select-none">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`p-2 rounded-xl transition-all duration-200 cursor-pointer ${
                 viewMode === 'grid'
-                  ? 'bg-white text-slate-950 shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-white text-slate-950 shadow-sm font-black'
+                  : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/60'
               }`}
-              title="Grid View"
+              title="Grid View (3 Columns)"
             >
               <Grid className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`p-2 rounded-xl transition-all duration-200 cursor-pointer ${
                 viewMode === 'list'
-                  ? 'bg-white text-slate-950 shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-white text-slate-950 shadow-sm font-black'
+                  : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/60'
               }`}
-              title="List View"
+              title="List View (Full Details)"
             >
               <List className="w-4 h-4" />
             </button>
@@ -636,7 +636,7 @@ const Products = () => {
             /* Products Listing */
             <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'grid-cols-1 gap-4'}`}>
               {products.map((p) => (
-                <ProductCard key={p._id} product={p} />
+                <ProductCard key={p._id} product={p} viewMode={viewMode} />
               ))}
             </div>
           )}

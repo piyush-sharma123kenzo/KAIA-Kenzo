@@ -10,6 +10,7 @@ import axiosInstance from '../../api/axiosInstance';
 
 const ProductCard = ({
   product,
+  viewMode = 'grid',
   className = '',
   ...props
 }) => {
@@ -39,6 +40,7 @@ const ProductCard = ({
   const reviewCount = product.ratings?.count || 12;
   const stockQty = product.stock?.quantity ?? product.stock ?? 10;
   const inStock = stockQty > 0;
+  const desc = product.description || product.desc || 'High-performance authentic computing hardware with official brand warranty claim eligibility.';
 
   const imageUrl = getAccurateProductImage(product);
   const isCompared = isInCompare(_id);
@@ -75,7 +77,6 @@ const ProductCard = ({
         if (toast.showToast) toast.showToast('Added to your wishlist.', 'success');
       }
     } catch (err) {
-      // Fallback
       setIsWishlisted(!isWishlisted);
       if (toast.showToast) toast.showToast(isWishlisted ? 'Removed from wishlist.' : 'Saved to wishlist.', 'success');
     }
@@ -105,10 +106,148 @@ const ProductCard = ({
     }
   };
 
+  // =========================================================================
+  // HORIZONTAL LIST VIEW MODE
+  // =========================================================================
+  if (viewMode === 'list') {
+    return (
+      <Link
+        to={`/product/${slug}`}
+        className={`bg-white rounded-2xl border border-slate-200/90 p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs hover:shadow-xl hover:border-amber-400/50 transition-all duration-200 group text-left relative overflow-hidden ${className}`}
+        {...props}
+      >
+        {/* Left: Fixed Image Container */}
+        <div className="w-full md:w-52 h-44 md:h-44 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-center p-3 relative shrink-0 group-hover:border-amber-300/40 transition-colors">
+          <img
+            src={imageUrl}
+            alt={name}
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 select-none pointer-events-none"
+            loading="lazy"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=700&auto=format&fit=crop&q=80';
+            }}
+          />
+          {discountPercent > 0 && (
+            <div className="absolute bottom-2 left-2 bg-emerald-600 text-white font-black text-[10px] px-2 py-0.5 rounded shadow-xs">
+              {discountPercent}% OFF
+            </div>
+          )}
+        </div>
+
+        {/* Middle: Content & Specs */}
+        <div className="flex-1 space-y-2 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-md">
+              {brandName}
+            </span>
+            <div className="inline-flex items-center space-x-1 bg-amber-50/80 text-amber-900 border border-amber-200/60 font-black px-1.5 py-0.5 rounded text-[10px]">
+              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+              <span>{rating}</span>
+            </div>
+            <span className="text-[11px] text-slate-400 font-medium">({reviewCount} reviews)</span>
+          </div>
+
+          <h3 className="text-sm md:text-base font-bold text-slate-900 leading-snug group-hover:text-amber-700 transition-colors line-clamp-2">
+            {name}
+          </h3>
+
+          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal">
+            {desc}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-semibold text-slate-500">
+            <span className={`inline-flex items-center gap-1 font-bold ${inStock ? 'text-emerald-700' : 'text-red-600'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              {inStock ? 'In Stock — Ships within 24h' : 'Currently Out of Stock'}
+            </span>
+            <span>•</span>
+            <span className="text-slate-600">Official Brand Warranty</span>
+          </div>
+        </div>
+
+        {/* Right: Pricing & Actions */}
+        <div className="w-full md:w-56 shrink-0 md:border-l md:border-slate-100 md:pl-5 space-y-3 flex flex-col justify-between self-stretch">
+          <div>
+            <div className="flex items-baseline space-x-2">
+              <span className="text-lg md:text-xl font-black text-slate-950 block tracking-tight">
+                {formattedPrice}
+              </span>
+              {discountPercent > 0 && (
+                <span className="text-xs text-slate-400 line-through">
+                  {formattedMrp}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-emerald-700 font-bold mt-0.5">Free Express Delivery</p>
+          </div>
+
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={handleQuickAdd}
+              disabled={!inStock || addingToCart}
+              className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 shadow-xs cursor-pointer ${
+                justAdded
+                  ? 'bg-emerald-600 text-white'
+                  : !inStock
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    : 'bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 active:scale-95'
+              }`}
+            >
+              {justAdded ? (
+                <>
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  <span>Added to Cart</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>{inStock ? 'Add to Cart' : 'Out of Stock'}</span>
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={handleCompareToggle}
+                className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center space-x-1 border ${
+                  isCompared
+                    ? 'bg-amber-500 text-slate-950 border-amber-500 font-bold'
+                    : 'text-slate-600 hover:text-slate-950 bg-slate-50 border-slate-200'
+                }`}
+              >
+                <ArrowLeftRight className="w-3 h-3" />
+                <span>{isCompared ? 'Compared' : 'Compare'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleWishlistToggle}
+                className={`p-1.5 rounded-lg transition-all border ${
+                  isWishlisted
+                    ? 'bg-rose-50 text-rose-600 border-rose-200'
+                    : 'text-slate-500 hover:text-rose-600 bg-slate-50 border-slate-200'
+                }`}
+                title={isWishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
+              >
+                <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-rose-600 text-rose-600' : ''}`} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // =========================================================================
+  // STANDARD GRID CARD VIEW MODE
+  // =========================================================================
   return (
     <Link
       to={`/product/${slug}`}
-      className={`bg-white rounded-xl border border-slate-200/80 p-3.5 flex flex-col justify-between shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.09)] hover:-translate-y-1 transition-all duration-200 group text-left relative overflow-hidden ${className}`}
+      className={`bg-white rounded-2xl border border-slate-200/80 p-3.5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 hover:border-amber-400/50 transition-all duration-200 group text-left relative overflow-hidden ${className}`}
       {...props}
     >
       <div>
@@ -150,7 +289,7 @@ const ProductCard = ({
         </div>
 
         {/* Fixed Uniform Image Container */}
-        <div className="product-image-container border border-slate-100 group-hover:border-amber-400/40 group-hover:shadow-2xs transition-all mb-3 relative overflow-hidden">
+        <div className="product-image-container border border-slate-100 group-hover:border-amber-400/40 group-hover:shadow-2xs transition-all mb-3 relative overflow-hidden rounded-xl bg-slate-50/70">
           <img
             src={imageUrl}
             alt={name}
@@ -216,12 +355,12 @@ const ProductCard = ({
           type="button"
           onClick={handleQuickAdd}
           disabled={!inStock || addingToCart}
-          className={`w-full py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 shadow-2xs ${
+          className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 shadow-2xs cursor-pointer ${
             justAdded
               ? 'bg-emerald-600 text-white'
               : !inStock
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950'
+                : 'bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 active:scale-95'
           }`}
           title="Quick add to cart"
         >
@@ -243,3 +382,4 @@ const ProductCard = ({
 };
 
 export default ProductCard;
+
