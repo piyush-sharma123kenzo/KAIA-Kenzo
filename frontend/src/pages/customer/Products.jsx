@@ -14,6 +14,7 @@ import Drawer from '../../components/common/Drawer';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import CustomSelect from '../../components/ui/CustomSelect';
+import ViewModeSwitch from '../../components/ui/ViewModeSwitch';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest Arrivals' },
@@ -65,8 +66,21 @@ const Products = () => {
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('kaia_view_mode') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('kaia_view_mode', mode);
+    } catch {}
+  };
 
   // Custom price input state
   const [customMin, setCustomMin] = useState(minPrice);
@@ -526,29 +540,11 @@ const Products = () => {
           </div>
 
           {/* View Mode Toggle Switch */}
-          <div className="hidden sm:flex items-center bg-slate-100/90 p-1 border border-slate-200/90 rounded-2xl shadow-inner gap-1 select-none">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-xl transition-all duration-200 cursor-pointer ${
-                viewMode === 'grid'
-                  ? 'bg-white text-slate-950 shadow-sm font-black'
-                  : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/60'
-              }`}
-              title="Grid View (3 Columns)"
-            >
-              <Grid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-xl transition-all duration-200 cursor-pointer ${
-                viewMode === 'list'
-                  ? 'bg-white text-slate-950 shadow-sm font-black'
-                  : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/60'
-              }`}
-              title="List View (Full Details)"
-            >
-              <List className="w-4 h-4" />
-            </button>
+          <div className="hidden sm:block">
+            <ViewModeSwitch
+              viewMode={viewMode}
+              onChange={handleViewModeChange}
+            />
           </div>
         </div>
       </div>

@@ -4,11 +4,11 @@ import { ArrowRight, Laptop, Cpu, Smartphone, Headphones, ShieldAlert } from 'lu
 import categoryService from '../../services/categoryService';
 import productService from '../../services/productService';
 
-// UI components
 import Container from '../../components/ui/Container';
 import ProductGrid from '../../components/product/ProductGrid';
 import RecentlyViewed from '../../components/home/RecentlyViewed';
 import { ProductSkeleton, Skeleton } from '../../components/feedback/Skeleton';
+import ViewModeSwitch from '../../components/ui/ViewModeSwitch';
 
 const CategoryDetails = () => {
   const { slug } = useParams();
@@ -16,6 +16,20 @@ const CategoryDetails = () => {
   const [products, setProducts] = useState([]);
   const [loadingCategory, setLoadingCategory] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('kaia_view_mode') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('kaia_view_mode', mode);
+    } catch {}
+  };
 
   // 1. Fetch Category metadata from API
   useEffect(() => {
@@ -135,15 +149,25 @@ const CategoryDetails = () => {
 
       {/* Products Grid */}
       <Container className="space-y-6">
-        <div className="flex justify-between items-end border-b pb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b pb-4">
           <div>
             <h3 className="font-extrabold text-sm text-brand-gray-900 uppercase tracking-tight">Active Listings</h3>
             <p className="text-[10px] text-brand-gray-500 mt-1">Genuine manufacturer components in this category.</p>
           </div>
-          <Link to={`/products?category=${slug}`} className="text-xs font-bold text-brand-accent hover:underline flex items-center space-x-1 uppercase tracking-wider">
-            <span>Filter Catalog</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          
+          <div className="flex items-center space-x-4 self-end sm:self-auto">
+            {/* View Mode Switch */}
+            <ViewModeSwitch
+              viewMode={viewMode}
+              onChange={handleViewModeChange}
+              size="sm"
+            />
+
+            <Link to={`/products?category=${slug}`} className="text-xs font-bold text-brand-accent hover:underline flex items-center space-x-1 uppercase tracking-wider">
+              <span>Filter Catalog</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -155,7 +179,7 @@ const CategoryDetails = () => {
             No products are currently available in this category. Check back shortly.
           </div>
         ) : (
-          <ProductGrid products={products} />
+          <ProductGrid products={products} viewMode={viewMode} />
         )}
       </Container>
 

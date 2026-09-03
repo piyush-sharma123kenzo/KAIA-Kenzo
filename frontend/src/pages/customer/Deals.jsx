@@ -5,10 +5,25 @@ import productService from '../../services/productService';
 import ProductCard from '../../components/product/ProductCard';
 import { ProductSkeleton } from '../../components/feedback/Skeleton';
 import Button from '../../components/ui/Button';
+import ViewModeSwitch from '../../components/ui/ViewModeSwitch';
 
 const Deals = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('kaia_view_mode') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('kaia_view_mode', mode);
+    } catch {}
+  };
 
   useEffect(() => {
     const fetchDeals = async () => {
@@ -42,11 +57,19 @@ const Deals = () => {
           </p>
         </div>
 
-        <Link to="/products">
-          <Button variant="outline" size="sm" className="text-xs uppercase font-bold">
-            All Products
-          </Button>
-        </Link>
+        <div className="flex items-center space-x-3 self-end sm:self-auto">
+          <ViewModeSwitch
+            viewMode={viewMode}
+            onChange={handleViewModeChange}
+            size="sm"
+          />
+
+          <Link to="/products">
+            <Button variant="outline" size="sm" className="text-xs uppercase font-bold">
+              All Products
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {loading ? (
@@ -64,9 +87,9 @@ const Deals = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className={`grid ${viewMode === 'list' ? 'grid-cols-1 gap-4' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'}`}>
           {products.map((p) => (
-            <ProductCard key={p._id} product={p} />
+            <ProductCard key={p._id} product={p} viewMode={viewMode} />
           ))}
         </div>
       )}

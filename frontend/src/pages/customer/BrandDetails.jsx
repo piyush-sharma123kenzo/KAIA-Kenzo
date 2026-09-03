@@ -9,6 +9,7 @@ import Container from '../../components/ui/Container';
 import ProductGrid from '../../components/product/ProductGrid';
 import { ProductSkeleton, Skeleton } from '../../components/feedback/Skeleton';
 import StatusBadge from '../../components/ui/StatusBadge';
+import ViewModeSwitch from '../../components/ui/ViewModeSwitch';
 
 const BrandDetails = () => {
   const { slug } = useParams();
@@ -21,6 +22,20 @@ const BrandDetails = () => {
   const [products, setProducts] = useState([]);
   const [loadingBrand, setLoadingBrand] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('kaia_view_mode') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('kaia_view_mode', mode);
+    } catch {}
+  };
 
   // 1. Fetch Brand Profile from API
   useEffect(() => {
@@ -178,10 +193,18 @@ const BrandDetails = () => {
 
       {/* Products Grid */}
       <Container className="space-y-6">
-        <div className="flex justify-between items-end border-b pb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b pb-4">
           <div>
             <h3 className="font-extrabold text-sm text-brand-gray-900 uppercase tracking-tight">Active Listings</h3>
-            <p className="text-[10px] text-brand-gray-505 mt-1">Fulfillments sourced directly from {brandInfo.name} depots.</p>
+            <p className="text-[10px] text-brand-gray-500 mt-1">Fulfillments sourced directly from {brandInfo.name} depots.</p>
+          </div>
+
+          <div className="self-end sm:self-auto">
+            <ViewModeSwitch
+              viewMode={viewMode}
+              onChange={handleViewModeChange}
+              size="sm"
+            />
           </div>
         </div>
 
@@ -194,7 +217,7 @@ const BrandDetails = () => {
             No products are currently available from this brand matching the parameters.
           </div>
         ) : (
-          <ProductGrid products={products} />
+          <ProductGrid products={products} viewMode={viewMode} />
         )}
       </Container>
 
