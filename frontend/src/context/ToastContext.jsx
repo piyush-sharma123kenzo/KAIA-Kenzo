@@ -12,7 +12,9 @@ export const useToast = () => {
 };
 
 export const ToastProvider = ({ children }) => {
-  const [toasts, setToasts] = useState([]);
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   const showToast = (message, type = 'success', duration = 3500) => {
     const id = Math.random().toString(36).substring(2, 9);
