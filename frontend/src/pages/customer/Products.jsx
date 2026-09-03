@@ -82,6 +82,9 @@ const Products = () => {
     availability: true,
   });
 
+  const [categorySearch, setCategorySearch] = useState('');
+  const [brandSearch, setBrandSearch] = useState('');
+
   const toggleSection = (sec) => {
     setOpenSections((prev) => ({ ...prev, [sec]: !prev[sec] }));
   };
@@ -117,6 +120,8 @@ const Products = () => {
     setSearchParams(next);
     setCustomMin('');
     setCustomMax('');
+    setCategorySearch('');
+    setBrandSearch('');
   };
 
   // Fetch Category and Brand base metadata once
@@ -174,16 +179,23 @@ const Products = () => {
   const selectedBrandsList = selectedBrand ? selectedBrand.split(',').map((s) => s.trim()) : [];
   const hasActiveFilters = Boolean(selectedBrand || selectedCategory || minPrice || maxPrice || rating || discount || availability);
 
+  const filteredCategories = categoriesList.filter((cat) =>
+    (cat.name || '').toLowerCase().includes(categorySearch.toLowerCase())
+  );
+  const filteredBrands = brandsList.filter((b) =>
+    (b.name || '').toLowerCase().includes(brandSearch.toLowerCase())
+  );
+
   // Filter Sidebar Content Component
   const FilterContent = (
     <div className="space-y-6 text-left text-xs font-sans">
       {/* 0. Clear All Action */}
       {hasActiveFilters && (
-        <div className="flex justify-between items-center bg-brand-light p-2.5 rounded border border-brand-gray-200">
-          <span className="font-bold text-brand-gray-800">Filters Applied</span>
+        <div className="flex justify-between items-center bg-slate-100/80 px-3 py-2.5 rounded-xl border border-slate-200/80">
+          <span className="font-bold text-slate-800">Filters Applied</span>
           <button
             onClick={handleClearAll}
-            className="text-xs text-red-600 font-bold hover:underline flex items-center space-x-1"
+            className="text-xs text-rose-600 font-bold hover:underline flex items-center space-x-1 cursor-pointer"
           >
             <RotateCcw className="w-3 h-3" />
             <span>Clear All</span>
@@ -192,109 +204,163 @@ const Products = () => {
       )}
 
       {/* 1. Category Filter */}
-      <div className="border-b border-brand-gray-200 pb-4">
+      <div className="border-b border-slate-200/80 pb-4">
         <button
           onClick={() => toggleSection('categories')}
-          className="w-full flex justify-between items-center text-xs font-black uppercase text-brand-gray-900 mb-2"
+          className="w-full flex justify-between items-center text-xs font-black uppercase tracking-wider text-slate-900 mb-2.5 cursor-pointer"
         >
           <span>Category</span>
-          {openSections.categories ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {openSections.categories ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
         </button>
         {openSections.categories && (
-          <div className="space-y-1.5 pt-1">
-            <button
-              onClick={() => updateParam('category', '')}
-              className={`block w-full text-left py-1 px-1.5 rounded text-xs transition-colors ${
-                !selectedCategory ? 'font-black text-brand-accent bg-brand-light' : 'text-brand-gray-600 hover:text-brand-gray-900'
-              }`}
-            >
-              All Categories
-            </button>
-            {categoriesList.map((cat) => {
-              const active = selectedCategory === cat.slug;
-              const facet = facets.categories?.find((fc) => fc.slug === cat.slug);
-              return (
-                <button
-                  key={cat._id}
-                  onClick={() => updateParam('category', cat.slug)}
-                  className={`flex justify-between items-center w-full py-1 px-1.5 rounded text-xs transition-colors ${
-                    active ? 'font-black text-brand-accent bg-brand-light' : 'text-brand-gray-600 hover:text-brand-gray-900'
-                  }`}
-                >
-                  <span className="truncate">{cat.name}</span>
-                  {facet && <span className="text-[10px] text-brand-gray-400 font-mono">({facet.count})</span>}
-                </button>
-              );
-            })}
+          <div className="space-y-2 pt-1">
+            {categoriesList.length > 8 && (
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  placeholder="Filter categories..."
+                  value={categorySearch}
+                  onChange={(e) => setCategorySearch(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 pl-7 pr-3 py-1.5 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
+                />
+                <Search className="absolute left-2.5 top-2 w-3 h-3 text-slate-400 pointer-events-none" />
+              </div>
+            )}
+
+            <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
+              <button
+                onClick={() => updateParam('category', '')}
+                className={`flex items-center justify-between w-full py-1.5 px-2.5 rounded-xl text-xs transition-all duration-150 cursor-pointer ${
+                  !selectedCategory
+                    ? 'bg-slate-900 text-white font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/90 font-medium'
+                }`}
+              >
+                <span>All Categories</span>
+                {!selectedCategory && <Check className="w-3.5 h-3.5 text-[#F5B400]" />}
+              </button>
+              {filteredCategories.map((cat) => {
+                const active = selectedCategory === cat.slug;
+                const facet = facets.categories?.find((fc) => fc.slug === cat.slug);
+                return (
+                  <button
+                    key={cat._id || cat.slug}
+                    onClick={() => updateParam('category', cat.slug)}
+                    className={`flex justify-between items-center w-full py-1.5 px-2.5 rounded-xl text-xs transition-all duration-150 cursor-pointer ${
+                      active
+                        ? 'bg-slate-900 text-white font-bold shadow-xs'
+                        : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/90 font-medium'
+                    }`}
+                  >
+                    <span className="truncate">{cat.name}</span>
+                    {facet && (
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
+                        active ? 'text-slate-300 bg-white/10' : 'text-slate-400 bg-slate-100'
+                      }`}>
+                        {facet.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
 
       {/* 2. Brand Multi-Filter */}
-      <div className="border-b border-brand-gray-200 pb-4">
+      <div className="border-b border-slate-200/80 pb-4">
         <button
           onClick={() => toggleSection('brands')}
-          className="w-full flex justify-between items-center text-xs font-black uppercase text-brand-gray-900 mb-2"
+          className="w-full flex justify-between items-center text-xs font-black uppercase tracking-wider text-slate-900 mb-2.5 cursor-pointer"
         >
           <span>Brand</span>
-          {openSections.brands ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {openSections.brands ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
         </button>
         {openSections.brands && (
-          <div className="space-y-2 pt-1 max-h-48 overflow-y-auto pr-1">
-            {brandsList.map((b) => {
-              const checked = selectedBrandsList.includes(b.slug);
-              const facet = facets.brands?.find((fb) => fb.slug === b.slug);
-              return (
-                <label key={b._id} className="flex items-center justify-between cursor-pointer group select-none">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => handleToggleBrand(b.slug)}
-                      className="rounded border-brand-gray-300 text-brand-accent focus:ring-0"
-                    />
-                    <span className={`text-xs ${checked ? 'font-black text-brand-gray-900' : 'text-brand-gray-600 group-hover:text-brand-gray-900'}`}>
-                      {b.name}
-                    </span>
-                  </div>
-                  {facet && <span className="text-[10px] text-brand-gray-400 font-mono">({facet.count})</span>}
-                </label>
-              );
-            })}
+          <div className="space-y-2 pt-1">
+            {brandsList.length > 8 && (
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  placeholder="Filter brands..."
+                  value={brandSearch}
+                  onChange={(e) => setBrandSearch(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 pl-7 pr-3 py-1.5 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
+                />
+                <Search className="absolute left-2.5 top-2 w-3 h-3 text-slate-400 pointer-events-none" />
+              </div>
+            )}
+
+            <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
+              {filteredBrands.map((b) => {
+                const checked = selectedBrandsList.includes(b.slug);
+                const facet = facets.brands?.find((fb) => fb.slug === b.slug);
+                return (
+                  <label
+                    key={b._id || b.slug}
+                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl cursor-pointer select-none transition-all ${
+                      checked ? 'bg-amber-50/70 border border-amber-200/60' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => handleToggleBrand(b.slug)}
+                        className="rounded accent-amber-500 w-3.5 h-3.5 focus:ring-0 cursor-pointer"
+                      />
+                      <span className={`text-xs ${checked ? 'font-bold text-slate-950' : 'text-slate-600 font-medium'}`}>
+                        {b.name}
+                      </span>
+                    </div>
+                    {facet && (
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        ({facet.count})
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
 
       {/* 3. Price Filter & Range */}
-      <div className="border-b border-brand-gray-200 pb-4">
+      <div className="border-b border-slate-200/80 pb-4">
         <button
           onClick={() => toggleSection('price')}
-          className="w-full flex justify-between items-center text-xs font-black uppercase text-brand-gray-900 mb-2"
+          className="w-full flex justify-between items-center text-xs font-black uppercase tracking-wider text-slate-900 mb-2.5 cursor-pointer"
         >
           <span>Price Range</span>
-          {openSections.price ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {openSections.price ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
         </button>
         {openSections.price && (
           <div className="space-y-2 pt-1">
-            {PRICE_PRESETS.map((preset, idx) => {
-              const isSelected = minPrice === String(preset.min) && maxPrice === String(preset.max);
-              return (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    updateParam('minPrice', preset.min);
-                    updateParam('maxPrice', preset.max);
-                    setCustomMin(String(preset.min));
-                    setCustomMax(String(preset.max));
-                  }}
-                  className={`block w-full text-left py-1 px-1.5 rounded text-xs transition-colors ${
-                    isSelected ? 'font-black text-brand-accent bg-brand-light' : 'text-brand-gray-600 hover:text-brand-gray-900'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
+            <div className="space-y-1">
+              {PRICE_PRESETS.map((preset, idx) => {
+                const isSelected = minPrice === String(preset.min) && maxPrice === String(preset.max);
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      updateParam('minPrice', preset.min);
+                      updateParam('maxPrice', preset.max);
+                      setCustomMin(String(preset.min));
+                      setCustomMax(String(preset.max));
+                    }}
+                    className={`block w-full text-left py-1.5 px-2.5 rounded-xl text-xs transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-slate-900 text-white font-bold shadow-xs'
+                        : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/90 font-medium'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Custom Min / Max input */}
             <div className="pt-2 flex items-center space-x-2">
@@ -303,50 +369,51 @@ const Products = () => {
                 placeholder="Min ₹"
                 value={customMin}
                 onChange={(e) => setCustomMin(e.target.value)}
-                className="w-20 p-1.5 border rounded text-xs"
+                className="w-20 p-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
               />
-              <span className="text-brand-gray-400">-</span>
+              <span className="text-slate-400">-</span>
               <input
                 type="number"
                 placeholder="Max ₹"
                 value={customMax}
                 onChange={(e) => setCustomMax(e.target.value)}
-                className="w-20 p-1.5 border rounded text-xs"
+                className="w-20 p-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
               />
-              <Button
-                size="sm"
+              <button
                 onClick={() => {
                   updateParam('minPrice', customMin);
                   updateParam('maxPrice', customMax);
                 }}
-                className="text-[10px] uppercase font-bold py-1 px-2.5"
+                className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
               >
                 Go
-              </Button>
+              </button>
             </div>
           </div>
         )}
       </div>
 
       {/* 4. Discount Filter */}
-      <div className="border-b border-brand-gray-200 pb-4">
+      <div className="border-b border-slate-200/80 pb-4">
         <button
           onClick={() => toggleSection('discount')}
-          className="w-full flex justify-between items-center text-xs font-black uppercase text-brand-gray-900 mb-2"
+          className="w-full flex justify-between items-center text-xs font-black uppercase tracking-wider text-slate-900 mb-2.5 cursor-pointer"
         >
           <span>Discount</span>
-          {openSections.discount ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {openSections.discount ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
         </button>
         {openSections.discount && (
-          <div className="space-y-1.5 pt-1">
+          <div className="space-y-1 pt-1">
             {DISCOUNT_PRESETS.map((d, idx) => {
               const isSelected = discount === String(d.val);
               return (
                 <button
                   key={idx}
                   onClick={() => updateParam('discount', isSelected ? '' : d.val)}
-                  className={`block w-full text-left py-1 px-1.5 rounded text-xs transition-colors ${
-                    isSelected ? 'font-black text-brand-accent bg-brand-light' : 'text-brand-gray-600 hover:text-brand-gray-900'
+                  className={`block w-full text-left py-1.5 px-2.5 rounded-xl text-xs transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-slate-900 text-white font-bold shadow-xs'
+                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/90 font-medium'
                   }`}
                 >
                   {d.label}
@@ -358,27 +425,29 @@ const Products = () => {
       </div>
 
       {/* 5. Customer Rating Filter */}
-      <div className="border-b border-brand-gray-200 pb-4">
+      <div className="border-b border-slate-200/80 pb-4">
         <button
           onClick={() => toggleSection('rating')}
-          className="w-full flex justify-between items-center text-xs font-black uppercase text-brand-gray-900 mb-2"
+          className="w-full flex justify-between items-center text-xs font-black uppercase tracking-wider text-slate-900 mb-2.5 cursor-pointer"
         >
           <span>Customer Rating</span>
-          {openSections.rating ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {openSections.rating ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
         </button>
         {openSections.rating && (
-          <div className="space-y-2 pt-1">
+          <div className="space-y-1 pt-1">
             {[4, 3, 2].map((stars) => {
               const isSelected = rating === String(stars);
               return (
                 <button
                   key={stars}
                   onClick={() => updateParam('rating', isSelected ? '' : stars)}
-                  className={`flex items-center space-x-1.5 w-full py-1 px-1.5 rounded text-xs ${
-                    isSelected ? 'font-black text-brand-accent bg-brand-light' : 'text-brand-gray-600 hover:text-brand-gray-900'
+                  className={`flex items-center space-x-2 w-full py-1.5 px-2.5 rounded-xl text-xs transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-slate-900 text-white font-bold shadow-xs'
+                      : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/90 font-medium'
                   }`}
                 >
-                  <div className="flex text-amber-500">
+                  <div className="flex text-amber-400">
                     {[...Array(stars)].map((_, i) => (
                       <Star key={i} className="w-3.5 h-3.5 fill-current" />
                     ))}
@@ -393,14 +462,14 @@ const Products = () => {
 
       {/* 6. Availability */}
       <div>
-        <label className="flex items-center space-x-2 cursor-pointer select-none">
+        <label className="flex items-center space-x-2.5 cursor-pointer select-none px-2 py-1">
           <input
             type="checkbox"
             checked={availability === 'inStock'}
             onChange={(e) => updateParam('availability', e.target.checked ? 'inStock' : '')}
-            className="rounded border-brand-gray-300 text-brand-accent focus:ring-0"
+            className="rounded accent-amber-500 w-3.5 h-3.5 focus:ring-0 cursor-pointer"
           />
-          <span className="text-xs font-bold text-brand-gray-800">In Stock Items Only</span>
+          <span className="text-xs font-bold text-slate-800">In Stock Items Only</span>
         </label>
       </div>
     </div>
@@ -488,12 +557,12 @@ const Products = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         
         {/* Left Filter Sidebar (Desktop) */}
-        <div className="hidden md:block md:col-span-1 bg-white border border-brand-gray-200 rounded-sm p-4 shadow-premium h-fit sticky top-24">
-          <div className="flex items-center justify-between border-b border-brand-gray-200 pb-3 mb-4">
-            <span className="font-black text-sm uppercase text-brand-gray-900">Catalog Filters</span>
+        <div className="hidden md:block md:col-span-1 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm h-fit sticky top-24">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-3 mb-4">
+            <span className="font-black text-xs uppercase tracking-wider text-slate-900">Catalog Filters</span>
             {hasActiveFilters && (
-              <button onClick={handleClearAll} className="text-[11px] text-red-600 font-bold hover:underline">
-                Reset
+              <button onClick={handleClearAll} className="text-[11px] text-rose-600 font-bold hover:underline cursor-pointer">
+                Reset All
               </button>
             )}
           </div>
