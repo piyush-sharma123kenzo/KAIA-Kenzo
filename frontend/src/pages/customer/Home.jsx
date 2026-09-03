@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ChevronRight, ChevronLeft, ShieldCheck, ArrowRight, Star, 
@@ -72,13 +72,41 @@ const hardwareCategories = [
     isViewAll: true,
   },
 ];
+
 const topBrandNames = [
-  'ASUS', 'msi', 'GIGABYTE', 'acer', 'Lenovo', 'DELL', 
-  'LG', 'SAMSUNG', 'crucial', 'Western Digital', 'CORSAIR'
+  'ASUS', 'MSI', 'GIGABYTE', 'Acer', 'Lenovo', 'Dell', 'HP', 
+  'LG', 'Samsung', 'Crucial', 'Western Digital', 'Corsair', 
+  'Seagate', 'Kingston', 'NZXT', 'DeepCool', 'ZOTAC', 'Cooler Master',
+  'Thermaltake', 'Intel', 'AMD'
 ];
 
 const Home = () => {
   const [activeSlide, setActiveSlide] = useState(0);
+  const brandsScrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkBrandsScroll = () => {
+    if (brandsScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = brandsScrollRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    checkBrandsScroll();
+    window.addEventListener('resize', checkBrandsScroll);
+    return () => window.removeEventListener('resize', checkBrandsScroll);
+  }, []);
+
+  const scrollBrands = (direction) => {
+    if (brandsScrollRef.current) {
+      const offset = direction === 'left' ? -350 : 350;
+      brandsScrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+      setTimeout(checkBrandsScroll, 350);
+    }
+  };
 
   return (
     <div className="bg-[#F8F9FA] min-h-screen text-slate-800 select-none text-left font-sans">
@@ -250,30 +278,61 @@ const Home = () => {
 
 
       {/* ========================================================================= */}
-      {/* 5. TOP BRANDS STRIP                                                        */}
+      {/* 5. TOP BRANDS STRIP (Interactive Smooth Carousel)                          */}
       {/* ========================================================================= */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10 mb-12">
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 flex items-center justify-between gap-4 overflow-x-auto no-scrollbar">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5 md:p-4 flex items-center gap-3 md:gap-4 relative">
           
-          <div className="bg-slate-50 text-slate-900 font-black text-xs uppercase tracking-wider px-3.5 py-2 rounded-xl shrink-0 border border-slate-200/60">
-            TOP BRANDS
+          {/* Top Brands Pill */}
+          <div className="bg-slate-900 text-white font-black text-[11px] md:text-xs uppercase tracking-wider px-3.5 py-2 rounded-xl shrink-0 flex items-center gap-1.5 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-[#F5B400]" />
+            <span>TOP BRANDS</span>
           </div>
 
-          <div className="flex items-center space-x-8 md:space-x-10 overflow-x-auto no-scrollbar py-1">
+          {/* Left Arrow Button */}
+          {canScrollLeft && (
+            <button
+              onClick={() => scrollBrands('left')}
+              className="w-8 h-8 rounded-full bg-white border border-slate-200 shadow-md hover:bg-slate-50 hover:border-amber-400 flex items-center justify-center shrink-0 text-slate-800 transition-all duration-200 cursor-pointer z-10"
+              title="Previous Brands"
+              aria-label="Previous Brands"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Scrollable Brands Track without scrollbar */}
+          <div
+            ref={brandsScrollRef}
+            onScroll={checkBrandsScroll}
+            className="flex items-center space-x-6 md:space-x-8 overflow-x-auto py-1 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex-1"
+          >
             {topBrandNames.map((brandName, idx) => (
               <Link
                 key={idx}
                 to={`/brand/${brandName.toLowerCase().replace(/\s+/g, '-')}`}
-                className="text-slate-600 hover:text-slate-950 font-black text-sm uppercase tracking-wider hover:scale-105 transition-all shrink-0 select-none"
+                className="text-slate-600 hover:text-slate-950 font-extrabold text-xs md:text-sm uppercase tracking-wider hover:scale-105 transition-all shrink-0 select-none py-1 px-1.5 rounded-lg hover:bg-slate-50"
               >
                 {brandName}
               </Link>
             ))}
           </div>
 
-          <button 
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center shrink-0 text-slate-700 transition-colors"
+          {/* Right Arrow Button */}
+          <button
+            onClick={() => scrollBrands('right')}
+            disabled={!canScrollRight}
+            className={`
+              w-8 h-8 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center shrink-0 
+              text-slate-800 transition-all duration-200 z-10
+              ${
+                canScrollRight
+                  ? 'hover:bg-slate-50 hover:border-amber-400 cursor-pointer opacity-100 hover:scale-105'
+                  : 'opacity-40 cursor-not-allowed bg-slate-50'
+              }
+            `}
             title="Next Brands"
+            aria-label="Next Brands"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
