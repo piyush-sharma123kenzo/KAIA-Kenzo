@@ -79,6 +79,8 @@ router.post('/register', registerLimiter, registerUser);
 router.post('/login', loginLimiter, loginUser);
 router.post('/google', googleLogin);
 router.post('/verify-otp', otpVerifyLimiter, verifyOtp);
+router.post('/verify-email-otp', otpVerifyLimiter, verifyOtp);
+router.post('/verify-reset-otp', otpVerifyLimiter, verifyOtp);
 router.post('/resend-otp', otpResendLimiter, resendOtp);
 router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
 router.post('/reset-password', resetPasswordLimiter, resetPassword);
