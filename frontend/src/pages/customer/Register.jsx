@@ -395,10 +395,10 @@ const Register = () => {
             className="w-full bg-slate-950 hover:bg-amber-500 text-white hover:text-slate-950 font-black py-3.5 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all duration-200 disabled:opacity-50 cursor-pointer shadow-md active:scale-[0.98]"
           >
             {loading ? (
-              <span>Creating Account & Sending OTP...</span>
+              <span>Creating Account...</span>
             ) : (
               <>
-                <span>Create Account & Send OTP</span>
+                <span>Create Account</span>
                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
               </>
             )}
