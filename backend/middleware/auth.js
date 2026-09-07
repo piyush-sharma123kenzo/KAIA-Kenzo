@@ -41,14 +41,17 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ message: 'User account no longer exists' });
     }
 
-    if (req.user.status === 'Suspended') {
-      return res.status(403).json({ message: 'Your account has been suspended' });
+    if (req.user.status === 'Suspended' || req.user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact support.',
+      });
     }
 
     next();
   } catch (error) {
     console.error('[KAIA Auth Middleware] JWT Verification Error:', error.message);
-    return res.status(401).json({ message: 'Not authorized, token invalid or expired' });
+    return res.status(401).json({ success: false, message: 'Not authorized, token invalid or expired' });
   }
 };
 
@@ -57,9 +60,12 @@ export const protect = async (req, res, next) => {
  * @param  {...string} roles
  */
 export const authorize = (...roles) => {
+  const normalizedRoles = roles.map((r) => r.toUpperCase());
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    const userRole = (req.user?.role || '').toUpperCase();
+    if (!req.user || !normalizedRoles.includes(userRole)) {
       return res.status(403).json({
+        success: false,
         message: `Role (${req.user ? req.user.role : 'Guest'}) is not authorized to access this resource`,
       });
     }

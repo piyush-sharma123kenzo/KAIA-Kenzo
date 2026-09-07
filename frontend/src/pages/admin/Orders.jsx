@@ -449,7 +449,36 @@ const AdminOrders = () => {
               </div>
             )}
 
-            <div className="pt-3 border-t border-brand-gray-200 flex justify-end">
+            {/* Admin Status Override */}
+            <div className="pt-3 border-t border-brand-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3 bg-brand-light p-3 rounded">
+              <div className="flex items-center space-x-2 text-xs">
+                <span className="font-bold text-brand-gray-700">Update Status:</span>
+                <select
+                  value={selectedOrder.orderStatus}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value;
+                    try {
+                      const res = await adminService.updateOrderStatus(selectedOrder._id, { orderStatus: newStatus });
+                      if (res.success) {
+                        setSelectedOrder((prev) => ({ ...prev, orderStatus: newStatus }));
+                        fetchOrders();
+                      }
+                    } catch (err) {
+                      alert(err.response?.data?.message || 'Failed to update order status.');
+                    }
+                  }}
+                  className="text-xs border border-brand-gray-300 rounded px-2.5 py-1.5 bg-white font-semibold focus:outline-none focus:border-brand-accent"
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Confirmed">Confirmed</option>
+                  <option value="Processing">Processing</option>
+                  <option value="Shipped">Shipped</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Cancelled">Cancelled</option>
+                  <option value="Returned">Returned</option>
+                </select>
+              </div>
+
               <Button
                 variant="outline"
                 size="sm"

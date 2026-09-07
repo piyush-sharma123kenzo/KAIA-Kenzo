@@ -116,10 +116,16 @@ export const adminService = {
     }
   },
 
-  // 3. Users & Accounts
-  getUsers: async () => {
+  // 3. Users & Accounts Directory
+  getUsers: async (params = {}) => {
     try {
-      const res = await axiosInstance.get('/admin/users');
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          query.set(key, val);
+        }
+      });
+      const res = await axiosInstance.get(`/admin/users?${query.toString()}`);
       return res.data;
     } catch (err) {
       console.error('Error fetching admin users:', err);
@@ -127,12 +133,67 @@ export const adminService = {
     }
   },
 
-  toggleUserStatus: async (id, status) => {
+  getUserStats: async () => {
     try {
-      const res = await axiosInstance.put(`/admin/users/${id}/status`, { status });
+      const res = await axiosInstance.get('/admin/users/stats');
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching admin user statistics:', err);
+      throw err;
+    }
+  },
+
+  getUserById: async (id) => {
+    try {
+      const res = await axiosInstance.get(`/admin/users/${id}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching user details by ID:', err);
+      throw err;
+    }
+  },
+
+  updateUser: async (id, payload) => {
+    try {
+      const res = await axiosInstance.put(`/admin/users/${id}`, payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error updating user by admin:', err);
+      throw err;
+    }
+  },
+
+  toggleUserStatus: async (id, statusOrIsActive) => {
+    try {
+      const payload = typeof statusOrIsActive === 'object'
+        ? statusOrIsActive
+        : typeof statusOrIsActive === 'boolean'
+          ? { isActive: statusOrIsActive }
+          : { status: statusOrIsActive };
+      const res = await axiosInstance.patch(`/admin/users/${id}/status`, payload);
       return res.data;
     } catch (err) {
       console.error('Error updating user status:', err);
+      throw err;
+    }
+  },
+
+  updateUserRole: async (id, role) => {
+    try {
+      const res = await axiosInstance.patch(`/admin/users/${id}/role`, { role });
+      return res.data;
+    } catch (err) {
+      console.error('Error updating user role:', err);
+      throw err;
+    }
+  },
+
+  deleteUser: async (id) => {
+    try {
+      const res = await axiosInstance.delete(`/admin/users/${id}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error deleting user account:', err);
       throw err;
     }
   },
@@ -179,7 +240,144 @@ export const adminService = {
     }
   },
 
-  // 6. Commissions Ledger & Audit Logs
+  updateOrderStatus: async (id, statusOrPayload) => {
+    try {
+      const payload = typeof statusOrPayload === 'object' ? statusOrPayload : { orderStatus: statusOrPayload };
+      const res = await axiosInstance.patch(`/admin/orders/${id}/status`, payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error updating admin order status:', err);
+      throw err;
+    }
+  },
+
+  // 3. System Dashboard & Operations
+  getDashboardSummary: async (timeRange = '30days') => {
+    try {
+      const res = await axiosInstance.get(`/admin/dashboard?timeRange=${timeRange}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching admin dashboard:', err);
+      throw err;
+    }
+  },
+
+  getSettings: async () => {
+    try {
+      const res = await axiosInstance.get('/admin/settings');
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching admin settings:', err);
+      throw err;
+    }
+  },
+
+  updateSettings: async (payload) => {
+    try {
+      const res = await axiosInstance.put('/admin/settings', payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error updating admin settings:', err);
+      throw err;
+    }
+  },
+
+  // 4. Categories Management
+  getCategories: async () => {
+    try {
+      const res = await axiosInstance.get('/admin/categories');
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      throw err;
+    }
+  },
+
+  createCategory: async (payload) => {
+    try {
+      const res = await axiosInstance.post('/admin/categories', payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error creating category:', err);
+      throw err;
+    }
+  },
+
+  updateCategory: async (id, payload) => {
+    try {
+      const res = await axiosInstance.patch(`/admin/categories/${id}`, payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error updating category:', err);
+      throw err;
+    }
+  },
+
+  deleteCategory: async (id) => {
+    try {
+      const res = await axiosInstance.delete(`/admin/categories/${id}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      throw err;
+    }
+  },
+
+  // 5. Brands Management
+  createBrand: async (payload) => {
+    try {
+      const res = await axiosInstance.post('/admin/brands', payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error creating brand:', err);
+      throw err;
+    }
+  },
+
+  deleteBrand: async (id) => {
+    try {
+      const res = await axiosInstance.delete(`/admin/brands/${id}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error deleting brand:', err);
+      throw err;
+    }
+  },
+
+  // 6. Inventory & Payments
+  getInventory: async (params = {}) => {
+    try {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          query.set(key, val);
+        }
+      });
+      const res = await axiosInstance.get(`/admin/inventory?${query.toString()}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching admin inventory:', err);
+      throw err;
+    }
+  },
+
+  getPayments: async (params = {}) => {
+    try {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          query.set(key, val);
+        }
+      });
+      const res = await axiosInstance.get(`/admin/payments?${query.toString()}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching admin payments:', err);
+      throw err;
+    }
+  },
+
+  // 7. Commissions Ledger & Audit Logs
   getCommissions: async () => {
     try {
       const res = await axiosInstance.get('/admin/commissions');

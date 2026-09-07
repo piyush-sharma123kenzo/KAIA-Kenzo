@@ -19,7 +19,10 @@ import Promotion from '../models/Promotion.js';
 import WebhookEvent from '../models/WebhookEvent.js';
 import AuditLog from '../models/AuditLog.js';
 import Notification from '../models/Notification.js';
+import Setting from '../models/Setting.js';
 import shippingService from '../services/shipping/shipping.service.js';
+import { formatUserResponse } from '../utils/jwt.utils.js';
+import { isProhibitedBrand } from '../utils/brandValidation.js';
 
 // Helper to log admin actions
 export const logAdminAction = async (adminId, action, entity, entityId, changes, req) => {
@@ -249,79 +252,570 @@ export const getAdminDashboardSummary = async (req, res) => {
 };
 
 // ==========================================
-// 2. USER MANAGEMENT
+// 2. USER MANAGEMENT & DIRECTORY
 // ==========================================
 
+// @desc    Get all users with search, role/status filters, sorting & pagination
+// @route   GET /api/admin/users
+// @access  Private (Role: ADMIN)
 export const getUsers = async (req, res) => {
   try {
-    const { role, search, status, page = 1, limit = 20 } = req.query;
+    const { role, search, status, emailVerified, sort = 'newest', page = 1, limit = 20 } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     const query = {};
-    if (role && role !== 'all') query.role = role.toUpperCase();
-    if (status && status !== 'all') query.status = status;
 
-    if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
-      query.$or = [{ name: searchRegex }, { email: searchRegex }, { phone: searchRegex }];
+    // Role filter (supports case-insensitive role query)
+    if (role && role !== 'all') {
+      query.role = role.toUpperCase();
     }
 
-    const total = await User.countDocuments(query);
+    // Status filter (Active / Suspended / Inactive)
+    if (status && status !== 'all') {
+      const s = status.toLowerCase();
+      if (s === 'active') {
+        query.$and = [{ status: { $ne: 'Suspended' } }, { isActive: { $ne: false } }];
+      } else if (s === 'suspended' || s === 'inactive' || s === 'blocked') {
+        query.$or = [{ status: 'Suspended' }, { isActive: false }];
+      }
+    }
+
+    // Email verification filter
+    if (emailVerified && emailVerified !== 'all') {
+      const isVer = emailVerified === 'verified' || emailVerified === 'true';
+      query.emailVerified = isVer;
+    }
+
+    // Search by Name, Email, or Phone
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { name: searchRegex },
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+        { email: searchRegex },
+        { phone: searchRegex },
+      ];
+    }
+
+    // Sorting
+    let sortQuery = { createdAt: -1 };
+    if (sort === 'oldest') sortQuery = { createdAt: 1 };
+    else if (sort === 'name_asc') sortQuery = { name: 1 };
+    else if (sort === 'name_desc') sortQuery = { name: -1 };
+    else if (sort === 'last_login') sortQuery = { lastLogin: -1 };
+
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const [total, users, statsAgg] = await Promise.all([
+      User.countDocuments(query),
+      User.find(query).select('-password').sort(sortQuery).skip(skip).limit(limitNum),
+      User.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalUsers: { $sum: 1 },
+            totalCustomers: {
+              $sum: { $cond: [{ $eq: ['$role', 'CUSTOMER'] }, 1, 0] },
+            },
+            totalBrands: {
+              $sum: { $cond: [{ $eq: ['$role', 'BRAND'] }, 1, 0] },
+            },
+            totalAdmins: {
+              $sum: { $cond: [{ $eq: ['$role', 'ADMIN'] }, 1, 0] },
+            },
+            activeUsers: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $ne: ['$status', 'Suspended'] },
+                      { $ne: ['$isActive', false] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            inactiveUsers: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ['$status', 'Suspended'] },
+                      { $eq: ['$isActive', false] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            newUsersThisMonth: {
+              $sum: {
+                $cond: [{ $gte: ['$createdAt', startOfMonth] }, 1, 0],
+              },
+            },
+          },
+        },
+      ]),
+    ]);
+
     const totalPages = Math.ceil(total / limitNum) || 1;
+    const stats = statsAgg[0] || {
+      totalUsers: total,
+      totalCustomers: 0,
+      totalBrands: 0,
+      totalAdmins: 0,
+      activeUsers: 0,
+      inactiveUsers: 0,
+      newUsersThisMonth: 0,
+    };
 
-    const users = await User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limitNum);
+    const formattedUsers = users.map((u) => formatUserResponse(u));
 
-    res.status(200).json({ success: true, users, total, page: pageNum, totalPages });
+    res.status(200).json({
+      success: true,
+      users: formattedUsers,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages,
+      stats,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching users.' });
+    console.error('Error fetching admin users:', error);
+    res.status(500).json({ success: false, message: 'Error fetching users directory.' });
   }
 };
 
+// @desc    Get calculated MongoDB user statistics
+// @route   GET /api/admin/users/stats
+// @access  Private (Role: ADMIN)
+export const getUserStats = async (req, res) => {
+  try {
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const [statsAgg, verifiedCount, unverifiedCount] = await Promise.all([
+      User.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalUsers: { $sum: 1 },
+            totalCustomers: {
+              $sum: { $cond: [{ $eq: ['$role', 'CUSTOMER'] }, 1, 0] },
+            },
+            totalBrands: {
+              $sum: { $cond: [{ $eq: ['$role', 'BRAND'] }, 1, 0] },
+            },
+            totalAdmins: {
+              $sum: { $cond: [{ $eq: ['$role', 'ADMIN'] }, 1, 0] },
+            },
+            activeUsers: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $ne: ['$status', 'Suspended'] },
+                      { $ne: ['$isActive', false] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            inactiveUsers: {
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ['$status', 'Suspended'] },
+                      { $eq: ['$isActive', false] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            newUsersThisMonth: {
+              $sum: {
+                $cond: [{ $gte: ['$createdAt', startOfMonth] }, 1, 0],
+              },
+            },
+          },
+        },
+      ]),
+      User.countDocuments({ emailVerified: true }),
+      User.countDocuments({ emailVerified: false }),
+    ]);
+
+    const stats = statsAgg[0] || {
+      totalUsers: 0,
+      totalCustomers: 0,
+      totalBrands: 0,
+      totalAdmins: 0,
+      activeUsers: 0,
+      inactiveUsers: 0,
+      newUsersThisMonth: 0,
+    };
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        ...stats,
+        verifiedUsers: verifiedCount,
+        unverifiedUsers: unverifiedCount,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching admin user statistics:', error);
+    res.status(500).json({ success: false, message: 'Error fetching user statistics.' });
+  }
+};
+
+// @desc    Get detailed user profile, order statistics, addresses & audit trail
+// @route   GET /api/admin/users/:id
+// @access  Private (Role: ADMIN)
 export const getUserDetailsById = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await User.findById(id).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
 
-    const [orders, returns, auditLogs] = await Promise.all([
-      Order.find({ customer: user._id }).sort({ createdAt: -1 }).limit(10),
+    const user = await User.findById(id).select('-password');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const [orders, returns, auditLogs, orderStatsAgg, brand] = await Promise.all([
+      Order.find({ customer: user._id })
+        .populate({
+          path: 'childOrders',
+          populate: { path: 'seller', select: 'name slug logo' },
+        })
+        .sort({ createdAt: -1 })
+        .limit(10),
       ReturnRequest.find({ customerId: user._id }).sort({ createdAt: -1 }).limit(10),
-      AuditLog.find({ user: user._id }).sort({ createdAt: -1 }).limit(10),
+      AuditLog.find({
+        $or: [{ user: user._id }, { entityId: user._id }],
+      })
+        .populate('user', 'name email role')
+        .sort({ createdAt: -1 })
+        .limit(10),
+      Order.aggregate([
+        { $match: { customer: user._id, paymentStatus: 'Paid' } },
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            totalSpent: { $sum: '$finalAmount' },
+          },
+        },
+      ]),
+      user.role === 'BRAND' ? Brand.findOne({ owner: user._id }) : Promise.resolve(null),
     ]);
 
-    res.status(200).json({ success: true, user, orders, returns, auditLogs });
+    const stats = {
+      totalOrders: orderStatsAgg[0]?.totalOrders || orders.length,
+      totalSpent: Math.round((orderStatsAgg[0]?.totalSpent || 0) * 100) / 100,
+      returnsCount: returns.length,
+    };
+
+    res.status(200).json({
+      success: true,
+      user: formatUserResponse(user),
+      rawUser: user,
+      stats,
+      orders,
+      returns,
+      brand,
+      auditLogs,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching user profile details.' });
+    console.error('Error fetching user profile details:', error);
+    res.status(500).json({ success: false, message: 'Error fetching user profile details.' });
   }
 };
 
+// @desc    Admin update of user profile details
+// @route   PUT /api/admin/users/:id
+// @access  Private (Role: ADMIN)
+export const updateUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const { name, firstName, lastName, phone, role, status, isActive, emailVerified, gstin } = req.body;
+
+    // Self-protection: Admin cannot demote their own admin role or suspend their own account
+    const isSelf = req.user._id.toString() === user._id.toString();
+
+    if (role && role.toUpperCase() !== user.role) {
+      const targetRole = role.toUpperCase();
+      if (!['CUSTOMER', 'BRAND', 'ADMIN'].includes(targetRole)) {
+        return res.status(400).json({ success: false, message: 'Invalid role. Must be CUSTOMER, BRAND, or ADMIN.' });
+      }
+      if (isSelf && user.role === 'ADMIN' && targetRole !== 'ADMIN') {
+        return res.status(400).json({ success: false, message: 'You cannot remove your own administrator privileges.' });
+      }
+      if (user.role === 'ADMIN' && targetRole !== 'ADMIN') {
+        const activeAdminCount = await User.countDocuments({ role: 'ADMIN', status: { $ne: 'Suspended' } });
+        if (activeAdminCount <= 1) {
+          return res.status(400).json({ success: false, message: 'Cannot demote the final remaining administrator.' });
+        }
+      }
+      user.role = targetRole;
+    }
+
+    if (status !== undefined || isActive !== undefined) {
+      const targetStatus = status || (isActive ? 'Active' : 'Suspended');
+      if (isSelf && targetStatus === 'Suspended') {
+        return res.status(400).json({ success: false, message: 'You cannot suspend or deactivate your own account.' });
+      }
+      if (user.role === 'ADMIN' && targetStatus === 'Suspended') {
+        const activeAdminCount = await User.countDocuments({ role: 'ADMIN', status: { $ne: 'Suspended' } });
+        if (activeAdminCount <= 1) {
+          return res.status(400).json({ success: false, message: 'Cannot suspend the final remaining administrator.' });
+        }
+      }
+      user.status = targetStatus;
+      user.isActive = targetStatus === 'Active';
+    }
+
+    if (name !== undefined && typeof name === 'string' && name.trim()) user.name = name.trim();
+    if (firstName !== undefined && typeof firstName === 'string') user.firstName = firstName.trim();
+    if (lastName !== undefined && typeof lastName === 'string') user.lastName = lastName.trim();
+    if (phone !== undefined && typeof phone === 'string') user.phone = phone.trim();
+    if (emailVerified !== undefined) user.emailVerified = Boolean(emailVerified);
+    if (gstin !== undefined && typeof gstin === 'string') user.gstin = gstin.trim().toUpperCase();
+
+    await user.save();
+
+    await logAdminAction(
+      req.user._id,
+      `Updated User Profile: ${user.email}`,
+      'User',
+      user._id,
+      { name: user.name, phone: user.phone, role: user.role, status: user.status },
+      req
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'User account updated successfully.',
+      user: formatUserResponse(user),
+    });
+  } catch (error) {
+    console.error('Error updating user by admin:', error);
+    res.status(500).json({ success: false, message: error.message || 'Error updating user profile.' });
+  }
+};
+
+// @desc    Toggle or update user active / suspended status
+// @route   PATCH /api/admin/users/:id/status
+// @route   PUT /api/admin/users/:id/status
+// @access  Private (Role: ADMIN)
 export const toggleUserStatus = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, isActive } = req.body;
 
   try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
+
     const user = await User.findById(id);
-    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    // Determine target status
+    let nextStatus;
+    if (status !== undefined) {
+      nextStatus = status === 'Active' || status === 'active' ? 'Active' : 'Suspended';
+    } else if (isActive !== undefined) {
+      nextStatus = isActive ? 'Active' : 'Suspended';
+    } else {
+      nextStatus = user.status === 'Active' ? 'Suspended' : 'Active';
+    }
+
+    // Self-protection: Prevent an admin from suspending their own account
+    if (req.user._id.toString() === user._id.toString() && nextStatus === 'Suspended') {
+      return res.status(400).json({
+        success: false,
+        message: 'Security safeguard: You cannot deactivate or suspend your own account.',
+      });
+    }
 
     // Safety: Prevent suspending the last active administrator
-    if (user.role === 'ADMIN' && status === 'Suspended') {
+    if (user.role === 'ADMIN' && nextStatus === 'Suspended') {
       const activeAdminCount = await User.countDocuments({ role: 'ADMIN', status: { $ne: 'Suspended' } });
       if (activeAdminCount <= 1) {
-        return res.status(400).json({ message: 'Cannot suspend the final remaining system administrator.' });
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot suspend the final remaining system administrator.',
+        });
       }
     }
 
     const prevStatus = user.status;
-    user.status = status;
+    user.status = nextStatus;
+    user.isActive = nextStatus === 'Active';
     await user.save();
 
-    await logAdminAction(req.user._id, `Toggled user status to ${status}`, 'User', user._id, { prevStatus, status }, req);
+    await logAdminAction(
+      req.user._id,
+      `Toggled user status to ${nextStatus} for ${user.email}`,
+      'User',
+      user._id,
+      { prevStatus, status: nextStatus },
+      req
+    );
 
-    res.status(200).json({ success: true, message: `User account is now ${status}.`, user });
+    res.status(200).json({
+      success: true,
+      message: `User account is now ${nextStatus === 'Active' ? 'activated' : 'suspended'}.`,
+      user: formatUserResponse(user),
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error changing user status.' });
+    console.error('Error changing user status:', error);
+    res.status(500).json({ success: false, message: 'Error changing user status.' });
+  }
+};
+
+// @desc    Change user role (CUSTOMER / BRAND / ADMIN)
+// @route   PATCH /api/admin/users/:id/role
+// @route   PUT /api/admin/users/:id/role
+// @access  Private (Role: ADMIN)
+export const updateUserRole = async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
+
+    if (!role || typeof role !== 'string') {
+      return res.status(400).json({ success: false, message: 'Valid role is required.' });
+    }
+
+    const targetRole = role.trim().toUpperCase();
+    if (!['CUSTOMER', 'BRAND', 'ADMIN'].includes(targetRole)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role value. Must be CUSTOMER, BRAND, or ADMIN.',
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    // Self-protection: Prevent admin from removing their own admin role
+    if (req.user._id.toString() === user._id.toString() && targetRole !== 'ADMIN') {
+      return res.status(400).json({
+        success: false,
+        message: 'Security safeguard: You cannot remove your own administrator role.',
+      });
+    }
+
+    // Safety: Prevent demoting the last active administrator
+    if (user.role === 'ADMIN' && targetRole !== 'ADMIN') {
+      const activeAdminCount = await User.countDocuments({ role: 'ADMIN', status: { $ne: 'Suspended' } });
+      if (activeAdminCount <= 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot demote the final remaining system administrator.',
+        });
+      }
+    }
+
+    const prevRole = user.role;
+    user.role = targetRole;
+    await user.save();
+
+    await logAdminAction(
+      req.user._id,
+      `Changed user role from ${prevRole} to ${targetRole} for ${user.email}`,
+      'User',
+      user._id,
+      { prevRole, role: targetRole },
+      req
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `User role changed to ${targetRole} successfully.`,
+      user: formatUserResponse(user),
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ success: false, message: 'Error updating user role.' });
+  }
+};
+
+// @desc    Soft delete user account
+// @route   DELETE /api/admin/users/:id
+// @access  Private (Role: ADMIN)
+export const deleteUser = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    // Self-protection: Admin cannot delete own account
+    if (req.user._id.toString() === user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Security safeguard: You cannot delete your own account.',
+      });
+    }
+
+    // Safety: Cannot delete last remaining active admin
+    if (user.role === 'ADMIN') {
+      const activeAdminCount = await User.countDocuments({ role: 'ADMIN', status: { $ne: 'Suspended' } });
+      if (activeAdminCount <= 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete the final remaining system administrator.',
+        });
+      }
+    }
+
+    // Soft delete: Deactivate and mark deletedAt
+    user.isActive = false;
+    user.status = 'Suspended';
+    user.deletedAt = new Date();
+    await user.save();
+
+    await logAdminAction(
+      req.user._id,
+      `Soft deleted user account: ${user.email}`,
+      'User',
+      user._id,
+      { deletedAt: user.deletedAt, email: user.email },
+      req
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'User account deactivated (soft deleted) successfully.',
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ success: false, message: 'Error deleting user account.' });
   }
 };
 
@@ -993,5 +1487,257 @@ export const getAdminOrderById = async (req, res) => {
   } catch (error) {
     console.error('Error fetching single admin order:', error);
     res.status(500).json({ message: 'Error fetching order details.' });
+  }
+};
+
+// @desc    Update order status by Admin
+// @route   PATCH /api/admin/orders/:id/status
+// @route   PUT /api/admin/orders/:id/status
+// @access  Private (Role: ADMIN)
+export const updateAdminOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, orderStatus, notes } = req.body;
+    const targetStatus = orderStatus || status;
+
+    if (!targetStatus) {
+      return res.status(400).json({ success: false, message: 'Valid order status is required.' });
+    }
+
+    const isObjectId = mongoose.Types.ObjectId.isValid(id);
+    const query = isObjectId ? { $or: [{ _id: id }, { orderId: id }] } : { orderId: id };
+
+    const order = await Order.findOne(query).populate('customer', 'name email phone');
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+
+    const prevStatus = order.orderStatus;
+    order.orderStatus = targetStatus;
+
+    if (['Paid', 'paid', 'Delivered', 'delivered'].includes(targetStatus) && order.paymentStatus !== 'Paid') {
+      order.paymentStatus = 'Paid';
+    }
+
+    await order.save();
+
+    // Synchronize child seller orders
+    const fulfillmentMap = {
+      Pending: 'Processing',
+      Confirmed: 'Processing',
+      Processing: 'Processing',
+      Packed: 'Packed',
+      Shipped: 'Shipped',
+      'Out for Delivery': 'Out for Delivery',
+      Delivered: 'Delivered',
+      Cancelled: 'Cancelled',
+      Returned: 'Returned',
+    };
+    const mappedFulfillment = fulfillmentMap[targetStatus] || 'Processing';
+    await SellerOrder.updateMany(
+      { parentOrder: order._id },
+      { $set: { fulfillmentStatus: mappedFulfillment } }
+    );
+
+    // Create Notification for customer
+    if (order.customer?._id) {
+      try {
+        await Notification.create({
+          user: order.customer._id,
+          title: `Order Status Update: #${order.orderId}`,
+          message: `Your order #${order.orderId} status has been updated to '${targetStatus}'. ${notes || ''}`,
+          type: 'Order',
+        });
+      } catch (notifErr) {
+        console.warn('Order notification warning:', notifErr.message);
+      }
+    }
+
+    await logAdminAction(
+      req.user._id,
+      `Updated Order #${order.orderId} status to ${targetStatus}`,
+      'Order',
+      order._id,
+      { prevStatus, newStatus: targetStatus, notes },
+      req
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `Order #${order.orderId} status updated to ${targetStatus}.`,
+      order,
+    });
+  } catch (error) {
+    console.error('Error updating admin order status:', error);
+    res.status(500).json({ success: false, message: 'Error updating order status.' });
+  }
+};
+
+// @desc    Create Brand by Admin (with Apple/Sony prohibition)
+// @route   POST /api/admin/brands
+// @access  Private (Role: ADMIN)
+export const createAdminBrand = async (req, res) => {
+  try {
+    const { name, description, contactEmail, contactPhone, logo, banner, businessDetails, commissionOverride } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Brand name is required.' });
+    }
+
+    if (isProhibitedBrand(name)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Brand prohibited: Apple and Sony brands and products are not permitted on KAIA Technologies.',
+      });
+    }
+
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    if (isProhibitedBrand(slug)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Brand prohibited: Apple and Sony brands and products are not permitted on KAIA Technologies.',
+      });
+    }
+
+    const existing = await Brand.findOne({ slug });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Brand with this name already exists.' });
+    }
+
+    const brand = await Brand.create({
+      owner: req.user._id,
+      name: name.trim(),
+      slug,
+      description: description || '',
+      contactEmail: contactEmail || req.user.email,
+      contactPhone: contactPhone || req.user.phone || '9999999999',
+      logo: logo || '',
+      banner: banner || '',
+      businessDetails: businessDetails || {},
+      commissionOverride: commissionOverride !== undefined ? Number(commissionOverride) : null,
+      status: 'Approved',
+      isApproved: true,
+      isActive: true,
+    });
+
+    await logAdminAction(req.user._id, `Created Brand: ${brand.name}`, 'Brand', brand._id, req.body, req);
+
+    res.status(201).json({
+      success: true,
+      message: 'Brand created successfully.',
+      brand,
+    });
+  } catch (error) {
+    console.error('Error creating admin brand:', error);
+    res.status(500).json({ success: false, message: error.message || 'Error creating brand.' });
+  }
+};
+
+// @desc    Delete / Deactivate Brand
+// @route   DELETE /api/admin/brands/:id
+// @access  Private (Role: ADMIN)
+export const deleteAdminBrand = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const brand = await Brand.findById(id);
+    if (!brand) return res.status(404).json({ success: false, message: 'Brand not found.' });
+
+    // Soft delete / deactivate
+    brand.isActive = false;
+    brand.status = 'Suspended';
+    await brand.save();
+
+    await logAdminAction(req.user._id, `Deactivated Brand: ${brand.name}`, 'Brand', brand._id, {}, req);
+
+    res.status(200).json({
+      success: true,
+      message: `Brand '${brand.name}' deactivated successfully.`,
+    });
+  } catch (error) {
+    console.error('Error deactivating brand:', error);
+    res.status(500).json({ success: false, message: 'Error deactivating brand.' });
+  }
+};
+
+// @desc    Delete Category
+// @route   DELETE /api/admin/categories/:id
+// @access  Private (Role: ADMIN)
+export const deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const category = await Category.findById(id);
+    if (!category) return res.status(404).json({ success: false, message: 'Category not found.' });
+
+    category.isActive = false;
+    await category.save();
+
+    await logAdminAction(req.user._id, `Deactivated Category: ${category.name}`, 'Category', category._id, {}, req);
+
+    res.status(200).json({
+      success: true,
+      message: `Category '${category.name}' deactivated successfully.`,
+    });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({ success: false, message: 'Error deleting category.' });
+  }
+};
+
+// @desc    Get Administrative System Settings
+// @route   GET /api/admin/settings
+// @access  Private (Role: ADMIN)
+export const getAdminSettings = async (req, res) => {
+  try {
+    let settings = await Setting.findOne({ key: 'system_settings' });
+    if (!settings) {
+      settings = await Setting.create({ key: 'system_settings' });
+    }
+    res.status(200).json({ success: true, settings });
+  } catch (error) {
+    console.error('Error fetching admin settings:', error);
+    res.status(500).json({ success: false, message: 'Error retrieving system settings.' });
+  }
+};
+
+// @desc    Update Administrative System Settings
+// @route   PUT /api/admin/settings
+// @access  Private (Role: ADMIN)
+export const updateAdminSettings = async (req, res) => {
+  try {
+    let settings = await Setting.findOne({ key: 'system_settings' });
+    if (!settings) {
+      settings = new Setting({ key: 'system_settings' });
+    }
+
+    const {
+      siteName,
+      siteLogo,
+      supportEmail,
+      supportPhone,
+      businessAddress,
+      deliverySettings,
+      taxSettings,
+      orderSettings,
+    } = req.body;
+
+    if (siteName !== undefined) settings.siteName = siteName;
+    if (siteLogo !== undefined) settings.siteLogo = siteLogo;
+    if (supportEmail !== undefined) settings.supportEmail = supportEmail;
+    if (supportPhone !== undefined) settings.supportPhone = supportPhone;
+    if (businessAddress !== undefined) settings.businessAddress = businessAddress;
+    if (deliverySettings !== undefined) settings.deliverySettings = deliverySettings;
+    if (taxSettings !== undefined) settings.taxSettings = taxSettings;
+    if (orderSettings !== undefined) settings.orderSettings = orderSettings;
+
+    await settings.save();
+
+    await logAdminAction(req.user._id, 'Updated System Settings', 'Setting', settings._id, req.body, req);
+
+    res.status(200).json({
+      success: true,
+      message: 'System settings updated successfully.',
+      settings,
+    });
+  } catch (error) {
+    console.error('Error updating admin settings:', error);
+    res.status(500).json({ success: false, message: 'Error saving system settings.' });
   }
 };

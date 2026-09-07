@@ -122,6 +122,14 @@ const orderSchema = new mongoose.Schema(
     orderStatus: {
       type: String,
       enum: [
+        'Pending',
+        'Confirmed',
+        'Processing',
+        'Shipped',
+        'Delivered',
+        'Cancelled',
+        'Returned',
+        'Refunded',
         'pending_payment',
         'paid',
         'processing',
@@ -132,7 +140,7 @@ const orderSchema = new mongoose.Schema(
         'partially_cancelled',
         'refunded',
       ],
-      default: 'pending_payment',
+      default: 'Pending',
       index: true,
     },
     paymentDetails: {

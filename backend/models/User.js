@@ -103,9 +103,22 @@ const userSchema = new mongoose.Schema(
       default: 'Active',
       index: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
     emailVerified: {
       type: Boolean,
       default: false,
+    },
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {
@@ -122,8 +135,28 @@ userSchema.virtual('isEmailVerified').get(function () {
   this.emailVerified = val;
 });
 
-// Encrypt password before saving
+// Sync status and isActive, role normalization, name sync before saving
 userSchema.pre('save', async function (next) {
+  // Normalize role to uppercase if string provided
+  if (this.role && typeof this.role === 'string') {
+    this.role = this.role.toUpperCase();
+  }
+
+  // Keep isActive and status in sync
+  if (this.isModified('isActive') && !this.isModified('status')) {
+    this.status = this.isActive ? 'Active' : 'Suspended';
+  } else if (this.isModified('status') && !this.isModified('isActive')) {
+    this.isActive = this.status === 'Active';
+  } else if (this.status === 'Suspended') {
+    this.isActive = false;
+  }
+
+  // Auto sync full name from firstName & lastName if provided
+  if (this.firstName && this.lastName && !this.isModified('name')) {
+    this.name = `${this.firstName.trim()} ${this.lastName.trim()}`;
+  }
+
+  // Encrypt password if modified
   if (!this.isModified('password')) {
     return next();
   }

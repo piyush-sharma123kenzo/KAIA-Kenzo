@@ -1,6 +1,7 @@
 import Brand from '../models/Brand.js';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
+import { isProhibitedBrand } from '../utils/brandValidation.js';
 
 // @desc    Register a brand profile
 // @route   POST /api/brands/register
@@ -9,15 +10,33 @@ export const registerBrand = async (req, res) => {
   const { name, description, contactEmail, contactPhone, businessDetails, bankDetails } = req.body;
 
   try {
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Brand name is required.' });
+    }
+
+    if (isProhibitedBrand(name)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Registration prohibited: Apple and Sony brands are not permitted on KAIA Technologies.',
+      });
+    }
+
     const existingBrand = await Brand.findOne({ owner: req.user._id });
     if (existingBrand) {
-      return res.status(400).json({ message: 'You have already registered a brand profile.' });
+      return res.status(400).json({ success: false, message: 'You have already registered a brand profile.' });
     }
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    if (isProhibitedBrand(slug)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Registration prohibited: Apple and Sony brands are not permitted on KAIA Technologies.',
+      });
+    }
+
     const slugExists = await Brand.findOne({ slug });
     if (slugExists) {
-      return res.status(400).json({ message: 'A brand with a similar name already exists.' });
+      return res.status(400).json({ success: false, message: 'A brand with a similar name already exists.' });
     }
 
     const brand = await Brand.create({

@@ -33,8 +33,8 @@ export const authenticateCredentials = async (email, password) => {
     throw error;
   }
 
-  if (user.status === 'Suspended') {
-    const error = new Error('Your account has been suspended by the platform administrator.');
+  if (user.status === 'Suspended' || user.isActive === false) {
+    const error = new Error('Your account has been deactivated. Please contact support.');
     error.statusCode = 403;
     throw error;
   }
@@ -54,6 +54,10 @@ export const authenticateCredentials = async (email, password) => {
     error.email = user.email;
     throw error;
   }
+
+  // Record last login timestamp
+  user.lastLogin = new Date();
+  await user.save({ validateBeforeSave: false });
 
   return user;
 };

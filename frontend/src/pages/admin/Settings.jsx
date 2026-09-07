@@ -1,29 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sliders, ShieldCheck, Database, CreditCard, Truck, 
-  FileText, Bell, CheckCircle2, Lock, Save, RefreshCw 
+  FileText, Bell, CheckCircle2, Lock, Save, RefreshCw, AlertTriangle
 } from 'lucide-react';
+import adminService from '../../services/adminService';
 import Container from '../../components/ui/Container';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 
 const Settings = () => {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState(null);
+
   const [config, setConfig] = useState({
-    marketplaceName: 'KAIA Technologies Marketplace',
+    siteName: 'KAIA Technologies Marketplace',
     supportEmail: 'support@kaia.tech',
+    supportPhone: '+91 99999 99999',
     currency: 'INR (₹)',
-    defaultGstRate: 18,
-    freeShippingThreshold: 5000,
-    returnWindowDays: 7,
-    autoApproveVerifiedBrands: false,
-    sessionTimeoutMinutes: 60,
+    taxSettings: {
+      defaultGstRate: 18,
+      pricesIncludeTax: true,
+    },
+    deliverySettings: {
+      radiusKm: 10,
+      standardDeliveryFee: 99,
+      freeShippingThreshold: 5000,
+    },
+    orderSettings: {
+      returnWindowDays: 7,
+      autoCancelUnpaidMinutes: 30,
+    },
   });
 
-  const handleSave = (e) => {
+  useEffect(() => {
+    const loadSettings = async () => {
+      setLoading(true);
+      try {
+        const res = await adminService.getSettings();
+        if (res.success && res.settings) {
+          const s = res.settings;
+          setConfig({
+            siteName: s.siteName || 'KAIA Technologies Marketplace',
+            supportEmail: s.supportEmail || 'support@kaia.tech',
+            supportPhone: s.supportPhone || '+91 99999 99999',
+            currency: 'INR (₹)',
+            taxSettings: {
+              defaultGstRate: s.taxSettings?.defaultGstRate ?? 18,
+              pricesIncludeTax: s.taxSettings?.pricesIncludeTax ?? true,
+            },
+            deliverySettings: {
+              radiusKm: s.deliverySettings?.radiusKm ?? 10,
+              standardDeliveryFee: s.deliverySettings?.standardDeliveryFee ?? 99,
+              freeShippingThreshold: s.deliverySettings?.freeShippingThreshold ?? 5000,
+            },
+            orderSettings: {
+              returnWindowDays: s.orderSettings?.returnWindowDays ?? 7,
+              autoCancelUnpaidMinutes: s.orderSettings?.autoCancelUnpaidMinutes ?? 30,
+            },
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching settings:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await adminService.updateSettings(config);
+      if (res.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 4000);
+      }
+    } catch (err) {
+      console.error('Error saving settings:', err);
+      setError(err.response?.data?.message || 'Error saving settings.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -68,20 +130,32 @@ const Settings = () => {
               <label className="text-brand-gray-600 font-bold block mb-1">Marketplace Legal Name</label>
               <input
                 type="text"
-                value={config.marketplaceName}
-                onChange={(e) => setConfig({ ...config, marketplaceName: e.target.value })}
+                value={config.siteName}
+                onChange={(e) => setConfig({ ...config, siteName: e.target.value })}
                 className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
               />
             </div>
 
-            <div>
-              <label className="text-brand-gray-600 font-bold block mb-1">Platform Support Email</label>
-              <input
-                type="email"
-                value={config.supportEmail}
-                onChange={(e) => setConfig({ ...config, supportEmail: e.target.value })}
-                className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-brand-gray-600 font-bold block mb-1">Platform Support Email</label>
+                <input
+                  type="email"
+                  value={config.supportEmail}
+                  onChange={(e) => setConfig({ ...config, supportEmail: e.target.value })}
+                  className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
+                />
+              </div>
+
+              <div>
+                <label className="text-brand-gray-600 font-bold block mb-1">Platform Support Phone</label>
+                <input
+                  type="text"
+                  value={config.supportPhone}
+                  onChange={(e) => setConfig({ ...config, supportPhone: e.target.value })}
+                  className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -99,8 +173,11 @@ const Settings = () => {
                 <label className="text-brand-gray-600 font-bold block mb-1">Return Window (Days)</label>
                 <input
                   type="number"
-                  value={config.returnWindowDays}
-                  onChange={(e) => setConfig({ ...config, returnWindowDays: parseInt(e.target.value, 10) || 7 })}
+                  value={config.orderSettings.returnWindowDays}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    orderSettings: { ...config.orderSettings, returnWindowDays: parseInt(e.target.value, 10) || 7 },
+                  })}
                   className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
                 />
               </div>
@@ -112,28 +189,64 @@ const Settings = () => {
         <div className="bg-white border border-brand-gray-200 p-6 rounded-sm shadow-premium space-y-4">
           <div className="flex items-center space-x-2 border-b border-brand-gray-200 pb-3">
             <CreditCard className="w-4 h-4 text-brand-accent" />
-            <h2 className="text-sm font-black text-brand-gray-900 uppercase">Taxation & Shipping Free Tier</h2>
+            <h2 className="text-sm font-black text-brand-gray-900 uppercase">Taxation & Delivery Radius</h2>
           </div>
 
           <div className="space-y-3 text-xs">
-            <div>
-              <label className="text-brand-gray-600 font-bold block mb-1">Default GST Rate (% HSN Electronic)</label>
-              <input
-                type="number"
-                value={config.defaultGstRate}
-                onChange={(e) => setConfig({ ...config, defaultGstRate: parseInt(e.target.value, 10) || 18 })}
-                className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-brand-gray-600 font-bold block mb-1">Default GST Rate (%)</label>
+                <input
+                  type="number"
+                  value={config.taxSettings.defaultGstRate}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    taxSettings: { ...config.taxSettings, defaultGstRate: parseInt(e.target.value, 10) || 18 },
+                  })}
+                  className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
+                />
+              </div>
+
+              <div>
+                <label className="text-brand-gray-600 font-bold block mb-1">Delivery Radius (KM)</label>
+                <input
+                  type="number"
+                  value={config.deliverySettings.radiusKm}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    deliverySettings: { ...config.deliverySettings, radiusKm: parseInt(e.target.value, 10) || 10 },
+                  })}
+                  className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-brand-gray-600 font-bold block mb-1">Free Shipping Threshold (₹)</label>
-              <input
-                type="number"
-                value={config.freeShippingThreshold}
-                onChange={(e) => setConfig({ ...config, freeShippingThreshold: parseInt(e.target.value, 10) || 5000 })}
-                className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-brand-gray-600 font-bold block mb-1">Free Shipping Above (₹)</label>
+                <input
+                  type="number"
+                  value={config.deliverySettings.freeShippingThreshold}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    deliverySettings: { ...config.deliverySettings, freeShippingThreshold: parseInt(e.target.value, 10) || 5000 },
+                  })}
+                  className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
+                />
+              </div>
+
+              <div>
+                <label className="text-brand-gray-600 font-bold block mb-1">Standard Delivery Fee (₹)</label>
+                <input
+                  type="number"
+                  value={config.deliverySettings.standardDeliveryFee}
+                  onChange={(e) => setConfig({
+                    ...config,
+                    deliverySettings: { ...config.deliverySettings, standardDeliveryFee: parseInt(e.target.value, 10) || 99 },
+                  })}
+                  className="w-full p-2.5 border border-brand-gray-200 rounded-[2px] text-xs font-semibold focus:outline-none focus:border-brand-accent"
+                />
+              </div>
             </div>
 
             <div className="pt-2">

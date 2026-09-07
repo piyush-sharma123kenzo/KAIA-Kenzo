@@ -2,15 +2,22 @@ import express from 'express';
 import {
   getAdminDashboardSummary,
   getUsers,
+  getUserStats,
   getUserDetailsById,
+  updateUserById,
   toggleUserStatus,
+  updateUserRole,
+  deleteUser,
   getAllBrands,
   getBrandDetailsById,
+  createAdminBrand,
+  deleteAdminBrand,
   verifyBrand,
   getPendingProducts,
   verifyProduct,
   createCategory,
   updateCategory,
+  deleteCategory,
   getAdminPayments,
   getAdminReviews,
   moderateReview,
@@ -27,6 +34,9 @@ import {
   getAuditLogs,
   getAdminOrders,
   getAdminOrderById,
+  updateAdminOrderStatus,
+  getAdminSettings,
+  updateAdminSettings,
 } from '../controllers/adminController.js';
 import {
   getAdminShipments,
@@ -85,6 +95,8 @@ router.get('/analytics', getAdminDashboardSummary);
 // 2. Orders & Fulfillment
 router.get('/orders', getAdminOrders);
 router.get('/orders/:id', getAdminOrderById);
+router.patch('/orders/:id/status', updateAdminOrderStatus);
+router.put('/orders/:id/status', updateAdminOrderStatus);
 
 // 3. Shipping & Logistics
 router.get('/shipments', getAdminShipments);
@@ -125,14 +137,22 @@ router.post('/adjustments', createManualAdjustment);
 router.get('/payments', getAdminPayments);
 
 // 9. Accounts & Users Directory
+router.get('/users/stats', getUserStats);
 router.get('/users', getUsers);
 router.get('/users/:id', getUserDetailsById);
+router.put('/users/:id', updateUserById);
+router.patch('/users/:id/status', toggleUserStatus);
 router.put('/users/:id/status', toggleUserStatus);
+router.patch('/users/:id/role', updateUserRole);
+router.put('/users/:id/role', updateUserRole);
+router.delete('/users/:id', deleteUser);
 
 // 10. Brands & Approvals
 router.get('/brands', getAllBrands);
+router.post('/brands', createAdminBrand);
 router.get('/brands/:id', getBrandDetailsById);
 router.put('/brands/:id/approve', verifyBrand);
+router.delete('/brands/:id', deleteAdminBrand);
 
 // 11. Products & Management (Full Admin Product Management)
 router.get('/products', getAdminProducts);
@@ -147,6 +167,7 @@ router.put('/products/:id/verify', verifyProduct);
 router.get('/categories', getCategories);
 router.post('/categories', createCategory);
 router.patch('/categories/:id', updateCategory);
+router.delete('/categories/:id', deleteCategory);
 
 // 13. Customer Reviews Moderation
 router.get('/reviews', getAdminReviews);
@@ -161,7 +182,11 @@ router.get('/promotions', getAdminPromotions);
 router.post('/promotions', createAdminPromotion);
 router.patch('/promotions/:id', updateAdminPromotion);
 
-// 15. System Operations: Webhooks, System Health & Audit
+// 15. Settings & Delivery Locations
+router.get('/settings', getAdminSettings);
+router.put('/settings', updateAdminSettings);
+
+// 16. System Operations: Webhooks, System Health & Audit
 router.get('/webhooks', getAdminWebhooks);
 router.get('/system-health', getSystemHealth);
 router.get('/audit-logs', getAuditLogs);

@@ -30,7 +30,12 @@ export const getJwtSecret = () => {
  */
 export const generateToken = (payload, expiresIn = '7d') => {
   const secret = getJwtSecret();
-  return jwt.sign(payload, secret, { expiresIn });
+  const tokenPayload = (typeof payload === 'string' || (payload && payload._bsontype))
+    ? { id: payload.toString() }
+    : (payload && typeof payload === 'object')
+      ? payload
+      : { id: payload };
+  return jwt.sign(tokenPayload, secret, { expiresIn });
 };
 
 /**
@@ -70,24 +75,34 @@ export const clearAuthCookie = (res) => {
  * @returns {object}
  */
 export const formatUserResponse = (user) => {
+  if (!user) return null;
   const profileImageUrl = user.profileImage?.url || user.avatar || '';
+  const isVerified = user.emailVerified === true || user.isEmailVerified === true;
+  const isUserActive = user.isActive !== false && user.status !== 'Suspended';
+
   return {
+    id: user._id ? user._id.toString() : user.id,
     _id: user._id,
-    name: user.name,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    role: user.role,
-    phone: user.phone,
+    name: user.name || '',
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
+    email: user.email || '',
+    role: user.role || 'CUSTOMER',
+    phone: user.phone || '',
     avatar: profileImageUrl,
     profileImage: {
       url: profileImageUrl,
       publicId: user.profileImage?.publicId || '',
       updatedAt: user.profileImage?.updatedAt || user.updatedAt || new Date(),
     },
-    gstin: user.gstin,
-    status: user.status,
-    emailVerified: user.emailVerified,
+    gstin: user.gstin || '',
+    status: user.status || (isUserActive ? 'Active' : 'Suspended'),
+    isActive: isUserActive,
+    emailVerified: isVerified,
+    isEmailVerified: isVerified,
+    lastLogin: user.lastLogin || null,
+    createdAt: user.createdAt || null,
+    updatedAt: user.updatedAt || null,
   };
 };
 

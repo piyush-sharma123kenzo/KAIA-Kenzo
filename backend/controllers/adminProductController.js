@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Brand from '../models/Brand.js';
 import Category from '../models/Category.js';
+import { isProhibitedBrand } from '../utils/brandValidation.js';
 
 // Helper to generate clean slug
 const slugify = (text) => {
@@ -168,16 +169,54 @@ export const createAdminProduct = async (req, res) => {
     } = req.body;
 
     if (!name || !name.trim()) {
-      return res.status(400).json({ message: 'Product name is required.' });
+      return res.status(400).json({ success: false, message: 'Product name is required.' });
+    }
+
+    if (isProhibitedBrand(name)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product creation prohibited: Apple and Sony products and brands are not permitted on KAIA Technologies.',
+      });
+    }
+
+    if (brand && typeof brand === 'string' && isProhibitedBrand(brand)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Brand prohibited: Apple and Sony brands are not permitted on KAIA Technologies.',
+      });
+    }
+
+    const finalSellingPrice = Number(sellingPrice ?? price ?? mrp ?? 0);
+    const finalMrp = Number(mrp ?? finalSellingPrice);
+    const finalStock = Number(stockQuantity ?? (typeof stock === 'object' ? stock?.quantity : stock) ?? 0);
+
+    if (finalSellingPrice < 0) {
+      return res.status(400).json({ success: false, message: 'Product price cannot be negative.' });
+    }
+    if (finalStock < 0) {
+      return res.status(400).json({ success: false, message: 'Stock quantity cannot be negative.' });
     }
 
     // 1. Resolve or Create Brand
     let brandId = null;
     if (brand) {
       if (mongoose.Types.ObjectId.isValid(brand)) {
+        const existingBrandDoc = await Brand.findById(brand);
+        if (existingBrandDoc && isProhibitedBrand(existingBrandDoc.name)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Brand prohibited: Apple and Sony brands are not permitted on KAIA Technologies.',
+          });
+        }
         brandId = brand;
       } else {
         const brandSlug = slugify(brand);
+        if (isProhibitedBrand(brandSlug)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Brand prohibited: Apple and Sony brands are not permitted on KAIA Technologies.',
+          });
+        }
         let existingBrand = await Brand.findOne({
           $or: [{ slug: brandSlug }, { name: new RegExp(`^${brand.trim()}$`, 'i') }],
         });
@@ -245,9 +284,6 @@ export const createAdminProduct = async (req, res) => {
     const finalSku = SKU && SKU.trim()
       ? SKU.trim()
       : `KAIA-${(brand ? slugify(brand.toString()) : 'GEN').toUpperCase().slice(0, 4)}-${Math.floor(100000 + Math.random() * 900000)}`;
-
-    // 6. Pricing & Stock
-    const finalSellingPrice = Number(sellingPrice ?? price ?? mrp ?? 0);
     const finalMrp = Number(mrp ?? finalSellingPrice);
     const finalStock = Number(stockQuantity ?? (typeof stock === 'object' ? stock?.quantity : stock) ?? 10);
 
@@ -329,6 +365,12 @@ export const updateAdminProduct = async (req, res) => {
     }
 
     if (name && name.trim()) {
+      if (isProhibitedBrand(name)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Update prohibited: Apple and Sony products and brands are not permitted on KAIA Technologies.',
+        });
+      }
       product.name = name.trim();
       // Only regenerate slug if name changed significantly
       if (slugify(name) !== product.slug) {
@@ -344,10 +386,29 @@ export const updateAdminProduct = async (req, res) => {
 
     // Brand resolution
     if (brand) {
+      if (typeof brand === 'string' && isProhibitedBrand(brand)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Brand prohibited: Apple and Sony brands are not permitted on KAIA Technologies.',
+        });
+      }
       if (mongoose.Types.ObjectId.isValid(brand)) {
+        const existingBrandDoc = await Brand.findById(brand);
+        if (existingBrandDoc && isProhibitedBrand(existingBrandDoc.name)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Brand prohibited: Apple and Sony brands are not permitted on KAIA Technologies.',
+          });
+        }
         product.brand = brand;
       } else {
         const brandSlug = slugify(brand);
+        if (isProhibitedBrand(brandSlug)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Brand prohibited: Apple and Sony brands are not permitted on KAIA Technologies.',
+          });
+        }
         let existingBrand = await Brand.findOne({
           $or: [{ slug: brandSlug }, { name: new RegExp(`^${brand.trim()}$`, 'i') }],
         });
@@ -384,9 +445,15 @@ export const updateAdminProduct = async (req, res) => {
     }
 
     if (description !== undefined) product.description = description;
-    if (mrp !== undefined) product.mrp = Number(mrp);
+    if (mrp !== undefined) {
+      const parsedMrp = Number(mrp);
+      if (parsedMrp < 0) return res.status(400).json({ success: false, message: 'MRP cannot be negative.' });
+      product.mrp = parsedMrp;
+    }
     if (sellingPrice !== undefined || price !== undefined) {
-      product.sellingPrice = Number(sellingPrice ?? price);
+      const parsedPrice = Number(sellingPrice ?? price);
+      if (parsedPrice < 0) return res.status(400).json({ success: false, message: 'Price cannot be negative.' });
+      product.sellingPrice = parsedPrice;
     }
     if (gstRate !== undefined) product.gstRate = Number(gstRate);
     if (SKU !== undefined) product.SKU = SKU;
