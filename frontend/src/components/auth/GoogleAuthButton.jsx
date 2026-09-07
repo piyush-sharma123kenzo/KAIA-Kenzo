@@ -98,35 +98,17 @@ const GoogleAuthButton = ({ text = 'Continue with Google', mode = 'login' }) => 
         window.google.accounts.id.prompt();
         return;
       } catch (e) {
-        console.warn('Google Prompt fallback:', e);
+        console.warn('[GoogleAuth] Google prompt failed:', e);
       }
     }
 
-    // 2. Fallback prompt for direct Google Sign-in simulation or development
-    setLoading(true);
-    try {
-      // In production without client ID or if user triggers OAuth popup
-      const dummyGoogleEmail = `user.${Date.now().toString().slice(-4)}@gmail.com`;
-      const dummyName = 'Google Customer';
-      const dummyAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(dummyGoogleEmail)}`;
-
-      const res = await googleSignIn({
-        email: dummyGoogleEmail,
-        name: dummyName,
-        picture: dummyAvatar,
-        googleId: `google_${Date.now()}`,
-      });
-
-      if (res?.success) {
-        toast?.success?.(res.message || 'Signed in with Google!');
-        navigate(from, { replace: true });
-      }
-    } catch (err) {
-      console.error('Google Sign-In error:', err);
-      toast?.error?.(err.message || 'Google sign in failed.');
-    } finally {
-      setLoading(false);
+    // 2. If client ID is not configured
+    if (!googleClientId) {
+      toast?.error?.('Google Sign-In is not currently enabled for this deployment. Please sign in with your email and password.');
+      return;
     }
+
+    toast?.info?.('Initializing Google Sign-In...');
   };
 
   return (
