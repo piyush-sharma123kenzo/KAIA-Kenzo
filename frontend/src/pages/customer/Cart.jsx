@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { useToast } from '../../context/ToastContext';
 import axiosInstance from '../../api/axiosInstance';
 import Container from '../../components/ui/Container';
@@ -23,6 +24,7 @@ const Cart = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const { cart, updateQuantity, removeFromCart, getCartTotals } = useContext(CartContext);
+  const { addToWishlist } = useWishlist() || {};
   const toast = useToast();
 
   const [couponCode, setCouponCode] = useState('');
@@ -112,22 +114,15 @@ const Cart = () => {
 
   const handleMoveToWishlist = async (item) => {
     try {
-      if (user) {
-        await axiosInstance.post('/account/wishlist', { productId: item.product._id });
-      } else {
-        const history = localStorage.getItem('kaia_wishlist');
-        let parsed = history ? JSON.parse(history) : [];
-        if (!Array.isArray(parsed)) parsed = [];
-        if (!parsed.some((w) => w._id === item.product._id)) {
-          parsed.push(item.product);
-          localStorage.setItem('kaia_wishlist', JSON.stringify(parsed));
-        }
+      if (user && addToWishlist) {
+        await addToWishlist(item.product._id);
       }
       // Remove from cart
       await removeFromCart(item.product._id, item.selectedSpecs);
       toast.showToast('Item moved to Wishlist.', 'success');
     } catch (err) {
       console.error('Error moving to wishlist:', err);
+      toast.showToast(err.response?.data?.message || err.message || 'Error moving to wishlist.', 'error');
     }
   };
 

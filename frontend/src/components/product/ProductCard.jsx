@@ -4,9 +4,9 @@ import { Star, Heart, ArrowLeftRight, ShoppingCart, Check } from 'lucide-react';
 import { getAccurateProductImage } from '../../utils/productImageMap';
 import { useCompare } from '../../context/CompareContext';
 import { CartContext } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { AuthContext } from '../../context/AuthContext';
 import { ToastContext } from '../../context/ToastContext';
-import axiosInstance from '../../api/axiosInstance';
 
 const ProductCard = ({
   product,
@@ -18,14 +18,15 @@ const ProductCard = ({
 
   const { isInCompare, toggleCompare } = useCompare();
   const { addToCart } = useContext(CartContext) || {};
+  const { isInWishlist, toggleWishlist } = useWishlist() || {};
   const { user } = useContext(AuthContext) || {};
   const toast = useContext(ToastContext) || {};
 
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
   const _id = product._id || product.id || '';
+  const isWishlisted = isInWishlist ? isInWishlist(_id) : false;
   const name = product.name || 'Electronics Product';
   const slug = product.slug || _id || '';
   const brandName = typeof product.brand === 'string' 
@@ -66,19 +67,15 @@ const ProductCard = ({
       return;
     }
 
+    if (!toggleWishlist) return;
+
     try {
-      if (isWishlisted) {
-        await axiosInstance.delete(`/account/wishlist/${_id}`);
-        setIsWishlisted(false);
-        if (toast.showToast) toast.showToast('Removed from wishlist.', 'info');
-      } else {
-        await axiosInstance.post('/account/wishlist', { productId: _id });
-        setIsWishlisted(true);
-        if (toast.showToast) toast.showToast('Added to your wishlist.', 'success');
+      const res = await toggleWishlist(_id);
+      if (toast.showToast) {
+        toast.showToast(res.message || (res.action === 'added' ? 'Added to your wishlist.' : 'Removed from wishlist.'), 'success');
       }
     } catch (err) {
-      setIsWishlisted(!isWishlisted);
-      if (toast.showToast) toast.showToast(isWishlisted ? 'Removed from wishlist.' : 'Saved to wishlist.', 'success');
+      if (toast.showToast) toast.showToast(err.response?.data?.message || err.message || 'Failed to update wishlist.', 'error');
     }
   };
 

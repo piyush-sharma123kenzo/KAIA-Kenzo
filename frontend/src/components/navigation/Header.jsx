@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { useLocationContext } from '../../context/LocationContext';
 import { useCompare } from '../../context/CompareContext';
 import { useToast } from '../../context/ToastContext';
@@ -25,6 +26,7 @@ import userApi from '../../services/userApi';
 const Header = () => {
   const { user, logout, updateProfile } = useContext(AuthContext) || {};
   const { cart, cartTotals } = useContext(CartContext) || {};
+  const { wishlistCount = 0 } = useWishlist() || {};
   const { deliveryLocation, openLocationModal } = useLocationContext();
   const { compareCount = 0 } = useCompare() || {};
   const toast = useToast();
@@ -310,7 +312,7 @@ const Header = () => {
               <div className="relative">
                 <Heart className="w-5 h-5 text-white" />
                 <span className="absolute -top-1.5 -right-2 bg-[#F5B400] text-slate-950 font-black text-[9px] rounded-full w-4 h-4 flex items-center justify-center leading-none shadow-xs">
-                  0
+                  {wishlistCount}
                 </span>
               </div>
               <span className="hidden xl:inline font-bold">Wishlist</span>

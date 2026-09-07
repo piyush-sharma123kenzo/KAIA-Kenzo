@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 // Providers
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { WishlistProvider } from './context/WishlistContext';
 import { ToastProvider } from './context/ToastContext';
 import { LocationProvider } from './context/LocationContext';
 import { CompareProvider } from './context/CompareContext';
@@ -123,10 +124,11 @@ function App() {
       <LocationProvider>
         <ToastProvider>
           <CartProvider>
-            <CompareProvider>
-              <BrowserRouter>
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
+            <WishlistProvider>
+              <CompareProvider>
+                <BrowserRouter>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
                   
                   {/* BUYER / CUSTOMER APP FLOW */}
                   <Route path="/" element={<CustomerLayout />}>
@@ -263,7 +265,8 @@ function App() {
               </Suspense>
             </BrowserRouter>
           </CompareProvider>
-        </CartProvider>
+        </WishlistProvider>
+      </CartProvider>
       </ToastProvider>
     </LocationProvider>
   </AuthProvider>

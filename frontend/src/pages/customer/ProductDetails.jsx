@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { useCompare } from '../../context/CompareContext';
 import axiosInstance from '../../api/axiosInstance';
 import productService from '../../services/productService';
@@ -21,8 +22,9 @@ import DeliveryChecker from '../../components/common/DeliveryChecker';
 const ProductDetails = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useContext(CartContext);
-  const { user } = useContext(AuthContext);
+  const { addToCart } = useContext(CartContext) || {};
+  const { user } = useContext(AuthContext) || {};
+  const { isInWishlist, toggleWishlist } = useWishlist() || {};
   const { isInCompare, toggleCompare } = useCompare();
 
   const [product, setProduct] = useState(null);
@@ -31,7 +33,8 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  const isWishlisted = product ? (isInWishlist ? isInWishlist(product._id) : false) : false;
 
   // Lightbox Zoom Modal
   const [showLightbox, setShowLightbox] = useState(false);
@@ -77,35 +80,26 @@ const ProductDetails = () => {
     }
   };
 
-  // Check wishlist status
-  const checkWishlistStatus = async (prodId) => {
-    if (!user) return;
-    try {
-      const res = await axiosInstance.get('/account/wishlist');
-      if (res.data?.success) {
-        const found = res.data.wishlist.some((item) => item.product?._id === prodId || item.product === prodId);
-        setIsWishlisted(found);
-      }
-    } catch (e) {
-      // ignore
-    }
-  };
-
   const handleToggleWishlist = async () => {
     if (!user) {
       navigate('/login');
       return;
     }
+    if (!product || !toggleWishlist) return;
     try {
-      if (isWishlisted) {
-        await axiosInstance.delete(`/account/wishlist/${product._id}`);
-        setIsWishlisted(false);
-      } else {
-        await axiosInstance.post('/account/wishlist', { productId: product._id });
-        setIsWishlisted(true);
-      }
+      const res = await toggleWishlist(product._id);
+      setReviewMsg({
+        type: 'success',
+        text: res?.message || (res?.action === 'added' ? 'Added to your wishlist.' : 'Removed from wishlist.'),
+      });
+      setTimeout(() => setReviewMsg({ type: '', text: '' }), 3000);
     } catch (err) {
       console.error('Wishlist toggle error:', err);
+      setReviewMsg({
+        type: 'error',
+        text: err.response?.data?.message || err.message || 'Error updating wishlist.',
+      });
+      setTimeout(() => setReviewMsg({ type: '', text: '' }), 3000);
     }
   };
 
@@ -118,7 +112,6 @@ const ProductDetails = () => {
           const prod = res.product;
           setProduct(prod);
           registerRecentlyViewed(prod);
-          checkWishlistStatus(prod._id);
 
           // Fetch reviews & distribution
           try {

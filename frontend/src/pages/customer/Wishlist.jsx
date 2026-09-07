@@ -1,19 +1,17 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Heart, ShoppingBag, Trash2, ArrowRight, ShoppingCart, Star, Check } from 'lucide-react';
+import React, { useState, useContext } from 'react';
+import { Heart, ShoppingBag, Trash2, ArrowRight, ShoppingCart, Check, AlertCircle, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import axiosInstance from '../../api/axiosInstance';
-import { CartContext } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { getAccurateProductImage } from '../../utils/productImageMap';
 import { Skeleton } from '../../components/feedback/Skeleton';
 import Container from '../../components/ui/Container';
 import ViewModeSwitch from '../../components/ui/ViewModeSwitch';
 
 const Wishlist = () => {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { addToCart } = useContext(CartContext) || {};
+  const { wishlist, loading, removeFromWishlist, moveToCart, clearWishlist } = useWishlist();
   const [actionMsg, setActionMsg] = useState({ type: '', text: '' });
   const [movingId, setMovingId] = useState(null);
+  const [clearing, setClearing] = useState(false);
   const [viewMode, setViewMode] = useState(() => {
     try {
       return localStorage.getItem('kaia_view_mode') || 'grid';
@@ -29,50 +27,56 @@ const Wishlist = () => {
     } catch {}
   };
 
-  const fetchWishlist = async () => {
-    setLoading(true);
-    try {
-      const res = await axiosInstance.get('/account/wishlist');
-      if (res.data?.success) {
-        setItems(res.data.wishlist || []);
-      }
-    } catch (err) {
-      console.error('Error fetching wishlist:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchWishlist();
-  }, []);
-
   const handleRemove = async (productId) => {
     try {
-      await axiosInstance.delete(`/account/wishlist/${productId}`);
-      setItems((prev) => prev.filter((i) => (i.product?._id || i.product?.id) !== productId));
+      await removeFromWishlist(productId);
       setActionMsg({ type: 'success', text: 'Item removed from your wishlist.' });
       setTimeout(() => setActionMsg({ type: '', text: '' }), 3000);
     } catch (err) {
-      setActionMsg({ type: 'error', text: 'Error removing item from wishlist.' });
+      setActionMsg({
+        type: 'error',
+        text: err.response?.data?.message || err.message || 'Error removing item from wishlist.',
+      });
       setTimeout(() => setActionMsg({ type: '', text: '' }), 3000);
     }
   };
 
   const handleMoveToCart = async (product) => {
     const pId = product._id || product.id;
-    if (!addToCart || !pId) return;
+    if (!pId) return;
     setMovingId(pId);
     try {
-      await addToCart(product, 1);
-      await handleRemove(pId);
-      setActionMsg({ type: 'success', text: `Moved ${product.name || 'item'} to your shopping cart!` });
+      await moveToCart(pId, 1);
+      setActionMsg({ type: 'success', text: `Moved "${product.name || 'item'}" to your shopping cart!` });
+      setTimeout(() => setActionMsg({ type: '', text: '' }), 3000);
     } catch (err) {
       console.error('Error moving to cart:', err);
+      setActionMsg({
+        type: 'error',
+        text: err.response?.data?.message || err.message || 'Could not move item to cart.',
+      });
+      setTimeout(() => setActionMsg({ type: '', text: '' }), 3000);
     } finally {
       setMovingId(null);
     }
   };
+
+  const handleClearWishlist = async () => {
+    if (!window.confirm('Are you sure you want to remove all items from your wishlist?')) return;
+    setClearing(true);
+    try {
+      await clearWishlist();
+      setActionMsg({ type: 'success', text: 'Your wishlist has been cleared.' });
+      setTimeout(() => setActionMsg({ type: '', text: '' }), 3000);
+    } catch (err) {
+      setActionMsg({ type: 'error', text: 'Failed to clear wishlist.' });
+      setTimeout(() => setActionMsg({ type: '', text: '' }), 3000);
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const items = wishlist?.products || [];
 
   return (
     <div className="py-10 bg-slate-50 min-h-[85vh] text-left font-sans">
@@ -98,11 +102,23 @@ const Wishlist = () => {
               </span>
             </div>
             <p className="text-xs md:text-sm text-slate-500 mt-1">
-              Your saved hardware products with live inventory status, price tracking, and instant cart transfer.
+              Your saved authentic hardware products with live MongoDB inventory status, real-time pricing, and 1-click cart transfer.
             </p>
           </div>
 
           <div className="flex items-center space-x-3 self-end sm:self-auto">
+            {items.length > 0 && (
+              <button
+                onClick={handleClearWishlist}
+                disabled={clearing}
+                className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-white border border-rose-200 px-3.5 py-2.5 rounded-xl shadow-2xs hover:bg-rose-50 transition-all flex items-center space-x-1.5 cursor-pointer"
+                title="Remove all items from wishlist"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{clearing ? 'Clearing...' : 'Clear All'}</span>
+              </button>
+            )}
+
             <ViewModeSwitch
               viewMode={viewMode}
               onChange={handleViewModeChange}
@@ -110,7 +126,7 @@ const Wishlist = () => {
             />
 
             <Link to="/products">
-              <button className="text-xs font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 px-4 py-2.5 rounded-xl shadow-2xs hover:bg-slate-100/80 transition-all flex items-center space-x-2 cursor-pointer">
+              <button className="text-xs font-bold text-slate-700 hover:text-slate-950 bg-white border border-slate-200 px-4 py-2.5 rounded-xl shadow-2xs hover:bg-slate-100/80 transition-all flex items-center space-x-2 cursor-pointer">
                 <span>Continue Shopping</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -121,13 +137,18 @@ const Wishlist = () => {
         {/* Action Feedback Banner */}
         {actionMsg.text && (
           <div
-            className={`p-3.5 rounded-xl text-xs font-bold border transition-all ${
+            className={`p-3.5 rounded-xl text-xs font-bold border transition-all flex items-center space-x-2 ${
               actionMsg.type === 'error'
                 ? 'bg-rose-50 text-rose-800 border-rose-200'
                 : 'bg-emerald-50 text-emerald-800 border-emerald-200'
             }`}
           >
-            {actionMsg.text}
+            {actionMsg.type === 'error' ? (
+              <XCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            ) : (
+              <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+            )}
+            <span>{actionMsg.text}</span>
           </div>
         )}
 
@@ -153,7 +174,7 @@ const Wishlist = () => {
                 Your Wishlist is Empty
               </h2>
               <p className="text-xs md:text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
-                Explore our curated catalog of enterprise electronics, gaming hardware, and components to save products you love.
+                Explore our curated catalog of enterprise electronics, gaming hardware, and computer components to save products you love.
               </p>
             </div>
             <div className="pt-2">
@@ -171,10 +192,15 @@ const Wishlist = () => {
               const pId = product._id || product.id || item._id;
               const name = product.name || 'Hardware Product';
               const brandName = typeof product.brand === 'string' ? product.brand : product.brand?.name || 'Authorized Brand';
-              const sellingPrice = Number(product.sellingPrice ?? product.price ?? 0);
-              const mrp = Number(product.mrp ?? sellingPrice);
-              const discount = mrp > sellingPrice ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
-              const isAvailable = (product.stockQuantity ?? product.stock ?? 10) > 0;
+              
+              const sellingPrice = Number(item.unitPrice ?? product.sellingPrice ?? product.price ?? 0);
+              const mrp = Number(item.mrp ?? product.mrp ?? sellingPrice);
+              const discount = Number(item.discount ?? (mrp > sellingPrice ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0));
+              
+              const isAvailable = item.isAvailable !== false && (item.availableStock > 0 || (product.stock?.quantity ?? 10) > 0);
+              const statusText = item.statusText || (isAvailable ? 'In Stock' : 'Out of Stock');
+              const isInactive = product.isActive === false || product.status === 'INACTIVE';
+              
               const imageUrl = getAccurateProductImage(product);
               const isMoving = movingId === pId;
 
@@ -212,8 +238,14 @@ const Wishlist = () => {
                         <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">
                           {brandName}
                         </span>
-                        <span className={`text-[10px] font-bold ${isAvailable ? 'text-emerald-700' : 'text-rose-600'}`}>
-                          {isAvailable ? 'In Stock — Ships within 24h' : 'Currently Out of Stock'}
+                        <span className={`text-[10px] font-bold ${
+                          isInactive
+                            ? 'text-slate-500 bg-slate-100 px-2 py-0.5 rounded'
+                            : isAvailable
+                              ? 'text-emerald-700'
+                              : 'text-rose-600'
+                        }`}>
+                          {isInactive ? 'Currently Unavailable' : (isAvailable ? 'In Stock — Ships within 24h' : 'Currently Out of Stock')}
                         </span>
                       </div>
 
@@ -225,8 +257,14 @@ const Wishlist = () => {
                       </Link>
 
                       <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                        {product.description || 'Premium genuine electronics with full brand manufacturer warranty and express delivery.'}
+                        {product.description || 'Premium genuine computing hardware with full manufacturer warranty and express delivery.'}
                       </p>
+
+                      {item.addedAt && (
+                        <span className="text-[11px] text-slate-400 font-medium block">
+                          Saved on {new Date(item.addedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      )}
                     </div>
 
                     {/* Right: Pricing & Actions */}
@@ -248,11 +286,11 @@ const Wishlist = () => {
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => handleMoveToCart(product)}
-                          disabled={!isAvailable || isMoving}
+                          disabled={!isAvailable || isInactive || isMoving}
                           className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer ${
                             isMoving
                               ? 'bg-emerald-600 text-white'
-                              : !isAvailable
+                              : !isAvailable || isInactive
                                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                                 : 'bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 active:scale-95'
                           }`}
@@ -265,7 +303,7 @@ const Wishlist = () => {
                           ) : (
                             <>
                               <ShoppingCart className="w-3.5 h-3.5" />
-                              <span>Move to Cart</span>
+                              <span>{isInactive ? 'Unavailable' : isAvailable ? 'Move to Cart' : 'Out of Stock'}</span>
                             </>
                           )}
                         </button>
@@ -348,18 +386,24 @@ const Wishlist = () => {
                           </span>
                         )}
                       </div>
-                      <span className={`text-[10px] font-bold ${isAvailable ? 'text-emerald-700' : 'text-rose-600'}`}>
-                        {isAvailable ? 'In Stock' : 'Out of Stock'}
+                      <span className={`text-[10px] font-bold ${
+                        isInactive
+                          ? 'text-slate-400'
+                          : isAvailable
+                            ? 'text-emerald-700'
+                            : 'text-rose-600'
+                      }`}>
+                        {isInactive ? 'Unavailable' : isAvailable ? 'In Stock' : 'Out of Stock'}
                       </span>
                     </div>
 
                     <button
                       onClick={() => handleMoveToCart(product)}
-                      disabled={!isAvailable || isMoving}
+                      disabled={!isAvailable || isInactive || isMoving}
                       className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer ${
                         isMoving
                           ? 'bg-emerald-600 text-white'
-                          : !isAvailable
+                          : !isAvailable || isInactive
                             ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                             : 'bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 active:scale-95'
                       }`}
@@ -372,7 +416,7 @@ const Wishlist = () => {
                       ) : (
                         <>
                           <ShoppingCart className="w-3.5 h-3.5" />
-                          <span>{isAvailable ? 'Move to Cart' : 'Out of Stock'}</span>
+                          <span>{isInactive ? 'Currently Unavailable' : isAvailable ? 'Move to Cart' : 'Out of Stock'}</span>
                         </>
                       )}
                     </button>
