@@ -17,7 +17,7 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
     try {
-      const res = await axiosInstance.get('/api/notifications/unread-count');
+      const res = await axiosInstance.get('/notifications/unread-count');
       if (res.data?.success) {
         setUnreadCount(Number(res.data.unreadCount) || 0);
       }
@@ -35,7 +35,7 @@ export const NotificationProvider = ({ children }) => {
     }
     setLoading(true);
     try {
-      const res = await axiosInstance.get('/api/notifications', { params });
+      const res = await axiosInstance.get('/notifications', { params });
       if (res.data?.success) {
         setNotifications(res.data.notifications || []);
         if (res.data.unreadCount !== undefined) {
@@ -53,7 +53,7 @@ export const NotificationProvider = ({ children }) => {
   const markAsRead = useCallback(async (id) => {
     if (!id) return;
     try {
-      await axiosInstance.patch(`/api/notifications/${id}/read`);
+      await axiosInstance.patch(`/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) => (n._id === id ? { ...n, read: true, readAt: new Date() } : n))
       );
@@ -66,7 +66,7 @@ export const NotificationProvider = ({ children }) => {
   // 4. Mark all user notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
-      await axiosInstance.patch('/api/notifications/read-all');
+      await axiosInstance.patch('/notifications/read-all');
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, read: true, readAt: new Date() }))
       );
@@ -80,7 +80,7 @@ export const NotificationProvider = ({ children }) => {
   const deleteNotification = useCallback(async (id) => {
     if (!id) return;
     try {
-      await axiosInstance.delete(`/api/notifications/${id}`);
+      await axiosInstance.delete(`/notifications/${id}`);
       setNotifications((prev) => {
         const item = prev.find((n) => n._id === id);
         if (item && !item.read) {
@@ -96,7 +96,7 @@ export const NotificationProvider = ({ children }) => {
   // 6. Clear all notifications
   const clearAll = useCallback(async () => {
     try {
-      await axiosInstance.delete('/api/notifications');
+      await axiosInstance.delete('/notifications');
       setNotifications([]);
       setUnreadCount(0);
     } catch (err) {

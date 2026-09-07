@@ -27,7 +27,7 @@ const Notifications = () => {
         params.type = activeFilter;
       }
 
-      const res = await axiosInstance.get('/api/notifications', { params });
+      const res = await axiosInstance.get('/notifications', { params });
       if (res.data.success) {
         setNotifications(res.data.notifications || []);
         fetchUnreadCount();
@@ -45,7 +45,7 @@ const Notifications = () => {
 
   const markAllRead = async () => {
     try {
-      await axiosInstance.patch('/api/notifications/read-all');
+      await axiosInstance.patch('/notifications/read-all');
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       fetchUnreadCount();
     } catch (err) {
@@ -55,7 +55,7 @@ const Notifications = () => {
 
   const markOneRead = async (id) => {
     try {
-      await axiosInstance.patch(`/api/notifications/${id}/read`);
+      await axiosInstance.patch(`/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
       fetchUnreadCount();
     } catch (err) {
@@ -66,7 +66,7 @@ const Notifications = () => {
   const deleteOne = async (id, e) => {
     e.stopPropagation();
     try {
-      await axiosInstance.delete(`/api/notifications/${id}`);
+      await axiosInstance.delete(`/notifications/${id}`);
       setNotifications(prev => prev.filter(n => n._id !== id));
       fetchUnreadCount();
     } catch (err) {

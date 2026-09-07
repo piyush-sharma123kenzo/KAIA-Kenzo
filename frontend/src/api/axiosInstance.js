@@ -15,9 +15,14 @@ const axiosInstance = axios.create({
   },
 });
 
-// Request Interceptor: Attach bearer authorization token
+// Request Interceptor: Attach bearer authorization token and normalize URL
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Prevent duplicate /api/ prefix if url is written as /api/...
+    if (config.url && config.url.startsWith('/api/')) {
+      config.url = config.url.replace(/^\/api\//, '/');
+    }
+
     const token = localStorage.getItem('kaia_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
