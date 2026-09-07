@@ -386,6 +386,102 @@ export const googleLogin = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Authenticate or sync Clerk user
+ * @route   POST /api/auth/clerk
+ * @access  Public
+ */
+export const clerkLogin = async (req, res) => {
+  try {
+    const { clerkId, email, name, avatar, firstName, lastName } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required for Clerk authentication.',
+      });
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+    let user = await User.findOne({
+      $or: [
+        { clerkId: clerkId || 'none' },
+        { email: normalizedEmail }
+      ]
+    });
+
+    const displayName = name || `${firstName || ''} ${lastName || ''}`.trim() || normalizedEmail.split('@')[0];
+
+    if (user) {
+      if (user.status === 'Suspended') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account has been suspended. Please contact support.',
+        });
+      }
+
+      if (!user.clerkId && clerkId) {
+        user.clerkId = clerkId;
+      }
+      if (!user.avatar && avatar) {
+        user.avatar = avatar;
+      }
+      user.emailVerified = true;
+      user.lastLogin = new Date();
+      await user.save();
+
+      createNotification({
+        user: user._id,
+        role: user.role || 'CUSTOMER',
+        type: 'AUTH',
+        title: 'Clerk Sign-In Successful',
+        message: `Welcome back, ${user.name}! You signed in via Clerk.`,
+        referenceType: 'User',
+        referenceId: user._id,
+      }).catch((e) => console.warn('Auth notification notice:', e.message));
+
+      return sendAuthTokenResponse(user, 200, res, {
+        message: 'Successfully signed in with Clerk.',
+      });
+    }
+
+    // Register new user via Clerk
+    const newUser = await User.create({
+      name: displayName,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      email: normalizedEmail,
+      avatar: avatar || '',
+      clerkId: clerkId || `clerk_${Date.now()}`,
+      authProvider: 'clerk',
+      role: 'CUSTOMER',
+      emailVerified: true,
+      status: 'Active',
+      lastLogin: new Date(),
+    });
+
+    createNotification({
+      user: newUser._id,
+      role: 'CUSTOMER',
+      type: 'AUTH',
+      title: 'Welcome to KAIA Technologies!',
+      message: `Your account has been created via Clerk. Start exploring premium technology products.`,
+      referenceType: 'User',
+      referenceId: newUser._id,
+    }).catch((e) => console.warn('Welcome notification notice:', e.message));
+
+    return sendAuthTokenResponse(newUser, 201, res, {
+      message: 'Account created with Clerk successfully.',
+    });
+  } catch (error) {
+    console.error('Clerk Sign-In Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Clerk authentication failed. Please try again.',
+    });
+  }
+};
+
 export default {
   registerUser,
   verifyOtp,
@@ -394,7 +490,9 @@ export default {
   resetPassword,
   loginUser,
   googleLogin,
+  clerkLogin,
   logoutUser,
   getMe,
   updateProfile,
 };
+

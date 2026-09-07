@@ -50,7 +50,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function () {
-        return !this.googleId;
+        return !this.googleId && !this.clerkId;
       },
     },
     googleId: {
@@ -58,9 +58,14 @@ const userSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    clerkId: {
+      type: String,
+      default: null,
+      index: true,
+    },
     authProvider: {
       type: String,
-      enum: ['local', 'google'],
+      enum: ['local', 'google', 'clerk'],
       default: 'local',
     },
     role: {

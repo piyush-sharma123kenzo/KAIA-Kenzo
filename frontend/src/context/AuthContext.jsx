@@ -7,7 +7,8 @@
  *  - Password reset flows and profile updates
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { useUser as useClerkUser, useClerk } from '@clerk/clerk-react';
 import authApi from '../services/authApi';
 
 export const AuthContext = createContext();
@@ -17,6 +18,57 @@ export const AuthProvider = ({ children }) => {
   const [brand, setBrand] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Safely access Clerk hooks if ClerkProvider is present
+  let clerkUser = null;
+  let clerkIsLoaded = true;
+  let clerkIsSignedIn = false;
+  let clerk = null;
+
+  try {
+    const clerkUserHook = useClerkUser();
+    clerkUser = clerkUserHook?.user;
+    clerkIsLoaded = clerkUserHook?.isLoaded ?? true;
+    clerkIsSignedIn = clerkUserHook?.isSignedIn ?? false;
+    clerk = useClerk();
+  } catch (e) {
+    // ClerkProvider might not be active if key is not configured
+  }
+
+  const syncedClerkIdRef = useRef(null);
+
+  // Synchronize Clerk user state with KAIA backend session
+  useEffect(() => {
+    if (!clerkIsLoaded) return;
+
+    if (clerkIsSignedIn && clerkUser) {
+      const email = clerkUser.primaryEmailAddress?.emailAddress;
+      const clerkId = clerkUser.id;
+
+      if (syncedClerkIdRef.current !== clerkId && email) {
+        syncedClerkIdRef.current = clerkId;
+        authApi.clerkAuth({
+          clerkId,
+          email,
+          name: clerkUser.fullName || `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || email.split('@')[0],
+          avatar: clerkUser.imageUrl,
+          firstName: clerkUser.firstName,
+          lastName: clerkUser.lastName,
+        }).then((res) => {
+          if (res?.success && res?.user) {
+            if (res.token) {
+              localStorage.setItem('kaia_token', res.token);
+            }
+            setUser(res.user);
+          }
+        }).catch((err) => {
+          console.warn('[Clerk Auth Sync Error]:', err.message);
+        });
+      }
+    } else if (!clerkIsSignedIn && syncedClerkIdRef.current) {
+      syncedClerkIdRef.current = null;
+    }
+  }, [clerkIsLoaded, clerkIsSignedIn, clerkUser]);
 
   // Restore authenticated session on application mount
   const loadUser = useCallback(async () => {
@@ -186,6 +238,9 @@ export const AuthProvider = ({ children }) => {
   // Logout handler
   const logout = async () => {
     try {
+      if (clerk?.signOut) {
+        await clerk.signOut().catch(() => {});
+      }
       await authApi.logoutUser();
     } catch (err) {
       console.error('[KAIA Auth] Logout error:', err.message);

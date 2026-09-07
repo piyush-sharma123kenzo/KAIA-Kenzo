@@ -126,6 +126,16 @@ export const googleAuth = async (payload) => {
 };
 
 /**
+ * Log in or synchronize with Clerk authentication.
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const clerkAuth = async (payload) => {
+  const response = await axiosInstance.post('/auth/clerk', payload);
+  return response.data;
+};
+
+/**
  * Terminate user session and clear authentication cookie.
  * @returns {Promise<object>}
  */
@@ -138,6 +148,7 @@ export default {
   registerUser,
   loginUser,
   googleAuth,
+  clerkAuth,
   verifyEmailOtp,
   resendEmailOtp,
   forgotPassword,

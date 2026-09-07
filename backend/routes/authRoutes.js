@@ -4,6 +4,7 @@ import {
   registerUser,
   loginUser,
   googleLogin,
+  clerkLogin,
   logoutUser,
   getMe,
   updateProfile,
@@ -77,6 +78,7 @@ const resetPasswordLimiter = rateLimit({
 router.post('/register', registerLimiter, registerUser);
 router.post('/login', loginLimiter, loginUser);
 router.post('/google', googleLogin);
+router.post('/clerk', clerkLogin);
 router.post('/verify-otp', otpVerifyLimiter, verifyOtp);
 router.post('/verify-email-otp', otpVerifyLimiter, verifyOtp);
 router.post('/verify-reset-otp', otpVerifyLimiter, verifyOtp);

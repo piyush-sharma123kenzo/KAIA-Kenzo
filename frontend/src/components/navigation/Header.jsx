@@ -23,6 +23,7 @@ import { getAvatarSrc } from '../../utils/imageUtils';
 import ProfileAvatar from '../profile/ProfileAvatar';
 import ProfileImageViewer from '../profile/ProfileImageViewer';
 import userApi from '../../services/userApi';
+import ClerkAuthButton from '../auth/ClerkAuthButton';
 
 const Header = () => {
   const { user, logout, updateProfile } = useContext(AuthContext) || {};
@@ -402,12 +403,15 @@ const Header = () => {
                         </p>
                       </div>
 
-                      <Link to="/login" className="block w-full">
-                        <button className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-2.5 px-4 rounded-xl shadow-xs transition-colors text-xs flex items-center justify-center space-x-1.5">
-                          <span>Sign In to Your Account</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                      </Link>
+                      <div className="space-y-2">
+                        <ClerkAuthButton mode="signIn" text="Instant Sign In with Clerk" />
+                        <Link to="/login" className="block w-full">
+                          <button className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-2.5 px-4 rounded-xl shadow-xs transition-colors text-xs flex items-center justify-center space-x-1.5">
+                            <span>Email / Password Sign In</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </Link>
+                      </div>
 
                       <div className="text-center text-[11px] text-slate-500 pt-1 border-t border-slate-100">
                         New to KAIA?{' '}

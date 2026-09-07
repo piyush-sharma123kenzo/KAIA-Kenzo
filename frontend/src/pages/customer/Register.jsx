@@ -4,6 +4,7 @@ import { ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ShieldAlert, Eye, Eye
 import { AuthContext } from '../../context/AuthContext';
 import KaiaLogo from '../../components/common/KaiaLogo';
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton';
+import ClerkAuthButton from '../../components/auth/ClerkAuthButton';
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -242,8 +243,9 @@ const Register = () => {
           </div>
         )}
 
-        {/* Continue with Google */}
-        <div className="space-y-4">
+        {/* Social / SSO Auth Options */}
+        <div className="space-y-3">
+          <ClerkAuthButton mode="signUp" text="Sign up with Clerk" />
           <GoogleAuthButton text="Sign up with Google" mode="register" />
 
           <div className="relative flex py-1 items-center">

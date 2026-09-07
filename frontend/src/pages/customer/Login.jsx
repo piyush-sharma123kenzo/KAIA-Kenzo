@@ -4,6 +4,7 @@ import { Mail, Lock, ArrowRight, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import KaiaLogo from '../../components/common/KaiaLogo';
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton';
+import ClerkAuthButton from '../../components/auth/ClerkAuthButton';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -81,8 +82,9 @@ const Login = () => {
           </div>
         )}
 
-        {/* Continue with Google */}
-        <div className="space-y-4">
+        {/* Social / SSO Auth Options */}
+        <div className="space-y-3">
+          <ClerkAuthButton mode="signIn" text="Sign in with Clerk" />
           <GoogleAuthButton text="Continue with Google" mode="login" />
 
           <div className="relative flex py-1 items-center">
