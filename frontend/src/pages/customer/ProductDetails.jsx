@@ -745,20 +745,84 @@ const ProductDetails = () => {
       {showLightbox && (
         <div
           onClick={() => setShowLightbox(false)}
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 select-none"
         >
-          <div className="relative max-w-3xl max-h-[85vh] bg-white p-6 rounded shadow-2xl">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-4xl w-full max-h-[90vh] bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center justify-center"
+          >
+            {/* Close Button */}
             <button
               onClick={() => setShowLightbox(false)}
-              className="absolute top-3 right-3 p-1.5 bg-brand-gray-100 hover:bg-brand-gray-200 rounded-full"
+              className="absolute top-4 right-4 z-10 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700 transition-colors shadow-sm"
+              title="Close Preview"
             >
-              <X className="w-5 h-5 text-brand-gray-700" />
+              <X className="w-5 h-5" />
             </button>
-            <img
-              src={images[activeImage]?.url || images[activeImage]}
-              alt={product.name}
-              className="max-h-[75vh] max-w-full object-contain mx-auto"
-            />
+
+            {/* Main Zoomed Image */}
+            <div className="w-full flex items-center justify-center p-4 relative min-h-[350px] max-h-[65vh]">
+              <img
+                src={images[activeImage]?.url || (typeof images[activeImage] === 'string' ? images[activeImage] : '')}
+                alt={product.name}
+                className="max-h-[60vh] max-w-full object-contain mx-auto transition-transform hover:scale-105 duration-200 cursor-zoom-in"
+              />
+
+              {/* Prev Button */}
+              {images.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImage((prev) => (prev - 1 + images.length) % images.length);
+                  }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-900/60 hover:bg-slate-900/80 text-white transition-all shadow-md"
+                  title="Previous Image"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+              )}
+
+              {/* Next Button */}
+              {images.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImage((prev) => (prev + 1) % images.length);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-slate-900/60 hover:bg-slate-900/80 text-white transition-all shadow-md"
+                  title="Next Image"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              )}
+            </div>
+
+            {/* Thumbnail Navigation Bar in Modal */}
+            {images.length > 1 && (
+              <div className="flex items-center space-x-2 pt-4 border-t border-slate-100 overflow-x-auto max-w-full">
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImage(i)}
+                    className={`w-14 h-14 rounded-lg border p-1 shrink-0 transition-all ${
+                      activeImage === i
+                        ? 'border-amber-500 ring-2 ring-amber-500/30 scale-105'
+                        : 'border-slate-200 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img
+                      src={img.url || (typeof img === 'string' ? img : '')}
+                      alt=""
+                      className="w-full h-full object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <span className="text-[11px] font-mono text-slate-500 mt-2 font-bold">
+              Image {activeImage + 1} of {images.length}
+            </span>
           </div>
         </div>
       )}
