@@ -284,8 +284,6 @@ export const createAdminProduct = async (req, res) => {
     const finalSku = SKU && SKU.trim()
       ? SKU.trim()
       : `KAIA-${(brand ? slugify(brand.toString()) : 'GEN').toUpperCase().slice(0, 4)}-${Math.floor(100000 + Math.random() * 900000)}`;
-    const finalMrp = Number(mrp ?? finalSellingPrice);
-    const finalStock = Number(stockQuantity ?? (typeof stock === 'object' ? stock?.quantity : stock) ?? 10);
 
     const product = await Product.create({
       name: name.trim(),
