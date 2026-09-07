@@ -36,9 +36,9 @@ const ProductCard = ({
   const sellingPrice = Number(product.sellingPrice ?? product.price ?? 0);
   const mrp = Number(product.mrp ?? sellingPrice);
   const discountPercent = mrp > sellingPrice ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
-  
-  const rating = Number(product.ratings?.average || 4.5).toFixed(1);
-  const reviewCount = product.ratings?.count || 12;
+  const numRating = Number(product.ratings?.average || product.ratingsAverage || 0);
+  const rating = numRating > 0 ? numRating.toFixed(1) : null;
+  const reviewCount = Number(product.ratings?.count || product.reviewCount || 0);
   const stockQty = product.stock?.quantity ?? product.stock ?? 10;
   const inStock = stockQty > 0;
   const desc = product.description || product.desc || 'High-performance authentic computing hardware with official brand warranty claim eligibility.';
@@ -138,11 +138,17 @@ const ProductCard = ({
             <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-md">
               {brandName}
             </span>
-            <div className="inline-flex items-center space-x-1 bg-amber-50/80 text-amber-900 border border-amber-200/60 font-black px-1.5 py-0.5 rounded text-[10px]">
-              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-              <span>{rating}</span>
-            </div>
-            <span className="text-[11px] text-slate-400 font-medium">({reviewCount} reviews)</span>
+            {reviewCount > 0 ? (
+              <>
+                <div className="inline-flex items-center space-x-1 bg-amber-50/80 text-amber-900 border border-amber-200/60 font-black px-1.5 py-0.5 rounded text-[10px]">
+                  <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                  <span>{rating}</span>
+                </div>
+                <span className="text-[11px] text-slate-400 font-medium">({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})</span>
+              </>
+            ) : (
+              <span className="text-[11px] text-slate-400 font-medium">No reviews yet</span>
+            )}
           </div>
 
           <h3 className="text-sm md:text-base font-bold text-slate-900 leading-snug group-hover:text-amber-700 transition-colors line-clamp-2">
@@ -308,13 +314,21 @@ const ProductCard = ({
 
         {/* Rating & Review Count */}
         <div className="flex items-center space-x-1 mb-1.5">
-          <div className="inline-flex items-center space-x-1 bg-amber-50 text-amber-900 border border-amber-200/60 font-black px-1.5 py-0.5 rounded text-[10px]">
-            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-            <span>{rating}</span>
-          </div>
-          <span className="text-[10px] text-slate-400 font-medium">
-            ({reviewCount})
-          </span>
+          {reviewCount > 0 ? (
+            <>
+              <div className="inline-flex items-center space-x-1 bg-amber-50 text-amber-900 border border-amber-200/60 font-black px-1.5 py-0.5 rounded text-[10px]">
+                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                <span>{rating}</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium">
+                ({reviewCount})
+              </span>
+            </>
+          ) : (
+            <span className="text-[10px] text-slate-400 font-medium">
+              No reviews
+            </span>
+          )}
           {inStock && stockQty <= 3 && (
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50/80 px-1.5 py-0.5 rounded ml-auto">
               Only {stockQty} left

@@ -47,7 +47,7 @@ const Products = () => {
   const { addToCart } = useContext(CartContext);
 
   // URL state
-  const search = searchParams.get('search') || '';
+  const search = searchParams.get('search') || searchParams.get('q') || '';
   const selectedBrand = searchParams.get('brand') || '';
   const selectedCategory = searchParams.get('category') || '';
   const minPrice = searchParams.get('minPrice') || '';

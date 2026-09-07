@@ -150,7 +150,7 @@ const productSchema = new mongoose.Schema(
       index: true,
     },
     ratings: {
-      average: { type: Number, default: 4.5, min: 0, max: 5 },
+      average: { type: Number, default: 0, min: 0, max: 5 },
       count: { type: Number, default: 0 },
     },
     reviewCount: {

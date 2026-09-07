@@ -12,6 +12,12 @@ import Warranty from '../models/Warranty.js';
 import AuditLog from '../models/AuditLog.js';
 import profileImageService from '../services/storage/profileImage.service.js';
 import { formatUserResponse } from '../utils/jwt.utils.js';
+import {
+  getWishlist as getWishlistHandler,
+  addToWishlist as addToWishlistHandler,
+  removeFromWishlist as removeFromWishlistHandler,
+} from './wishlist.controller.js';
+import { submitCustomerReview, removeReview } from '../services/review/review.service.js';
 
 // ==========================================
 // 1. ACCOUNT OVERVIEW
@@ -27,7 +33,7 @@ export const getAccountOverview = async (req, res) => {
       activeOrders,
       deliveredOrders,
       totalReturns,
-      wishlistCount,
+      wishlistDoc,
       unreadNotificationsCount,
       recentOrders,
     ] = await Promise.all([
@@ -36,7 +42,7 @@ export const getAccountOverview = async (req, res) => {
       Order.countDocuments({ customer: userId, orderStatus: { $in: ['placed', 'confirmed', 'processing', 'partially_shipped', 'shipped'] } }),
       Order.countDocuments({ customer: userId, orderStatus: 'delivered' }),
       ReturnRequest.countDocuments({ customerId: userId }),
-      Wishlist.countDocuments({ user: userId }),
+      Wishlist.findOne({ user: userId }),
       Notification.countDocuments({ user: userId, read: false }),
       Order.find({ customer: userId })
         .populate({
@@ -46,6 +52,8 @@ export const getAccountOverview = async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(3),
     ]);
+
+    const wishlistCount = Array.isArray(wishlistDoc?.products) ? wishlistDoc.products.length : 0;
 
     res.status(200).json({
       success: true,
@@ -363,60 +371,15 @@ export const setDefaultAddress = async (req, res) => {
 // ==========================================
 
 export const getWishlist = async (req, res) => {
-  try {
-    const items = await Wishlist.find({ user: req.user._id })
-      .populate({
-        path: 'product',
-        populate: { path: 'brand', select: 'name slug logo' },
-      })
-      .sort({ createdAt: -1 });
-
-    const validItems = items.filter((item) => item.product !== null);
-
-    res.status(200).json({
-      success: true,
-      wishlist: validItems,
-      count: validItems.length,
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching wishlist.' });
-  }
+  return getWishlistHandler(req, res);
 };
 
 export const addToWishlist = async (req, res) => {
-  try {
-    const { productId } = req.body;
-    if (!productId) return res.status(400).json({ message: 'Product ID is required.' });
-
-    const product = await Product.findById(productId);
-    if (!product || !product.isActive) {
-      return res.status(404).json({ message: 'Product is currently unavailable.' });
-    }
-
-    const existing = await Wishlist.findOne({ user: req.user._id, product: productId });
-    if (existing) {
-      return res.status(200).json({ success: true, message: 'Product is already in your wishlist.', item: existing });
-    }
-
-    const item = await Wishlist.create({
-      user: req.user._id,
-      product: productId,
-    });
-
-    res.status(201).json({ success: true, message: 'Added to wishlist.', item });
-  } catch (error) {
-    res.status(500).json({ message: 'Error adding to wishlist.' });
-  }
+  return addToWishlistHandler(req, res);
 };
 
 export const removeFromWishlist = async (req, res) => {
-  try {
-    const { productId } = req.params;
-    await Wishlist.findOneAndDelete({ user: req.user._id, product: productId });
-    res.status(200).json({ success: true, message: 'Removed from wishlist.' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error removing from wishlist.' });
-  }
+  return removeFromWishlistHandler(req, res);
 };
 
 // ==========================================
@@ -428,14 +391,14 @@ export const getCustomerReviews = async (req, res) => {
     const reviews = await Review.find({ user: req.user._id })
       .populate({
         path: 'product',
-        select: 'name SKU images sellingPrice',
+        select: 'name SKU images sellingPrice mrp slug',
         populate: { path: 'brand', select: 'name slug logo' },
       })
       .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, reviews });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching reviews.' });
+    res.status(500).json({ success: false, message: 'Error fetching reviews.' });
   }
 };
 
@@ -443,59 +406,37 @@ export const createOrUpdateReview = async (req, res) => {
   try {
     const { productId, rating, title, comment } = req.body;
     if (!productId || !rating || !comment) {
-      return res.status(400).json({ message: 'Product ID, rating (1-5), and review comment are required.' });
+      return res.status(400).json({ success: false, message: 'Product ID, rating (1-5), and review comment are required.' });
     }
 
-    // Verified purchase check
-    const prodIdStr = productId.toString();
-    const orders = await Order.find({ customer: req.user._id, paymentStatus: 'Paid' }).populate('childOrders');
-    let hasPurchased = false;
-    let purchaseOrderId = null;
+    const result = await submitCustomerReview({
+      userId: req.user._id,
+      userName: req.user.name,
+      productId,
+      rating,
+      title,
+      comment,
+    });
 
-    for (const order of orders) {
-      if (order.items && order.items.some((it) => it.product?.toString() === prodIdStr)) {
-        hasPurchased = true;
-        purchaseOrderId = order._id;
-        break;
-      }
-      for (const childOrder of (order.childOrders || [])) {
-        const match = (childOrder.items || []).some((it) => it.product?.toString() === prodIdStr);
-        if (match) {
-          hasPurchased = true;
-          purchaseOrderId = order._id;
-          break;
-        }
-      }
-      if (hasPurchased) break;
-    }
-
-    if (!hasPurchased) {
-      return res.status(403).json({ message: 'Only verified purchasers of this product can submit a review.' });
-    }
-
-    const review = await Review.findOneAndUpdate(
-      { user: req.user._id, product: productId },
-      {
-        user: req.user._id,
-        product: productId,
-        name: req.user.name,
-        rating: Number(rating),
-        title: title || '',
-        comment: comment.trim(),
-        isVerifiedPurchase: true,
-        orderId: purchaseOrderId,
-        isHidden: false,
-      },
-      { upsert: true, new: true, runValidators: true }
-    );
-
-    res.status(200).json({
+    res.status(result.isNew ? 201 : 200).json({
       success: true,
-      message: 'Review saved successfully.',
-      review,
+      message: result.isNew ? 'Verified review submitted successfully.' : 'Review updated successfully.',
+      review: result.review,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message || 'Error saving review.' });
+    const status = error.statusCode || 500;
+    res.status(status).json({ success: false, message: error.message || 'Error saving review.' });
+  }
+};
+
+export const deleteCustomerReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await removeReview(id, req.user._id, false);
+    res.status(200).json({ success: true, message: result.message });
+  } catch (error) {
+    const status = error.statusCode || 500;
+    res.status(status).json({ success: false, message: error.message || 'Error deleting review.' });
   }
 };
 
@@ -505,35 +446,72 @@ export const createOrUpdateReview = async (req, res) => {
 
 export const getCustomerNotifications = async (req, res) => {
   try {
-    const { unreadOnly } = req.query;
+    const { unreadOnly, page, limit } = req.query;
+    const pageNum = Math.max(1, parseInt(page || '1', 10));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit || '50', 10)));
+    const skip = (pageNum - 1) * limitNum;
+
     const query = { user: req.user._id };
     if (unreadOnly === 'true') query.read = false;
 
-    const notifications = await Notification.find(query).sort({ createdAt: -1 }).limit(50);
-    const unreadCount = await Notification.countDocuments({ user: req.user._id, read: false });
+    const [notifications, unreadCount, total] = await Promise.all([
+      Notification.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Notification.countDocuments({ user: req.user._id, read: false }),
+      Notification.countDocuments(query),
+    ]);
 
-    res.status(200).json({ success: true, notifications, unreadCount });
+    res.status(200).json({
+      success: true,
+      notifications,
+      unreadCount,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum) || 1,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching notifications.' });
+    res.status(500).json({ success: false, message: 'Error fetching notifications.' });
   }
 };
 
 export const markNotificationAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    await Notification.findOneAndUpdate({ _id: id, user: req.user._id }, { read: true });
-    res.status(200).json({ success: true, message: 'Notification marked as read.' });
+    const notification = await Notification.findOneAndUpdate(
+      { _id: id, user: req.user._id },
+      { $set: { read: true, readAt: new Date() } },
+      { new: true }
+    );
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found.' });
+    }
+    res.status(200).json({ success: true, message: 'Notification marked as read.', notification });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating notification.' });
+    res.status(500).json({ success: false, message: 'Error updating notification.' });
   }
 };
 
 export const markAllNotificationsAsRead = async (req, res) => {
   try {
-    await Notification.updateMany({ user: req.user._id, read: false }, { read: true });
+    await Notification.updateMany(
+      { user: req.user._id, read: false },
+      { $set: { read: true, readAt: new Date() } }
+    );
     res.status(200).json({ success: true, message: 'All notifications marked as read.' });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating notifications.' });
+    res.status(500).json({ success: false, message: 'Error updating notifications.' });
+  }
+};
+
+export const deleteCustomerNotification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const notification = await Notification.findOneAndDelete({ _id: id, user: req.user._id });
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found.' });
+    }
+    res.status(200).json({ success: true, message: 'Notification deleted successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error deleting notification.' });
   }
 };
 

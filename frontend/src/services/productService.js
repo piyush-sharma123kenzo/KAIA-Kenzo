@@ -90,10 +90,40 @@ export const productService = {
   getProductReviews: async (productId, params = {}) => {
     try {
       const query = new URLSearchParams(params).toString();
-      const res = await axiosInstance.get(`/products/${productId}/reviews?${query}`);
+      const res = await axiosInstance.get(`/reviews/product/${productId}?${query}`);
       return res.data;
     } catch (err) {
       console.error('Error fetching product reviews:', err);
+      throw err;
+    }
+  },
+
+  getReviewEligibility: async (productId) => {
+    try {
+      const res = await axiosInstance.get(`/reviews/product/${productId}/eligibility`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching review eligibility:', err);
+      return { success: false, canReview: false, message: err.response?.data?.message || 'Error checking eligibility' };
+    }
+  },
+
+  submitReview: async (reviewData) => {
+    try {
+      const res = await axiosInstance.post('/reviews', reviewData);
+      return res.data;
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      throw err;
+    }
+  },
+
+  deleteReview: async (reviewId) => {
+    try {
+      const res = await axiosInstance.delete(`/reviews/${reviewId}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error deleting review:', err);
       throw err;
     }
   },

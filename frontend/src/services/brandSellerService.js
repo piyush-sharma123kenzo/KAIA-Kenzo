@@ -664,6 +664,30 @@ export const brandSellerService = {
     }
   },
 
+  deleteAdminReview: async (id) => {
+    try {
+      const res = await axiosInstance.delete(`/admin/reviews/${id}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error deleting admin review:', err);
+      throw err;
+    }
+  },
+
+  getBrandReviews: async (params = {}) => {
+    try {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') query.set(k, v);
+      });
+      const res = await axiosInstance.get(`/brand/reviews?${query.toString()}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching brand reviews:', err);
+      throw err;
+    }
+  },
+
   getAdminCoupons: async () => {
     try {
       const res = await axiosInstance.get('/admin/coupons');

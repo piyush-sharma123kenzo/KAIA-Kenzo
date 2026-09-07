@@ -1,6 +1,11 @@
 import DeliveryLocation from '../models/DeliveryLocation.js';
 import DeliveryCheckLog from '../models/DeliveryCheckLog.js';
-import { calculateHaversineDistance, isValidIndianPincode, isValidCoordinates } from '../utils/geoUtils.js';
+import {
+  calculateHaversineDistance,
+  isValidIndianPincode,
+  isValidCoordinates,
+  resolvePincodeCoordinates,
+} from '../utils/geoUtils.js';
 
 /**
  * Public: Check delivery availability for given coordinates or PIN code
@@ -104,7 +109,7 @@ export const checkDeliveryAvailability = async (req, res) => {
       }
     }
 
-    // CASE 2: Only PIN code provided (PIN Match Verification)
+    // CASE 2: Only PIN code provided (PIN Match + Geocoded Radius Check)
     const cleanPin = String(pincode).trim();
     const pinMatches = activeLocations.filter((l) => l.pincode === cleanPin);
 
@@ -133,7 +138,66 @@ export const checkDeliveryAvailability = async (req, res) => {
       });
     }
 
-    // PIN not directly listed as a center hub
+    // Try resolving coordinates for the entered PIN code to calculate distance to closest hub
+    const resolvedCoords = resolvePincodeCoordinates(cleanPin);
+    if (resolvedCoords && isValidCoordinates(resolvedCoords.latitude, resolvedCoords.longitude)) {
+      let nearestLoc = null;
+      let minDistance = Infinity;
+
+      for (const loc of activeLocations) {
+        const dist = calculateHaversineDistance(
+          resolvedCoords.latitude,
+          resolvedCoords.longitude,
+          loc.coordinates.latitude,
+          loc.coordinates.longitude
+        );
+
+        if (dist < minDistance) {
+          minDistance = dist;
+          nearestLoc = loc;
+        }
+      }
+
+      const radius = nearestLoc?.deliveryRadius || 10;
+      const isServiceable = minDistance <= radius;
+
+      await DeliveryCheckLog.create({
+        pincode: cleanPin,
+        coordinates: { latitude: resolvedCoords.latitude, longitude: resolvedCoords.longitude },
+        isServiceable,
+        calculatedDistance: minDistance,
+        deliveryRadius: radius,
+        nearestLocationId: nearestLoc?._id,
+        nearestLocationName: nearestLoc?.locationName || '',
+        ipAddress,
+        userAgent,
+      });
+
+      if (isServiceable) {
+        return res.json({
+          success: true,
+          isServiceable: true,
+          distance: minDistance,
+          deliveryRadius: radius,
+          nearestLocation: nearestLoc.locationName,
+          pincode: cleanPin,
+          area: resolvedCoords.area,
+          message: `Delivery Available in ${resolvedCoords.area || cleanPin} (Approx. ${minDistance} KM from ${nearestLoc.locationName})`,
+        });
+      } else {
+        return res.json({
+          success: true,
+          isServiceable: false,
+          distance: minDistance,
+          deliveryRadius: radius,
+          nearestLocation: nearestLoc?.locationName,
+          pincode: cleanPin,
+          message: `Sorry, PIN ${cleanPin} is outside our delivery radius. Nearest service hub (${nearestLoc?.locationName}) is ${minDistance} KM away (Delivery limit: ${radius} KM).`,
+        });
+      }
+    }
+
+    // PIN not directly listed as a center hub and cannot be resolved
     await DeliveryCheckLog.create({
       pincode: cleanPin,
       isServiceable: false,
@@ -260,7 +324,7 @@ export const validateOrderDelivery = async (shippingAddress) => {
     };
   }
 
-  // Fallback to PIN code validation
+  // Fallback to PIN code validation (PIN match or geocoded circle radius check)
   const postalCode = String(shippingAddress.postalCode || shippingAddress.pincode || '').trim();
   const pinMatch = activeLocations.find((l) => l.pincode === postalCode);
 
@@ -277,6 +341,44 @@ export const validateOrderDelivery = async (shippingAddress) => {
         coordinates: pinMatch.coordinates,
       },
     };
+  }
+
+  const resolvedCoords = resolvePincodeCoordinates(postalCode);
+  if (resolvedCoords && isValidCoordinates(resolvedCoords.latitude, resolvedCoords.longitude)) {
+    let nearestLoc = null;
+    let minDistance = Infinity;
+
+    for (const loc of activeLocations) {
+      const dist = calculateHaversineDistance(
+        resolvedCoords.latitude,
+        resolvedCoords.longitude,
+        loc.coordinates.latitude,
+        loc.coordinates.longitude
+      );
+
+      if (dist < minDistance) {
+        minDistance = dist;
+        nearestLoc = loc;
+      }
+    }
+
+    const radius = nearestLoc?.deliveryRadius || 10;
+    const isServiceable = minDistance <= radius;
+
+    if (isServiceable) {
+      return {
+        isValid: true,
+        validationSnapshot: {
+          isServiceable: true,
+          deliveryLocationId: nearestLoc._id,
+          nearestLocationName: nearestLoc.locationName,
+          calculatedDistance: minDistance,
+          deliveryRadius: radius,
+          validatedAt: new Date(),
+          coordinates: { latitude: resolvedCoords.latitude, longitude: resolvedCoords.longitude },
+        },
+      };
+    }
   }
 
   return {

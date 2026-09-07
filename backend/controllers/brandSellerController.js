@@ -7,6 +7,7 @@ import Order from '../models/Order.js';
 import SellerOrder from '../models/SellerOrder.js';
 import AuditLog from '../models/AuditLog.js';
 import Category from '../models/Category.js';
+import Review from '../models/Review.js';
 import { deriveMasterOrderStatus } from './orderController.js';
 
 // Helper to log audit actions
@@ -1188,5 +1189,49 @@ export const updateBrandProfile = async (req, res) => {
   } catch (error) {
     console.error('Error updating brand profile:', error);
     res.status(500).json({ message: 'Error updating brand profile' });
+  }
+};
+
+// @desc    Get reviews for products belonging to authenticated brand
+// @route   GET /api/brand/reviews
+// @access  Private (Role: BRAND, Approved)
+export const getBrandReviews = async (req, res) => {
+  try {
+    const brandId = req.brand._id;
+    const { rating, page = 1, limit = 20 } = req.query;
+
+    const brandProducts = await Product.find({ brand: brandId }).select('_id');
+    const productIds = brandProducts.map((p) => p._id);
+
+    const query = { product: { $in: productIds } };
+    if (rating && rating !== 'all') {
+      query.rating = Number(rating);
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [reviews, total] = await Promise.all([
+      Review.find(query)
+        .populate('product', 'name SKU images sellingPrice slug')
+        .populate('user', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Review.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      reviews,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum) || 1,
+    });
+  } catch (error) {
+    console.error('[BrandSellerController] getBrandReviews error:', error.message);
+    res.status(500).json({ success: false, message: 'Error retrieving brand reviews.' });
   }
 };

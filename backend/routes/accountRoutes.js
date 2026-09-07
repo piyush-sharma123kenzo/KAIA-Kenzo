@@ -19,9 +19,11 @@ import {
   removeFromWishlist,
   getCustomerReviews,
   createOrUpdateReview,
+  deleteCustomerReview,
   getCustomerNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  deleteCustomerNotification,
   getCustomerInvoices,
   getCustomerWarranties,
 } from '../controllers/accountController.js';
@@ -70,13 +72,17 @@ router.put('/profile', updateProfile);
 router.post('/avatar', avatarUpload.any(), uploadAvatar);
 router.delete('/avatar', removeAvatar);
 router.post('/change-password', changePassword);
+router.put('/change-password', changePassword);
 
 // 2. Address Management
 router.get('/addresses', getAddresses);
 router.post('/addresses', addAddress);
+router.put('/addresses/:id', updateAddress);
 router.patch('/addresses/:id', updateAddress);
 router.delete('/addresses/:id', deleteAddress);
 router.post('/addresses/:id/default', setDefaultAddress);
+router.put('/addresses/:id/default', setDefaultAddress);
+router.patch('/addresses/:id/default', setDefaultAddress);
 
 // 3. Wishlist
 router.get('/wishlist', getWishlist);
@@ -86,11 +92,15 @@ router.delete('/wishlist/:productId', removeFromWishlist);
 // 4. Reviews & Verified Purchases
 router.get('/reviews', getCustomerReviews);
 router.post('/reviews', createOrUpdateReview);
+router.delete('/reviews/:id', deleteCustomerReview);
 
 // 5. Notifications
 router.get('/notifications', getCustomerNotifications);
 router.patch('/notifications/:id/read', markNotificationAsRead);
+router.put('/notifications/:id/read', markNotificationAsRead);
 router.post('/notifications/read-all', markAllNotificationsAsRead);
+router.patch('/notifications/read-all', markAllNotificationsAsRead);
+router.delete('/notifications/:id', deleteCustomerNotification);
 
 // 6. Post-Purchase Invoices & Warranties
 router.get('/invoices', getCustomerInvoices);

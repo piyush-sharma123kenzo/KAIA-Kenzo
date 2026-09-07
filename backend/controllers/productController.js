@@ -5,6 +5,8 @@ import Category from '../models/Category.js';
 import Review from '../models/Review.js';
 import User from '../models/User.js';
 import Order from '../models/Order.js';
+import { createNotification, notifyAdmins } from '../services/notification/notification.service.js';
+import { isProhibitedBrand, PROHIBITED_BRANDS } from '../utils/brandValidation.js';
 
 // Safe regex string sanitizer to prevent ReDoS / MongoDB operator injection
 const escapeRegex = (text = '') => {
@@ -19,6 +21,7 @@ export const getProducts = async (req, res) => {
   try {
     const {
       search,
+      q,
       brand,
       category,
       minPrice,
@@ -49,8 +52,9 @@ export const getProducts = async (req, res) => {
     };
 
     // 1. Safe Search Filter across Name, Model, SKU, Description, Brand & Category
-    if (search && typeof search === 'string' && search.trim()) {
-      const sanitizedSearch = escapeRegex(search.trim());
+    const rawSearch = (search || q || '');
+    if (rawSearch && typeof rawSearch === 'string' && rawSearch.trim()) {
+      const sanitizedSearch = escapeRegex(rawSearch.trim());
       const searchRegex = new RegExp(sanitizedSearch, 'i');
 
       const [matchingBrands, matchingCats] = await Promise.all([
@@ -290,24 +294,31 @@ export const getSearchSuggestions = async (req, res) => {
         .limit(3),
     ]);
 
+    const filteredBrands = brands.filter((b) => !isProhibitedBrand(b.name) && !isProhibitedBrand(b.slug));
+    const filteredProducts = products.filter((p) => !isProhibitedBrand(p.name) && !isProhibitedBrand(p.brand?.name));
+
     const suggestions = [
-      ...products.map((p) => ({
+      ...filteredProducts.map((p) => ({
         type: 'product',
+        name: p.name,
         title: p.name,
         slug: p.slug,
         image: p.images?.[0]?.url || p.images?.[0] || '',
         price: p.sellingPrice,
-        brand: p.brand?.name,
-        category: p.category?.name,
+        brand: p.brand?.name || '',
+        brandName: p.brand?.name || '',
+        category: p.category?.name || '',
       })),
-      ...brands.map((b) => ({
+      ...filteredBrands.map((b) => ({
         type: 'brand',
+        name: b.name,
         title: b.name,
         slug: b.slug,
         logo: b.logo,
       })),
       ...categories.map((c) => ({
         type: 'category',
+        name: c.name,
         title: c.name,
         slug: c.slug,
       })),
@@ -576,6 +587,29 @@ export const createProduct = async (req, res) => {
       status: 'Pending Approval',
     });
 
+    // Notify brand seller owner
+    if (req.user?._id) {
+      await createNotification({
+        userId: req.user._id,
+        title: 'Product Submitted for Approval',
+        message: `Your product "${name}" (SKU: ${SKU}) was submitted and is pending catalog review.`,
+        type: 'PRODUCT',
+        referenceType: 'Product',
+        referenceId: String(product._id),
+        link: '/brand/products',
+      });
+    }
+
+    // Notify platform administrators
+    await notifyAdmins({
+      title: 'New Product Approval Request',
+      message: `Product "${name}" submitted by brand "${req.brand.name || 'Brand'}" is waiting for review.`,
+      type: 'ADMIN',
+      referenceType: 'Product',
+      referenceId: String(product._id),
+      link: '/admin/products',
+    });
+
     res.status(201).json({
       success: true,
       message: 'Product listing submitted for approval. An administrator will review it shortly.',
@@ -616,6 +650,16 @@ export const updateProduct = async (req, res) => {
 
     product.status = 'Pending Approval';
     await product.save();
+
+    // Notify platform administrators of revised listing review
+    await notifyAdmins({
+      title: 'Product Revision Submitted',
+      message: `Product "${product.name}" was modified by brand "${req.brand.name || 'Brand'}" and resubmitted for approval.`,
+      type: 'ADMIN',
+      referenceType: 'Product',
+      referenceId: String(product._id),
+      link: '/admin/products',
+    });
 
     res.status(200).json({
       success: true,

@@ -44,8 +44,12 @@ const OrderSuccess = () => {
           return;
         }
 
-        // Authoritative check: backend paymentStatus must be 'Paid'
-        if (fetchedOrder.paymentStatus !== 'Paid') {
+        // Authoritative check: backend paymentStatus must be 'Paid' or confirmed COD order
+        const isPaid = fetchedOrder.paymentStatus === 'Paid';
+        const isConfirmedCod = (fetchedOrder.paymentMethod === 'COD' || fetchedOrder.paymentDetails?.provider === 'cod') &&
+          (fetchedOrder.orderStatus === 'confirmed' || fetchedOrder.orderStatus === 'processing');
+
+        if (!isPaid && !isConfirmedCod) {
           // Payment not confirmed — redirect to pending
           navigate('/payment-pending', { state: { orderId } });
           return;

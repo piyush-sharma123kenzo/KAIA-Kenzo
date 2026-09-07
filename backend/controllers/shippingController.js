@@ -4,6 +4,7 @@ import ShipmentTrackingEvent from '../models/ShipmentTrackingEvent.js';
 import SellerOrder from '../models/SellerOrder.js';
 import Order from '../models/Order.js';
 import shippingService from '../services/shipping/shipping.service.js';
+import { validateOrderDelivery } from './deliveryController.js';
 
 // ==========================================
 // 1. BRAND SELLER SHIPPING CONTROLLERS
@@ -440,18 +441,31 @@ export const checkPincodeServiceability = async (req, res) => {
     }
 
     const pin = pincode.toString().trim();
-    // Deterministic delivery estimation based on postal zone
+    const validation = await validateOrderDelivery({ postalCode: pin });
+
+    if (!validation.isValid) {
+      return res.status(200).json({
+        success: true,
+        serviceable: false,
+        pincode: pin,
+        message: validation.error || `Delivery is currently unavailable for PIN ${pin}. We deliver within a 10 KM radius of our authorized service centers.`,
+      });
+    }
+
+    const snapshot = validation.validationSnapshot || {};
     const isMetro = ['11', '12', '40', '56', '60', '70', '50'].some((prefix) => pin.startsWith(prefix));
-    const estimatedDays = isMetro ? '2 - 3 business days' : '4 - 6 business days';
+    const estimatedDays = isMetro ? '2 - 3 business days' : '3 - 5 business days';
 
     res.status(200).json({
       success: true,
       serviceable: true,
       pincode: pin,
       estimatedDays,
-      carrier: 'KAIA Express / Blue Dart Logistics',
+      carrier: 'KAIA Express Direct Logistics',
+      nearestLocation: snapshot.nearestLocationName || 'Central Hub',
+      deliveryRadius: snapshot.deliveryRadius || 10,
       codAvailable: true,
-      message: `Delivery available in ${estimatedDays}.`,
+      message: `Delivery Available (Fulfilled from ${snapshot.nearestLocationName || 'Service Hub'}) in ${estimatedDays}.`,
     });
   } catch (error) {
     res.status(500).json({ message: 'Error checking PIN code serviceability.' });

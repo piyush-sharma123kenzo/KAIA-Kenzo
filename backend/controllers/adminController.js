@@ -20,9 +20,11 @@ import WebhookEvent from '../models/WebhookEvent.js';
 import AuditLog from '../models/AuditLog.js';
 import Notification from '../models/Notification.js';
 import Setting from '../models/Setting.js';
+import DeliveryLocation from '../models/DeliveryLocation.js';
 import shippingService from '../services/shipping/shipping.service.js';
 import { formatUserResponse } from '../utils/jwt.utils.js';
 import { isProhibitedBrand } from '../utils/brandValidation.js';
+import { syncProductRatingAggregate, removeReview } from '../services/review/review.service.js';
 
 // Helper to log admin actions
 export const logAdminAction = async (adminId, action, entity, entityId, changes, req) => {
@@ -54,29 +56,53 @@ export const getAdminDashboardSummary = async (req, res) => {
   try {
     const { timeRange = '30days' } = req.query;
 
+    const now = new Date();
     let startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    if (timeRange === 'today') startDate = new Date(new Date().setHours(0, 0, 0, 0));
-    else if (timeRange === '7days') startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    else if (timeRange === '3months') startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    else if (timeRange === '6months') startDate = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
-    else if (timeRange === '1year') startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    if (timeRange === 'today') {
+      startDate = new Date(new Date().setHours(0, 0, 0, 0));
+    } else if (timeRange === '7days') {
+      startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    } else if (timeRange === 'thisMonth' || timeRange === 'thismonth') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (timeRange === '3months') {
+      startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    } else if (timeRange === '6months') {
+      startDate = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+    } else if (timeRange === '1year') {
+      startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    }
 
     const [
       ordersAgg,
+      totalUsers,
       totalCustomers,
       totalBrands,
+      totalAdmins,
       totalProducts,
+      activeProducts,
+      inactiveProducts,
+      outOfStockProducts,
+      lowStockProducts,
+      totalOrdersCount,
+      pendingOrdersCount,
+      deliveredOrdersCount,
+      cancelledOrdersCount,
+      totalPaymentsCount,
+      paidPaymentsCount,
+      failedPaymentsCount,
+      activeDeliveryAreas,
       pendingSettlementsCount,
       pendingReturnsCount,
-      lowStockList,
-      outOfStockList,
+      lowStockInventory,
+      outOfStockInventory,
+      directLowStockProducts,
       salesByCategory,
       salesByBrand,
       topProducts,
       recentActivity,
       recentOrders,
     ] = await Promise.all([
-      // 1. GMV & Orders Aggregation
+      // 1. GMV & Orders Aggregation (Paid orders within selected timeframe)
       SellerOrder.aggregate([
         { $match: { paymentStatus: 'Paid', createdAt: { $gte: startDate } } },
         {
@@ -90,17 +116,32 @@ export const getAdminDashboardSummary = async (req, res) => {
           },
         },
       ]),
-      // 2. Customers
-      User.countDocuments({ role: 'CUSTOMER' }),
-      // 3. Brands
+      // 2. Users Breakdown
+      User.countDocuments({}),
+      User.countDocuments({ role: { $in: ['CUSTOMER', 'customer'] } }),
       Brand.countDocuments({ status: { $in: ['Approved', 'approved', 'active'] } }),
-      // 4. Products
+      User.countDocuments({ role: { $in: ['ADMIN', 'admin'] } }),
+      // 3. Products Breakdown
+      Product.countDocuments({}),
       Product.countDocuments({ isActive: true }),
-      // 5. Pending Settlements
+      Product.countDocuments({ isActive: false }),
+      Product.countDocuments({ 'stock.quantity': { $lte: 0 } }),
+      Product.countDocuments({ 'stock.quantity': { $gt: 0, $lte: 5 } }),
+      // 4. Orders Breakdown
+      Order.countDocuments({}),
+      Order.countDocuments({ orderStatus: { $in: ['Pending', 'pending_payment', 'Processing', 'processing'] } }),
+      Order.countDocuments({ orderStatus: { $in: ['Delivered', 'delivered'] } }),
+      Order.countDocuments({ orderStatus: { $in: ['Cancelled', 'cancelled'] } }),
+      // 5. Payments Breakdown
+      Payment.countDocuments({}),
+      Payment.countDocuments({ status: { $in: ['paid', 'authorized', 'captured'] } }),
+      Payment.countDocuments({ status: 'failed' }),
+      // 6. Delivery Areas
+      DeliveryLocation.countDocuments({ isActive: true }),
+      // 7. Settlements & Returns Pending
       Settlement.countDocuments({ status: 'pending' }),
-      // 6. Pending Returns
       ReturnRequest.countDocuments({ status: { $in: ['requested', 'under_review', 'received_at_depot'] } }),
-      // 7. Low Stock Products
+      // 8. Low Stock from Inventory Collection
       Inventory.find({
         $expr: {
           $and: [
@@ -113,12 +154,17 @@ export const getAdminDashboardSummary = async (req, res) => {
         .populate('brandId', 'name slug')
         .populate('warehouseId', 'name city state')
         .limit(10),
-      // 8. Out of Stock Products
+      // 9. Out of Stock from Inventory Collection
       Inventory.find({ availableQuantity: { $lte: 0 } })
         .populate('productId', 'name SKU modelNumber sellingPrice')
         .populate('brandId', 'name slug')
         .limit(10),
-      // 9. Sales by Category
+      // 10. Low Stock directly from Product model
+      Product.find({ 'stock.quantity': { $lte: 5 } })
+        .populate('brand', 'name slug')
+        .populate('category', 'name')
+        .limit(10),
+      // 11. Sales by Category
       Order.aggregate([
         { $match: { paymentStatus: 'Paid', createdAt: { $gte: startDate } } },
         { $unwind: '$items' },
@@ -133,7 +179,7 @@ export const getAdminDashboardSummary = async (req, res) => {
         { $sort: { revenue: -1 } },
         { $limit: 8 },
       ]),
-      // 10. Sales by Brand
+      // 12. Sales by Brand
       SellerOrder.aggregate([
         { $match: { paymentStatus: 'Paid', createdAt: { $gte: startDate } } },
         {
@@ -167,7 +213,7 @@ export const getAdminDashboardSummary = async (req, res) => {
         { $sort: { gmv: -1 } },
         { $limit: 8 },
       ]),
-      // 11. Top Selling Products
+      // 13. Top Selling Products
       Order.aggregate([
         { $match: { paymentStatus: 'Paid', createdAt: { $gte: startDate } } },
         { $unwind: '$items' },
@@ -183,12 +229,12 @@ export const getAdminDashboardSummary = async (req, res) => {
         { $sort: { unitsSold: -1 } },
         { $limit: 6 },
       ]),
-      // 12. Recent Audit Activity
+      // 14. Recent Audit Activity
       AuditLog.find({}).populate('user', 'name email role').sort({ createdAt: -1 }).limit(10),
-      // 13. Recent Orders for Command Center
+      // 15. Recent Real Orders for Command Center
       Order.find({})
         .sort({ createdAt: -1 })
-        .limit(6)
+        .limit(8)
         .populate('customer', 'name email phone')
         .populate({
           path: 'childOrders',
@@ -204,6 +250,23 @@ export const getAdminDashboardSummary = async (req, res) => {
       orderCount: 0,
     };
 
+    // Consolidate low stock list (use Inventory if present, fallback to Product collection)
+    const combinedLowStock = lowStockInventory.length > 0
+      ? lowStockInventory
+      : directLowStockProducts.map((p) => ({
+          _id: p._id,
+          sku: p.SKU || p.modelNumber || '',
+          productId: {
+            _id: p._id,
+            name: p.name,
+            SKU: p.SKU,
+            sellingPrice: p.sellingPrice,
+          },
+          brandId: p.brand ? { name: p.brand.name, slug: p.brand.slug } : { name: 'Authorized' },
+          availableQuantity: p.stock?.quantity || 0,
+          lowStockThreshold: p.stock?.reorderThreshold || 5,
+        }));
+
     res.status(200).json({
       success: true,
       timeRange,
@@ -211,8 +274,22 @@ export const getAdminDashboardSummary = async (req, res) => {
         totalGMV: Math.round(orderStats.totalGMV * 100) / 100,
         totalOrders: orderStats.orderCount,
         totalCustomers,
+        totalUsers,
         totalBrands,
+        totalAdmins,
         totalProducts,
+        activeProducts,
+        inactiveProducts,
+        outOfStockProducts,
+        lowStockProducts,
+        allOrdersCount: totalOrdersCount,
+        pendingOrders: pendingOrdersCount,
+        deliveredOrders: deliveredOrdersCount,
+        cancelledOrders: cancelledOrdersCount,
+        totalPayments: totalPaymentsCount,
+        paidPayments: paidPaymentsCount,
+        failedPayments: failedPaymentsCount,
+        activeDeliveryAreas,
         marketplaceCommission: Math.round(orderStats.totalCommission * 100) / 100,
         totalRefunds: Math.round(orderStats.totalRefunds * 100) / 100,
         sellerPayables: Math.round(orderStats.totalSellerPayables * 100) / 100,
@@ -221,24 +298,38 @@ export const getAdminDashboardSummary = async (req, res) => {
       },
       data: {
         totalProducts,
-        totalOrders: orderStats.orderCount,
+        activeProducts,
+        inactiveProducts,
+        outOfStockProducts,
+        lowStockProducts,
+        totalOrders: totalOrdersCount,
+        pendingOrders: pendingOrdersCount,
+        deliveredOrders: deliveredOrdersCount,
+        cancelledOrders: cancelledOrdersCount,
+        totalUsers,
         totalCustomers,
         totalSellers: totalBrands,
         totalBrands,
         totalRevenue: Math.round(orderStats.totalGMV * 100) / 100,
+        activeDeliveryAreas,
+        totalPayments: totalPaymentsCount,
+        paidPayments: paidPaymentsCount,
+        failedPayments: failedPaymentsCount,
         pendingApprovals: pendingSettlementsCount + pendingReturnsCount,
       },
       metrics: {
-        totalUsers: totalCustomers,
+        totalUsers,
+        totalCustomers,
         totalBrands,
         totalProducts,
+        activeDeliveryAreas,
         pendingBrands: pendingSettlementsCount,
         pendingProducts: 0,
         gmv: Math.round(orderStats.totalGMV * 100) / 100,
         commissionRevenue: Math.round(orderStats.totalCommission * 100) / 100,
       },
-      lowStockList,
-      outOfStockList,
+      lowStockList: combinedLowStock,
+      outOfStockList: outOfStockInventory,
       salesByCategory,
       salesByBrand,
       topProducts,
@@ -1021,13 +1112,23 @@ export const getAdminPayments = async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const query = {};
-    if (status && status !== 'all') query.status = status;
+    if (status && status !== 'all') {
+      if (status === 'captured' || status === 'paid') {
+        query.status = { $in: ['paid', 'authorized', 'captured'] };
+      } else if (status === 'refunded') {
+        query.status = { $in: ['refunded', 'partially_refunded'] };
+      } else {
+        query.status = status;
+      }
+    }
+
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');
       query.$or = [
         { razorpayPaymentId: searchRegex },
+        { providerPaymentId: searchRegex },
         { razorpayOrderId: searchRegex },
-        { paymentId: searchRegex },
+        { providerOrderId: searchRegex },
       ];
     }
 
@@ -1036,7 +1137,9 @@ export const getAdminPayments = async (req, res) => {
 
     const payments = await Payment.find(query)
       .populate('user', 'name email phone')
+      .populate('customerId', 'name email phone')
       .populate('order', 'orderId finalAmount paymentStatus orderStatus')
+      .populate('orderId', 'orderId finalAmount paymentStatus orderStatus')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
@@ -1044,7 +1147,7 @@ export const getAdminPayments = async (req, res) => {
     // Summary stats
     const [capturedTotal, refundTotal] = await Promise.all([
       Payment.aggregate([
-        { $match: { status: 'captured' } },
+        { $match: { status: { $in: ['paid', 'authorized', 'captured'] } } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Payment.aggregate([
@@ -1105,17 +1208,33 @@ export const moderateReview = async (req, res) => {
 
   try {
     const review = await Review.findById(id);
-    if (!review) return res.status(404).json({ message: 'Review not found.' });
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found.' });
 
     review.isHidden = Boolean(isHidden);
-    if (moderationNote) review.moderationNote = moderationNote;
+    if (moderationNote !== undefined) review.moderationNote = moderationNote;
     await review.save();
+
+    // Recompute product rating aggregate when visibility changes
+    await syncProductRatingAggregate(review.product);
 
     await logAdminAction(req.user._id, `${isHidden ? 'Hidden' : 'Restored'} Review`, 'Review', review._id, { isHidden, moderationNote }, req);
 
     res.status(200).json({ success: true, message: `Review is now ${isHidden ? 'hidden' : 'visible'}.`, review });
   } catch (error) {
-    res.status(500).json({ message: 'Error moderating review.' });
+    res.status(500).json({ success: false, message: 'Error moderating review.' });
+  }
+};
+
+export const deleteAdminReview = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await removeReview(id, req.user._id, true);
+    await logAdminAction(req.user._id, 'Deleted Customer Review', 'Review', id, {}, req);
+    res.status(200).json({ success: true, message: result.message });
+  } catch (error) {
+    const status = error.statusCode || 500;
+    res.status(status).json({ success: false, message: error.message || 'Error deleting review.' });
   }
 };
 

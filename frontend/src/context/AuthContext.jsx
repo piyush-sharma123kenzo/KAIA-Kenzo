@@ -7,7 +7,7 @@
  *  - Password reset flows and profile updates
  */
 
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import authApi from '../services/authApi';
 
 export const AuthContext = createContext();
@@ -283,6 +283,11 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  return context || {};
 };
 
 export default AuthProvider;

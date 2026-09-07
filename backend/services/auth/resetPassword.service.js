@@ -9,6 +9,7 @@
 
 import User from '../../models/User.js';
 import { verifyResetToken } from '../../utils/jwt.utils.js';
+import { createNotification } from '../notification/notification.service.js';
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
@@ -64,6 +65,17 @@ export const resetUserPassword = async ({ resetToken, newPassword, confirmPasswo
 
   user.password = newPassword; // Pre-save hook hashes this with bcrypt
   await user.save();
+
+  // 5. Trigger Security In-App Notification
+  await createNotification({
+    userId: user._id,
+    title: 'Password Successfully Changed',
+    message: 'Your account password was recently reset. If this was not you, please contact KAIA Support immediately.',
+    type: 'AUTH',
+    referenceType: 'User',
+    referenceId: String(user._id),
+    link: '/account',
+  });
 
   return {
     success: true,

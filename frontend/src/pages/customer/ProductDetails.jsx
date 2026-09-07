@@ -50,10 +50,16 @@ const ProductDetails = () => {
 
   // Review states
   const [newRating, setNewRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
   const [newTitle, setNewTitle] = useState('');
   const [newComment, setNewComment] = useState('');
   const [reviewMsg, setReviewMsg] = useState({ type: '', text: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [deletingReview, setDeletingReview] = useState(false);
+  const [reviewEligibility, setReviewEligibility] = useState({ canReview: false, existingReview: null, reason: '' });
+  const [starFilter, setStarFilter] = useState('');
+  const [sortFilter, setSortFilter] = useState('newest');
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   // Registry hook for recently viewed items
   const registerRecentlyViewed = (prod) => {
@@ -103,6 +109,48 @@ const ProductDetails = () => {
     }
   };
 
+  const fetchReviewsList = async (productId, star = starFilter, sort = sortFilter) => {
+    if (!productId) return;
+    setLoadingReviews(true);
+    try {
+      const params = {};
+      if (star) params.star = star;
+      if (sort) params.sort = sort;
+      const rData = await productService.getProductReviews(productId, params);
+      if (rData.success) {
+        setReviewsData(rData);
+      }
+    } catch (e) {
+      console.error('Error fetching reviews:', e);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  const checkEligibility = async (productId) => {
+    if (!user || !productId) {
+      setReviewEligibility({ canReview: false, existingReview: null, reason: 'Please log in to submit a review.' });
+      return;
+    }
+    try {
+      const res = await productService.getReviewEligibility(productId);
+      if (res.success) {
+        setReviewEligibility({
+          canReview: res.canReview,
+          existingReview: res.existingReview || null,
+          reason: res.message || '',
+        });
+        if (res.existingReview) {
+          setNewRating(res.existingReview.rating || 5);
+          setNewTitle(res.existingReview.title || '');
+          setNewComment(res.existingReview.comment || '');
+        }
+      }
+    } catch (e) {
+      console.error('Error checking review eligibility:', e);
+    }
+  };
+
   useEffect(() => {
     const fetchDetails = async () => {
       setLoading(true);
@@ -114,13 +162,11 @@ const ProductDetails = () => {
           registerRecentlyViewed(prod);
 
           // Fetch reviews & distribution
-          try {
-            const rData = await productService.getProductReviews(prod._id);
-            if (rData.success) {
-              setReviewsData(rData);
-            }
-          } catch (e) {
-            console.error('Error fetching reviews:', e);
+          fetchReviewsList(prod._id);
+
+          // Check user review eligibility
+          if (user) {
+            checkEligibility(prod._id);
           }
 
           // Fetch related products
@@ -144,7 +190,21 @@ const ProductDetails = () => {
       }
     };
     fetchDetails();
-  }, [slug]);
+  }, [slug, user]);
+
+  const handleFilterReviews = (star) => {
+    setStarFilter(star);
+    if (product?._id) {
+      fetchReviewsList(product._id, star, sortFilter);
+    }
+  };
+
+  const handleSortReviews = (sort) => {
+    setSortFilter(sort);
+    if (product?._id) {
+      fetchReviewsList(product._id, starFilter, sort);
+    }
+  };
 
   const handleCheckDelivery = async (e) => {
     e.preventDefault();
@@ -192,30 +252,51 @@ const ProductDetails = () => {
       navigate('/login');
       return;
     }
-    if (!newComment.trim()) return;
+    if (!newComment.trim()) {
+      setReviewMsg({ type: 'error', text: 'Please enter your review feedback.' });
+      return;
+    }
 
     setSubmittingReview(true);
     setReviewMsg({ type: '', text: '' });
     try {
-      const res = await axiosInstance.post('/account/reviews', {
+      const res = await productService.submitReview({
         productId: product._id,
         rating: newRating,
-        title: newTitle,
-        comment: newComment,
+        title: newTitle.trim(),
+        comment: newComment.trim(),
       });
 
-      if (res.data.success) {
-        setReviewMsg({ type: 'success', text: 'Thank you! Your verified review was posted.' });
-        setNewTitle('');
-        setNewComment('');
-        // Reload reviews distribution
-        const rData = await productService.getProductReviews(product._id);
-        if (rData.success) setReviewsData(rData);
+      if (res.success) {
+        setReviewMsg({ type: 'success', text: res.message || 'Thank you! Your verified review was submitted.' });
+        // Refresh eligibility and reviews list
+        await checkEligibility(product._id);
+        await fetchReviewsList(product._id, starFilter, sortFilter);
       }
     } catch (err) {
       setReviewMsg({ type: 'error', text: err.response?.data?.message || 'Error submitting review.' });
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete your review?')) return;
+    setDeletingReview(true);
+    try {
+      const res = await productService.deleteReview(reviewId);
+      if (res.success) {
+        setReviewMsg({ type: 'success', text: 'Your review has been removed.' });
+        setNewTitle('');
+        setNewComment('');
+        setNewRating(5);
+        await checkEligibility(product._id);
+        await fetchReviewsList(product._id, starFilter, sortFilter);
+      }
+    } catch (err) {
+      setReviewMsg({ type: 'error', text: err.response?.data?.message || 'Error deleting review.' });
+    } finally {
+      setDeletingReview(false);
     }
   };
 
@@ -371,11 +452,17 @@ const ProductDetails = () => {
             </h1>
 
             <div className="flex flex-wrap items-center gap-3 text-xs text-brand-gray-500 pt-1 font-semibold">
-              <span className="flex items-center space-x-1 bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded">
-                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                <span className="font-bold">{reviewsData.averageRating || product.ratings?.average || 4.5}</span>
-                <span className="text-amber-700">({reviewsData.total || product.ratings?.count || 0} reviews)</span>
-              </span>
+              {(reviewsData.total > 0 || (product.ratings?.count > 0 && product.ratings?.average > 0)) ? (
+                <span className="flex items-center space-x-1 bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded">
+                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                  <span className="font-bold">{Number(reviewsData.averageRating || product.ratings?.average || 0).toFixed(1)}</span>
+                  <span className="text-amber-700">({reviewsData.total || product.ratings?.count || 0} reviews)</span>
+                </span>
+              ) : (
+                <span className="text-xs font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                  No reviews yet
+                </span>
+              )}
               <span>•</span>
               <span className="font-mono">SKU: <strong>{product.SKU}</strong></span>
               <span>•</span>
@@ -526,26 +613,23 @@ const ProductDetails = () => {
           </div>
 
         </div>
-
       </div>
 
-      {/* 3. Detailed Specifications & Description Tabs */}
-      <div className="bg-white border border-brand-gray-200 rounded-sm shadow-premium p-8 space-y-8">
-        
-        {/* Description */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-black text-brand-gray-900 uppercase tracking-tight border-b border-brand-gray-200 pb-2">
-            Product Overview & Description
+      {/* 3. Product Overview & Specs Tabs */}
+      <div className="space-y-8">
+        <div className="border-b border-brand-gray-200">
+          <h2 className="text-lg font-black text-brand-gray-900 uppercase tracking-tight pb-2 border-b-2 border-brand-dark inline-block">
+            Engineering Specifications & Overview
           </h2>
-          <div className="text-xs text-brand-gray-700 leading-relaxed whitespace-pre-line">
-            {product.description}
-          </div>
         </div>
 
-        {/* Dynamic Specifications Table */}
+        <div className="prose prose-xs max-w-none text-brand-gray-700 leading-relaxed text-xs">
+          <p>{product.description}</p>
+        </div>
+
         {product.specifications && Object.keys(product.specifications).length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-black text-brand-gray-900 uppercase tracking-tight border-b border-brand-gray-200 pb-2">
+          <div className="bg-brand-light p-6 rounded border border-brand-gray-200 space-y-4">
+            <h2 className="text-xs font-black text-brand-gray-900 uppercase tracking-wider">
               Technical Specifications
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-xs divide-y divide-brand-gray-100">
@@ -560,115 +644,306 @@ const ProductDetails = () => {
         )}
 
         {/* Customer Reviews & Rating Distribution */}
-        <div className="space-y-6 pt-4 border-t border-brand-gray-200">
+        <div className="space-y-6 pt-6 border-t border-brand-gray-200">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-lg font-black text-brand-gray-900 uppercase tracking-tight">
-                Verified Customer Reviews ({reviewsData.total})
-              </h2>
-              <div className="flex items-center space-x-2 pt-1">
-                <div className="flex text-amber-500">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-current" />
-                  ))}
-                </div>
-                <span className="text-sm font-black text-brand-gray-900 font-mono">
-                  {reviewsData.averageRating || 4.5} out of 5
+              <h2 className="text-lg font-black text-brand-gray-900 uppercase tracking-tight flex items-center space-x-2">
+                <span>Verified Customer Reviews</span>
+                <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                  {reviewsData.total} {reviewsData.total === 1 ? 'review' : 'reviews'}
                 </span>
+              </h2>
+              <div className="flex items-center space-x-2 pt-1.5">
+                {reviewsData.total > 0 ? (
+                  <>
+                    <div className="flex text-amber-500">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-4 h-4 ${
+                            star <= Math.round(reviewsData.averageRating)
+                              ? 'fill-amber-500 text-amber-500'
+                              : 'text-slate-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm font-black text-brand-gray-900 font-mono">
+                      {Number(reviewsData.averageRating || 0).toFixed(1)} out of 5
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      (based on real verified buyer ratings)
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-xs text-slate-500 font-medium">
+                    No verified customer ratings yet.
+                  </span>
+                )}
               </div>
             </div>
+
+            {/* Star Filters */}
+            {reviewsData.total > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <button
+                  onClick={() => handleFilterReviews('')}
+                  className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors ${
+                    !starFilter ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  All
+                </button>
+                {[5, 4, 3, 2, 1].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleFilterReviews(String(s))}
+                    className={`px-2.5 py-1 rounded text-[11px] font-bold flex items-center space-x-1 transition-colors ${
+                      starFilter === String(s)
+                        ? 'bg-amber-500 text-slate-950'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    <span>{s}★</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Rating Histogram */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 bg-brand-light p-6 rounded border border-brand-gray-200">
-            <div className="space-y-2 text-xs">
+          {/* Rating Histogram & Feedback Form */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-slate-50/80 p-6 rounded-xl border border-slate-200">
+            {/* Histogram Column */}
+            <div className="lg:col-span-5 space-y-2.5 text-xs justify-center flex flex-col">
+              <span className="font-bold text-slate-900 block text-[13px]">Rating Breakdown</span>
               {[5, 4, 3, 2, 1].map((stars) => {
                 const count = reviewsData.distribution?.[stars] || 0;
                 const pct = reviewsData.total > 0 ? Math.round((count / reviewsData.total) * 100) : 0;
                 return (
                   <div key={stars} className="flex items-center space-x-3">
-                    <span className="w-10 font-bold text-brand-gray-700">{stars} Star</span>
-                    <div className="flex-1 bg-brand-gray-200 h-2.5 rounded-full overflow-hidden">
-                      <div className="bg-amber-500 h-full" style={{ width: `${pct}%` }} />
+                    <button
+                      onClick={() => handleFilterReviews(String(stars))}
+                      className="w-12 font-bold text-slate-700 text-left hover:text-amber-600 transition-colors"
+                    >
+                      {stars} Star
+                    </button>
+                    <div className="flex-1 bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                      <div className="bg-amber-500 h-full rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="w-12 text-right font-mono text-brand-gray-500 text-[10px]">{pct}% ({count})</span>
+                    <span className="w-14 text-right font-mono text-slate-500 text-[10px] font-semibold">{pct}% ({count})</span>
                   </div>
                 );
               })}
             </div>
 
-            {/* Leave a Review Form */}
-            <form onSubmit={submitReview} className="space-y-3 text-xs">
-              <span className="font-bold text-brand-gray-900 block">Write a Verified Review</span>
-              <div className="flex items-center space-x-2">
-                <span className="text-brand-gray-600">Your Rating:</span>
-                <select
-                  value={newRating}
-                  onChange={(e) => setNewRating(Number(e.target.value))}
-                  className="p-1 border rounded font-bold"
-                >
-                  <option value={5}>5 Stars - Excellent</option>
-                  <option value={4}>4 Stars - Good</option>
-                  <option value={3}>3 Stars - Average</option>
-                  <option value={2}>2 Stars - Poor</option>
-                  <option value={1}>1 Star - Terrible</option>
-                </select>
-              </div>
-
-              <input
-                type="text"
-                placeholder="Review headline (e.g. Blazing fast performance)"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                className="w-full p-2 border rounded text-xs"
-              />
-
-              <textarea
-                rows={3}
-                required
-                placeholder="Share your detailed experience with this hardware product..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="w-full p-2 border rounded text-xs"
-              />
-
-              <Button size="sm" type="submit" disabled={submittingReview} className="text-xs uppercase font-bold">
-                {submittingReview ? 'Posting...' : 'Submit Review'}
-              </Button>
-            </form>
-          </div>
-
-          {/* Reviews List */}
-          <div className="divide-y divide-brand-gray-100">
-            {reviewsData.reviews?.map((r) => (
-              <div key={r._id} className="py-4 space-y-1.5 text-xs text-left">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 rounded-full bg-brand-dark text-white flex items-center justify-center font-bold text-[10px]">
-                      {r.user?.name?.charAt(0) || 'U'}
-                    </div>
-                    <span className="font-bold text-brand-gray-900">{r.user?.name || r.name || 'Verified Buyer'}</span>
-                    {r.isVerifiedPurchase && (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                        ✓ Verified Purchase
+            {/* Leave a Review Form Column */}
+            <div className="lg:col-span-7 bg-white p-5 rounded-lg border border-slate-200 shadow-xs space-y-3 text-xs">
+              {!user ? (
+                <div className="text-center py-6 space-y-3">
+                  <ShieldCheck className="w-8 h-8 text-amber-600 mx-auto" />
+                  <p className="font-bold text-slate-900">Have you purchased this product?</p>
+                  <p className="text-slate-500 text-[11px] max-w-sm mx-auto">
+                    Sign in to check your verified purchase status and submit your authentic hardware feedback.
+                  </p>
+                  <Link to="/login">
+                    <Button size="sm" variant="primary" className="text-xs uppercase font-bold bg-amber-500 hover:bg-amber-600 text-slate-950">
+                      Sign In to Review
+                    </Button>
+                  </Link>
+                </div>
+              ) : reviewEligibility.canReview ? (
+                <form onSubmit={submitReview} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-slate-900 text-[13px] uppercase tracking-tight flex items-center space-x-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>{reviewEligibility.existingReview ? 'Update Your Verified Review' : 'Write a Verified Review'}</span>
+                    </span>
+                    {reviewEligibility.existingReview && (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                        Active Review Found
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-brand-gray-400 font-mono">
-                    {new Date(r.createdAt).toLocaleDateString('en-IN')}
-                  </span>
-                </div>
 
-                <div className="flex text-amber-500 py-0.5">
-                  {[...Array(r.rating || 5)].map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                  ))}
-                </div>
+                  {/* Interactive Star Selection */}
+                  <div className="space-y-1">
+                    <span className="text-slate-600 font-semibold block text-[11px]">Your Rating (1 to 5 Stars):</span>
+                    <div className="flex items-center space-x-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          type="button"
+                          key={star}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={() => setNewRating(star)}
+                          className="p-1 focus:outline-none transition-transform hover:scale-110"
+                        >
+                          <Star
+                            className={`w-5 h-5 ${
+                              star <= (hoverRating || newRating)
+                                ? 'fill-amber-500 text-amber-500'
+                                : 'text-slate-300'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                      <span className="font-bold text-slate-800 ml-2 font-mono text-[11px]">
+                        {newRating === 5 ? '5 ★ - Excellent' :
+                         newRating === 4 ? '4 ★ - Very Good' :
+                         newRating === 3 ? '3 ★ - Average' :
+                         newRating === 2 ? '2 ★ - Poor' : '1 ★ - Terrible'}
+                      </span>
+                    </div>
+                  </div>
 
-                {r.title && <p className="font-bold text-brand-gray-900">{r.title}</p>}
-                <p className="text-brand-gray-600 leading-relaxed">{r.comment}</p>
+                  <input
+                    type="text"
+                    placeholder="Review headline (e.g. Exceptional thermals and gaming performance)"
+                    value={newTitle}
+                    maxLength={100}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    className="w-full p-2.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                  />
+
+                  <textarea
+                    rows={3}
+                    required
+                    maxLength={1000}
+                    placeholder="Describe your genuine hands-on experience with this product..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="w-full p-2.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                  />
+
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center space-x-2">
+                      <Button size="sm" type="submit" disabled={submittingReview} className="text-xs uppercase font-bold bg-amber-500 hover:bg-amber-600 text-slate-950">
+                        {submittingReview ? 'Submitting...' : reviewEligibility.existingReview ? 'Update Review' : 'Submit Review'}
+                      </Button>
+                      {reviewEligibility.existingReview && (
+                        <button
+                          type="button"
+                          disabled={deletingReview}
+                          onClick={() => handleDeleteReview(reviewEligibility.existingReview._id)}
+                          className="px-3 py-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded border border-red-200 font-bold transition-colors"
+                        >
+                          {deletingReview ? 'Deleting...' : 'Delete'}
+                        </button>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400">Verified by KAIA Order System</span>
+                  </div>
+                </form>
+              ) : (
+                <div className="py-4 space-y-2 text-slate-600">
+                  <div className="flex items-start space-x-2">
+                    <ShieldCheck className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-slate-900 block text-[12px]">Verified Buyer Policy</span>
+                      <p className="text-[11px] leading-relaxed text-slate-500">
+                        {reviewEligibility.reason || 'Reviews on KAIA Technologies are reserved for verified customers with delivered orders. Once your order is delivered, you can submit your review here.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reviews List Toolbar & Content */}
+          <div className="space-y-4 pt-2">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+              <span className="text-xs font-bold text-slate-700">
+                {reviewsData.reviews?.length || 0} displayed {starFilter ? `(${starFilter} Star filtered)` : ''}
+              </span>
+              <div className="flex items-center space-x-2 text-xs">
+                <span className="text-slate-500 font-medium">Sort by:</span>
+                <select
+                  value={sortFilter}
+                  onChange={(e) => handleSortReviews(e.target.value)}
+                  className="bg-white border border-slate-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none"
+                >
+                  <option value="newest">Most Recent</option>
+                  <option value="highest">Highest Rating</option>
+                  <option value="lowest">Lowest Rating</option>
+                </select>
               </div>
-            ))}
+            </div>
+
+            {loadingReviews ? (
+              <div className="py-8 text-center text-xs text-slate-500">
+                Loading authentic reviews...
+              </div>
+            ) : reviewsData.reviews?.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {reviewsData.reviews.map((r) => {
+                  const isOwn = user && (r.user?._id === user._id || r.user === user._id);
+                  return (
+                    <div key={r._id} className="py-4 space-y-2 text-xs text-left">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2.5">
+                          <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[11px]">
+                            {r.user?.name?.charAt(0) || r.name?.charAt(0) || 'U'}
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-bold text-slate-900">
+                                {r.user?.name || r.name || 'Verified Buyer'}
+                              </span>
+                              {isOwn && (
+                                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded">
+                                  You
+                                </span>
+                              )}
+                              {r.isVerifiedPurchase && (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                                  ✓ Verified Purchase
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {new Date(r.createdAt).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-1.5 text-amber-500">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3.5 h-3.5 ${
+                                star <= (r.rating || 5)
+                                  ? 'fill-amber-500 text-amber-500'
+                                  : 'text-slate-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[11px] font-bold text-slate-700 font-mono">{r.rating}/5</span>
+                      </div>
+
+                      {r.title && <p className="font-bold text-slate-900 text-[13px]">{r.title}</p>}
+                      <p className="text-slate-600 leading-relaxed">{r.comment}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-8 text-center bg-slate-50 rounded border border-dashed border-slate-200 text-xs text-slate-500 space-y-1">
+                <p className="font-bold text-slate-700">No reviews found</p>
+                <p className="text-[11px]">
+                  {starFilter
+                    ? `No ${starFilter}-star reviews found for this product.`
+                    : 'Be the first verified customer to share your thoughts!'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

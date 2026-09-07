@@ -15,6 +15,7 @@ import {
   getBrandSales,
   getBrandProfile,
   updateBrandProfile,
+  getBrandReviews,
 } from '../controllers/brandSellerController.js';
 import {
   getBrandShipments,
@@ -131,6 +132,9 @@ router.post('/returns/:id/approve', approveReturn);
 router.post('/returns/:id/reject', rejectReturn);
 router.post('/returns/:id/received', markReturnReceived);
 router.post('/returns/:id/inspect', inspectReturn);
+
+// 10. Customer Feedback & Product Reviews
+router.get('/reviews', getBrandReviews);
 
 // 6. Brand Profile
 router.get('/profile', getBrandProfile);

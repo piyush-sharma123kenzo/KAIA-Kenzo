@@ -21,6 +21,7 @@ import {
   getAdminPayments,
   getAdminReviews,
   moderateReview,
+  deleteAdminReview,
   getAdminCoupons,
   createAdminCoupon,
   updateAdminCoupon,
@@ -85,6 +86,14 @@ import {
   deleteAdminProductImage,
 } from '../controllers/adminProductController.js';
 import { getCategories } from '../controllers/categoryController.js';
+import {
+  getAdminDeliveryLocations,
+  createDeliveryLocation,
+  updateDeliveryLocation,
+  toggleDeliveryLocationStatus,
+  deleteDeliveryLocation,
+  getDeliveryAnalytics,
+} from '../controllers/deliveryController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -180,6 +189,7 @@ router.delete('/categories/:id', deleteCategory);
 // 13. Customer Reviews Moderation
 router.get('/reviews', getAdminReviews);
 router.patch('/reviews/:id/moderate', moderateReview);
+router.delete('/reviews/:id', deleteAdminReview);
 
 // 14. Marketing: Coupons & Promotions
 router.get('/coupons', getAdminCoupons);
@@ -193,6 +203,18 @@ router.patch('/promotions/:id', updateAdminPromotion);
 // 15. Settings & Delivery Locations
 router.get('/settings', getAdminSettings);
 router.put('/settings', updateAdminSettings);
+router.get('/delivery-locations', getAdminDeliveryLocations);
+router.get('/delivery/zones', getAdminDeliveryLocations);
+router.get('/delivery-locations/analytics', getDeliveryAnalytics);
+router.post('/delivery-locations', createDeliveryLocation);
+router.post('/delivery/zones', createDeliveryLocation);
+router.put('/delivery-locations/:id', updateDeliveryLocation);
+router.patch('/delivery-locations/:id', updateDeliveryLocation);
+router.patch('/delivery/zones/:id', updateDeliveryLocation);
+router.patch('/delivery-locations/:id/status', toggleDeliveryLocationStatus);
+router.patch('/delivery/zones/:id/status', toggleDeliveryLocationStatus);
+router.delete('/delivery-locations/:id', deleteDeliveryLocation);
+router.delete('/delivery/zones/:id', deleteDeliveryLocation);
 
 // 16. System Operations: Webhooks, System Health & Audit
 router.get('/webhooks', getAdminWebhooks);

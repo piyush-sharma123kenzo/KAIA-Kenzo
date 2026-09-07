@@ -16,7 +16,7 @@ const webhookEventSchema = new mongoose.Schema(
 
     provider: {
       type: String,
-      enum: ['razorpay', 'cashfree', 'mock', 'shiprocket', 'delhivery', 'bluedart', 'shipping'],
+      enum: ['razorpay', 'cashfree', 'shiprocket', 'delhivery', 'bluedart', 'shipping'],
       required: true,
     },
 

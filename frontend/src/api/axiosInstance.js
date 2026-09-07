@@ -9,17 +9,56 @@ if (!rawBase.endsWith('/api') && !rawBase.endsWith('/api/')) {
 const axiosInstance = axios.create({
   baseURL: rawBase,
   withCredentials: true, // Crucial for HTTP-Only cookie transfer
+  timeout: 30000, // 30 second timeout
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem('kaia_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Request Interceptor: Attach bearer authorization token
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('kaia_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+// Response Interceptor: Normalize errors & handle session expirations
+axiosInstance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // 1. Network / Connection offline error
+    if (!error.response) {
+      const networkError = new Error('Unable to connect to server. Please check your internet connection.');
+      networkError.isNetworkError = true;
+      networkError.statusCode = 0;
+      return Promise.reject(networkError);
+    }
+
+    // 2. Extract safe error message from standard backend payload
+    const { status, data } = error.response;
+    const safeMessage = data?.message || error.message || 'An unexpected error occurred. Please try again.';
+
+    // 3. Handle 401 Unauthorized (expired token cleanup)
+    if (status === 401) {
+      const isAuthPath = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register');
+      if (!isAuthPath) {
+        localStorage.removeItem('kaia_token');
+      }
+    }
+
+    // Attach normalized safe message to error object
+    error.safeMessage = safeMessage;
+    return Promise.reject(error);
+  }
+);
 
 export default axiosInstance;

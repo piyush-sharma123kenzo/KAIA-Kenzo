@@ -77,10 +77,11 @@ const AdminDashboard = () => {
 
         {/* Segmented Date Range & Refresh */}
         <div className="flex items-center space-x-2 shrink-0">
-          <div className="inline-flex p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 text-xs font-bold">
+          <div className="inline-flex p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 text-xs font-bold overflow-x-auto max-w-full">
             {[
               { key: 'today', label: 'Today' },
               { key: '7days', label: '7 Days' },
+              { key: 'thisMonth', label: 'This Month' },
               { key: '30days', label: '30 Days' },
               { key: '3months', label: '3 Months' },
               { key: '1year', label: '1 Year' },
@@ -88,7 +89,7 @@ const AdminDashboard = () => {
               <button
                 key={t.key}
                 onClick={() => setTimeRange(t.key)}
-                className={`px-3 py-1.5 rounded-lg transition-all duration-150 ${
+                className={`px-3 py-1.5 rounded-lg transition-all duration-150 whitespace-nowrap ${
                   timeRange === t.key
                     ? 'bg-slate-900 text-white shadow-xs font-extrabold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
@@ -103,7 +104,7 @@ const AdminDashboard = () => {
             onClick={() => fetchDashboard(true)}
             disabled={refreshing || loading}
             title="Refresh Live Metrics"
-            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors shadow-xs"
+            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors shadow-xs shrink-0"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-amber-600' : ''}`} />
           </button>
@@ -150,58 +151,66 @@ const AdminDashboard = () => {
             { 
               label: 'Gross Merchandise Value', 
               val: `₹${Number(kpis.totalGMV || 0).toLocaleString('en-IN')}`, 
+              sub: `${kpis.totalOrders || 0} paid orders in period`,
               icon: TrendingUp, 
               iconBg: 'bg-amber-500/10 text-amber-600',
               link: '/admin/revenue' 
             },
             { 
               label: 'Total Orders', 
-              val: (kpis.totalOrders || 0).toLocaleString('en-IN'), 
+              val: (kpis.allOrdersCount || kpis.totalOrders || 0).toLocaleString('en-IN'), 
+              sub: `${kpis.pendingOrders || 0} pending • ${kpis.deliveredOrders || 0} delivered`,
               icon: ShoppingBag, 
               iconBg: 'bg-blue-500/10 text-blue-600',
-              link: '/admin/shipments' 
+              link: '/admin/orders' 
             },
             { 
               label: 'Platform Commission', 
               val: `₹${Number(kpis.marketplaceCommission || 0).toLocaleString('en-IN')}`, 
+              sub: `Seller payouts: ₹${Number(kpis.sellerPayables || 0).toLocaleString('en-IN')}`,
               icon: Landmark, 
               iconBg: 'bg-purple-500/10 text-purple-600',
               link: '/admin/revenue' 
             },
             { 
-              label: 'Total Customers', 
-              val: (kpis.totalCustomers || 0).toLocaleString('en-IN'), 
+              label: 'Customers & Users', 
+              val: (kpis.totalCustomers || kpis.totalUsers || 0).toLocaleString('en-IN'), 
+              sub: `${kpis.totalUsers || 0} total accounts • ${kpis.totalBrands || 0} brands`,
               icon: Users2, 
               iconBg: 'bg-emerald-500/10 text-emerald-600',
               link: '/admin/users' 
             },
             { 
-              label: 'Active Brands', 
-              val: (kpis.totalBrands || 0).toLocaleString('en-IN'), 
-              icon: Building2, 
+              label: 'Active Delivery Areas', 
+              val: (kpis.activeDeliveryAreas || 0).toLocaleString('en-IN'), 
+              sub: 'Serviceable 10 KM hubs',
+              icon: MapPin, 
               iconBg: 'bg-indigo-500/10 text-indigo-600',
-              link: '/admin/brands' 
+              link: '/admin/delivery-locations' 
             },
             { 
               label: 'Catalog Products', 
               val: (kpis.totalProducts || 0).toLocaleString('en-IN'), 
+              sub: `${kpis.activeProducts || 0} active • ${kpis.lowStockProducts || 0} low stock`,
               icon: PackageOpen, 
               iconBg: 'bg-slate-500/10 text-slate-700',
               link: '/admin/products' 
             },
             { 
-              label: 'Pending Settlements', 
-              val: (kpis.pendingSettlements || 0).toLocaleString('en-IN'), 
-              icon: DollarSign, 
-              iconBg: 'bg-orange-500/10 text-orange-600',
-              link: '/admin/settlements' 
+              label: 'Payment Transactions', 
+              val: (kpis.paidPayments || kpis.totalPayments || 0).toLocaleString('en-IN'), 
+              sub: `${kpis.paidPayments || 0} paid • ${kpis.failedPayments || 0} failed`,
+              icon: CreditCard, 
+              iconBg: 'bg-teal-500/10 text-teal-600',
+              link: '/admin/payments' 
             },
             { 
-              label: 'Pending Returns', 
-              val: (kpis.pendingReturns || 0).toLocaleString('en-IN'), 
-              icon: RotateCcw, 
+              label: 'Pending Settlements', 
+              val: (kpis.pendingSettlements || 0).toLocaleString('en-IN'), 
+              sub: `${kpis.pendingReturns || 0} pending returns`,
+              icon: DollarSign, 
               iconBg: 'bg-rose-500/10 text-rose-600',
-              link: '/admin/returns' 
+              link: '/admin/settlements' 
             },
           ].map((c, idx) => {
             const Icon = c.icon;
@@ -223,6 +232,11 @@ const AdminDashboard = () => {
                   <p className="text-2xl font-black text-slate-900 tracking-tight font-mono">
                     {c.val}
                   </p>
+                  {c.sub && (
+                    <p className="text-[10px] text-slate-400 font-medium mt-1 truncate">
+                      {c.sub}
+                    </p>
+                  )}
                 </div>
               </Link>
             );
@@ -298,7 +312,7 @@ const AdminDashboard = () => {
             </p>
           </div>
           <Link 
-            to="/admin/shipments" 
+            to="/admin/orders" 
             className="inline-flex items-center space-x-1 text-xs font-bold text-slate-700 hover:text-slate-950 hover:underline"
           >
             <span>View All Orders</span>

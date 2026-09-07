@@ -4,6 +4,8 @@ import {
   addToWishlist,
   removeFromWishlist,
   toggleWishlist,
+  clearWishlist,
+  moveToCart,
 } from '../controllers/wishlist.controller.js';
 import { protect } from '../middleware/auth.js';
 
@@ -15,6 +17,10 @@ router.get('/', getWishlist);
 router.post('/', addToWishlist);
 router.post('/add', addToWishlist);
 router.post('/toggle', toggleWishlist);
+router.delete('/clear', clearWishlist);
+router.delete('/', clearWishlist);
+router.post('/move-to-cart', moveToCart);
+router.post('/:productId/move-to-cart', moveToCart);
 router.delete('/:productId', removeFromWishlist);
 
 export default router;

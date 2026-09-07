@@ -2,6 +2,7 @@ import Brand from '../models/Brand.js';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
 import { isProhibitedBrand } from '../utils/brandValidation.js';
+import { createNotification, notifyAdmins } from '../services/notification/notification.service.js';
 
 // @desc    Register a brand profile
 // @route   POST /api/brands/register
@@ -49,6 +50,27 @@ export const registerBrand = async (req, res) => {
       businessDetails,
       bankDetails,
       status: 'Pending',
+    });
+
+    // Notify user of registration submission
+    await createNotification({
+      userId: req.user._id,
+      title: 'Brand Registration Submitted',
+      message: `Your brand application for "${name}" has been received and is currently under compliance review.`,
+      type: 'BRAND',
+      referenceType: 'Brand',
+      referenceId: String(brand._id),
+      link: '/brand/dashboard',
+    });
+
+    // Notify platform administrators of pending approval request
+    await notifyAdmins({
+      title: 'New Brand Approval Request',
+      message: `Brand application "${name}" submitted by ${req.user.name || req.user.email} is pending verification.`,
+      type: 'ADMIN',
+      referenceType: 'Brand',
+      referenceId: String(brand._id),
+      link: '/admin/brands',
     });
 
     res.status(201).json({

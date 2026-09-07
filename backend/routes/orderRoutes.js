@@ -17,7 +17,10 @@ import {
 import {
   getOrderInvoices,
 } from '../controllers/invoiceController.js';
-import { protect, checkBrandApproval } from '../middleware/auth.js';
+import {
+  updateAdminOrderStatus,
+} from '../controllers/adminController.js';
+import { protect, authorize, checkBrandApproval } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -35,6 +38,10 @@ router.get('/:orderId', getOrderById);
 router.put('/:orderId/cancel', cancelOrder);
 router.post('/:orderId/cancel', cancelOrder);
 router.get('/:childOrderId/invoice', downloadInvoice);
+
+// Admin Order Status Update
+router.patch('/:orderId/status', authorize('ADMIN'), updateAdminOrderStatus);
+router.put('/:orderId/status', authorize('ADMIN'), updateAdminOrderStatus);
 
 // Legacy/Direct Seller Order Endpoints
 router.get('/seller/my-orders', checkBrandApproval, getSellerOrders);

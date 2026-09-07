@@ -8,6 +8,7 @@ import { WishlistProvider } from './context/WishlistContext';
 import { ToastProvider } from './context/ToastContext';
 import { LocationProvider } from './context/LocationContext';
 import { CompareProvider } from './context/CompareContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Layouts
 import CustomerLayout from './layouts/CustomerLayout';
@@ -16,6 +17,7 @@ import AdminLayout from './layouts/AdminLayout';
 
 // Feedback
 import PageLoader from './components/feedback/PageLoader';
+import ErrorBoundary from './components/feedback/ErrorBoundary';
 
 // Customer Pages (Core)
 import Home from './pages/customer/Home';
@@ -120,15 +122,17 @@ const AdminDeliveryLocations = lazy(() => import('./pages/admin/DeliveryLocation
 
 function App() {
   return (
-    <AuthProvider>
-      <LocationProvider>
-        <ToastProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <CompareProvider>
-                <BrowserRouter>
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <LocationProvider>
+          <ToastProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <CompareProvider>
+                  <NotificationProvider>
+                    <BrowserRouter>
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
                   
                   {/* BUYER / CUSTOMER APP FLOW */}
                   <Route path="/" element={<CustomerLayout />}>
@@ -142,6 +146,10 @@ function App() {
                     <Route path="payment-pending" element={<PaymentPending />} />
                     <Route path="payment-failed" element={<PaymentFailed />} />
                     <Route path="account" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Account /></ProtectedRoute>} />
+                    <Route path="dashboard" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Account /></ProtectedRoute>} />
+                    <Route path="profile" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Navigate to="/account?tab=profile" replace /></ProtectedRoute>} />
+                    <Route path="addresses" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Navigate to="/account?tab=addresses" replace /></ProtectedRoute>} />
+                    <Route path="my-orders" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><CustomerOrders /></ProtectedRoute>} />
                     <Route path="account/orders" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><CustomerOrders /></ProtectedRoute>} />
                     <Route path="account/wishlist" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Wishlist /></ProtectedRoute>} />
                     <Route path="wishlist" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Wishlist /></ProtectedRoute>} />
@@ -264,12 +272,14 @@ function App() {
                 </Routes>
               </Suspense>
             </BrowserRouter>
+            </NotificationProvider>
           </CompareProvider>
-        </WishlistProvider>
-      </CartProvider>
+          </WishlistProvider>
+        </CartProvider>
       </ToastProvider>
     </LocationProvider>
   </AuthProvider>
+</ErrorBoundary>
 );
 }
 

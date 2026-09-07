@@ -11,7 +11,6 @@ import {
   resendOtp,
   forgotPassword,
   resetPassword,
-  cleanDatabase,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -84,8 +83,6 @@ router.post('/verify-reset-otp', otpVerifyLimiter, verifyOtp);
 router.post('/resend-otp', otpResendLimiter, resendOtp);
 router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
 router.post('/reset-password', resetPasswordLimiter, resetPassword);
-router.all('/clean-database', cleanDatabase);
-router.all('/clean-dev-database', cleanDatabase);
 
 // ─── Private Authenticated Endpoints ─────────────────────────────────────────
 router.post('/logout', protect, logoutUser);

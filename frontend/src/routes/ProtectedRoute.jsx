@@ -20,11 +20,14 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to={`/login?redirect=${redirectUrl}`} replace />;
   }
 
-  // Role permissions checks (e.g. BRAND or ADMIN)
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    if (user.role === 'ADMIN') {
+  // Role permissions checks (case-insensitive for robust role verification)
+  const userRole = (user.role || '').toUpperCase();
+  const normalizedAllowedRoles = allowedRoles ? allowedRoles.map((r) => r.toUpperCase()) : null;
+
+  if (normalizedAllowedRoles && !normalizedAllowedRoles.includes(userRole)) {
+    if (userRole === 'ADMIN') {
       return <Navigate to="/admin/dashboard" replace />;
-    } else if (user.role === 'BRAND') {
+    } else if (userRole === 'BRAND') {
       return <Navigate to="/brand/dashboard" replace />;
     } else {
       return <Navigate to="/account" replace />;

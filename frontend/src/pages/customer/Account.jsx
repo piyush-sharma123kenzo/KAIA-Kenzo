@@ -18,6 +18,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import KaiaIcon from '../../components/common/KaiaIcon';
 import DeliveryChecker from '../../components/common/DeliveryChecker';
 import { useLocationContext } from '../../context/LocationContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { getAvatarSrc } from '../../utils/imageUtils';
 import ProfileAvatar from '../../components/profile/ProfileAvatar';
 import ProfileImageUploader from '../../components/profile/ProfileImageUploader';
@@ -25,6 +26,7 @@ import ProfileImageUploader from '../../components/profile/ProfileImageUploader'
 const Account = () => {
   const { user, updateProfile, logout } = useContext(AuthContext);
   const { addToCart } = useContext(CartContext);
+  const { wishlist: contextWishlist, removeFromWishlist, moveToCart: moveWishlistToCart, loading: loadingWishlist } = useWishlist() || {};
   const { deliveryLocation, deliveryInfo, openLocationModal } = useLocationContext() || {};
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -78,10 +80,6 @@ const Account = () => {
     type: 'Home',
     isDefault: false,
   });
-
-  // Wishlist state
-  const [wishlist, setWishlist] = useState([]);
-  const [loadingWishlist, setLoadingWishlist] = useState(false);
 
   // Profile Form state
   const [profileForm, setProfileForm] = useState({
@@ -225,21 +223,6 @@ const Account = () => {
       fetchReviews();
     }
 
-    if (activeTab === 'wishlist' && wishlist.length === 0) {
-      const fetchWishlist = async () => {
-        setLoadingWishlist(true);
-        try {
-          const res = await axiosInstance.get('/account/wishlist');
-          setWishlist(res.data.wishlist || []);
-        } catch (err) {
-          console.error('[KAIA Account] Wishlist error:', err);
-        } finally {
-          setLoadingWishlist(false);
-        }
-      };
-      fetchWishlist();
-    }
-
     if (activeTab === 'addresses') {
       const fetchAddresses = async () => {
         try {
@@ -252,7 +235,7 @@ const Account = () => {
       fetchAddresses();
     }
 
-    if (activeTab === 'notifications' && notifications.length === 0) {
+    if (activeTab === 'notifications') {
       const fetchNotifications = async () => {
         setLoadingNotifications(true);
         try {
@@ -267,6 +250,39 @@ const Account = () => {
       fetchNotifications();
     }
   }, [activeTab]);
+
+  const handleMarkNotificationRead = async (id) => {
+    try {
+      await axiosInstance.patch(`/account/notifications/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, read: true } : n))
+      );
+    } catch (err) {
+      console.error('[KAIA Account] Error marking notification read:', err);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await axiosInstance.post('/account/notifications/read-all');
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      toast.success('All notifications marked as read.');
+    } catch (err) {
+      console.error('[KAIA Account] Error marking all notifications read:', err);
+      toast.error('Failed to mark all as read.');
+    }
+  };
+
+  const handleDeleteCustomerNotification = async (id) => {
+    try {
+      await axiosInstance.delete(`/account/notifications/${id}`);
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+      toast.success('Notification removed.');
+    } catch (err) {
+      console.error('[KAIA Account] Error deleting notification:', err);
+      toast.error('Failed to delete notification.');
+    }
+  };
 
   // Profile update handler
   const handleUpdateProfile = async (e) => {
@@ -951,7 +967,7 @@ const Account = () => {
                     <h3 className="text-base font-black text-slate-900">
                       My Verified Product Reviews ({reviews.length})
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Feedback from authenticated customer orders</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Feedback from your authenticated and delivered orders</p>
                   </div>
                 </div>
 
@@ -965,17 +981,66 @@ const Account = () => {
                   <div className="py-12 text-center text-xs text-slate-500 space-y-2">
                     <MessageSquare className="w-10 h-10 text-slate-300 mx-auto" />
                     <p className="font-bold text-slate-800">You haven't reviewed any purchased products yet.</p>
-                    <p className="text-slate-500">Share your hardware experience on product pages.</p>
+                    <p className="text-slate-500">Reviews can be submitted on product pages after your orders are delivered.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {reviews.map((r) => (
-                      <div key={r._id} className="py-3.5 space-y-1">
-                        <div className="flex justify-between items-center">
-                          <p className="font-bold text-xs text-slate-900">{r.product?.name}</p>
-                          <div className="flex items-center text-amber-500 font-bold text-xs">
-                            <Star className="w-3.5 h-3.5 fill-current mr-1" />
-                            <span>{r.rating}/5</span>
+                      <div key={r._id} className="py-4 space-y-2 text-left">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center space-x-3">
+                            {r.product?.images?.[0] && (
+                              <img
+                                src={r.product.images[0]?.url || r.product.images[0]}
+                                alt=""
+                                className="w-10 h-10 object-contain bg-slate-50 border border-slate-200 rounded-lg p-1 shrink-0"
+                              />
+                            )}
+                            <div>
+                              <Link
+                                to={`/product/${r.product?.slug || r.product?._id}`}
+                                className="font-bold text-xs text-slate-900 hover:text-amber-600 transition-colors line-clamp-1"
+                              >
+                                {r.product?.name || 'Product'}
+                              </Link>
+                              <div className="flex items-center space-x-2 pt-0.5">
+                                <div className="flex text-amber-500">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star
+                                      key={s}
+                                      className={`w-3 h-3 ${
+                                        s <= r.rating ? 'fill-amber-500 text-amber-500' : 'text-slate-300'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-[11px] font-bold text-slate-700 font-mono">{r.rating}/5</span>
+                                {r.isVerifiedPurchase && (
+                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                                    ✓ Verified Purchase
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3 self-end sm:self-center">
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                            <button
+                              onClick={async () => {
+                                if (!window.confirm('Delete this review?')) return;
+                                try {
+                                  await axiosInstance.delete(`/reviews/${r._id}`);
+                                  setReviews((prev) => prev.filter((item) => item._id !== r._id));
+                                } catch (err) {
+                                  alert(err.response?.data?.message || 'Error deleting review');
+                                }
+                              }}
+                              className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
                         {r.title && <p className="font-semibold text-xs text-slate-800">{r.title}</p>}
@@ -995,12 +1060,12 @@ const Account = () => {
                 <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                   <div>
                     <h3 className="text-base font-black text-slate-900">
-                      Saved Wishlist ({wishlist.length})
+                      Saved Wishlist ({contextWishlist?.products?.length || 0})
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Your curated technology items</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Your curated technology items with live stock & price updates</p>
                   </div>
                   <Link to="/wishlist" className="text-xs font-bold text-amber-700 hover:underline">
-                    Full View →
+                    Full Wishlist Page →
                   </Link>
                 </div>
 
@@ -1010,7 +1075,7 @@ const Account = () => {
                       <Skeleton key={i} className="h-16 w-full rounded-xl bg-slate-100" />
                     ))}
                   </div>
-                ) : wishlist.length === 0 ? (
+                ) : (contextWishlist?.products?.length || 0) === 0 ? (
                   <EmptyState
                     type="wishlist"
                     title="Your wishlist is empty"
@@ -1021,20 +1086,64 @@ const Account = () => {
                   />
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {wishlist.map((it) => (
-                      <div key={it._id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex justify-between items-center text-xs">
-                        <div>
-                          <p className="font-bold text-slate-900 truncate max-w-[190px]">{it.product?.name}</p>
-                          <span className="font-black text-amber-600 mt-0.5 block">₹{it.product?.sellingPrice?.toLocaleString('en-IN')}</span>
+                    {contextWishlist.products.map((it) => {
+                      const prod = it.product || {};
+                      const pId = prod._id || prod.id || it._id;
+                      const isAvailable = it.isAvailable !== false && (it.availableStock > 0 || (prod.stock?.quantity ?? 10) > 0);
+                      return (
+                        <div key={pId} className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex flex-col justify-between space-y-3 text-xs text-left">
+                          <div className="flex items-center space-x-3">
+                            {prod.images?.[0] && (
+                              <img
+                                src={prod.images[0]?.url || prod.images[0]}
+                                alt=""
+                                className="w-12 h-12 object-contain bg-white border border-slate-200 rounded-lg p-1 shrink-0"
+                              />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <Link
+                                to={`/product/${prod.slug || pId}`}
+                                className="font-bold text-slate-900 hover:text-amber-600 transition-colors line-clamp-1 block"
+                              >
+                                {prod.name || 'Hardware Product'}
+                              </Link>
+                              <div className="flex items-center space-x-2 pt-0.5">
+                                <span className="font-black text-slate-950 font-mono">
+                                  ₹{(it.unitPrice || prod.sellingPrice || 0).toLocaleString('en-IN')}
+                                </span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                                  isAvailable ? 'text-emerald-700 bg-emerald-50' : 'text-rose-600 bg-rose-50'
+                                }`}>
+                                  {isAvailable ? 'In Stock' : 'Out of Stock'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-2 pt-1 border-t border-slate-200/60">
+                            <button
+                              onClick={() => moveWishlistToCart(pId, 1)}
+                              disabled={!isAvailable}
+                              className={`flex-1 py-1.5 px-3 rounded-lg font-black text-[11px] transition-all flex items-center justify-center space-x-1 ${
+                                isAvailable
+                                  ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-2xs cursor-pointer'
+                                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                              }`}
+                            >
+                              <span>{isAvailable ? 'Move to Cart' : 'Out of Stock'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => removeFromWishlist(pId)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-colors"
+                              title="Remove from wishlist"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                        <button 
-                          onClick={() => addToCart(it.product, 1)} 
-                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs py-1.5 px-3 rounded-lg shadow-2xs transition-all"
-                        >
-                          Add to Cart
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1167,37 +1276,105 @@ const Account = () => {
             {/* =================================================================== */}
             {activeTab === 'notifications' && (
               <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs p-6 md:p-7 space-y-5">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
                   <div>
-                    <h3 className="text-base font-black text-slate-900">
-                      Notifications ({notifications.length})
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Order milestones, logistics updates, and warranty renewals</p>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-base font-black text-slate-900">
+                        Notifications
+                      </h3>
+                      {notifications.filter((n) => !n.read).length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-200">
+                          {notifications.filter((n) => !n.read).length} Unread
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">Order milestones, logistics updates, and account security alerts</p>
                   </div>
+
+                  {notifications.length > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleMarkAllNotificationsRead}
+                        className="text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-200 shadow-2xs"
+                      >
+                        Mark All Read
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {loadingNotifications ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {Array(3).fill(0).map((_, i) => (
-                      <Skeleton key={i} className="h-16 w-full rounded-xl bg-slate-100" />
+                      <Skeleton key={i} className="h-20 w-full rounded-xl bg-slate-100" />
                     ))}
                   </div>
                 ) : notifications.length === 0 ? (
-                  <div className="py-12 text-center text-xs text-slate-500 space-y-2">
-                    <Bell className="w-10 h-10 text-slate-300 mx-auto" />
-                    <p className="font-bold text-slate-800">You're all caught up!</p>
-                    <p className="text-slate-500">Order milestones and warranty renewals will appear here in real-time.</p>
+                  <div className="py-14 text-center text-xs text-slate-500 space-y-2.5">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                      <Bell className="w-6 h-6" />
+                    </div>
+                    <p className="font-bold text-sm text-slate-800">You're all caught up!</p>
+                    <p className="text-slate-500 max-w-sm mx-auto">Real event updates for your purchases, payment verifications, and dispatches will appear here automatically.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {notifications.map((n) => (
-                      <div key={n._id} className="py-3.5 flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-xs text-slate-900">{n.title}</p>
-                          <p className="text-xs text-slate-600 mt-0.5">{n.message}</p>
-                          <span className="text-[10px] text-slate-400 font-mono">{new Date(n.createdAt).toLocaleString('en-IN')}</span>
+                      <div
+                        key={n._id}
+                        className={`py-4 px-3 rounded-xl transition-colors flex items-start justify-between gap-4 ${
+                          !n.read ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-slate-50/80'
+                        }`}
+                      >
+                        <div
+                          onClick={() => !n.read && handleMarkNotificationRead(n._id)}
+                          className="flex-1 cursor-pointer space-y-1"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${!n.read ? 'bg-amber-500 ring-2 ring-amber-200' : 'bg-transparent'}`} />
+                            <p className={`text-xs ${!n.read ? 'font-black text-slate-900' : 'font-semibold text-slate-700'}`}>
+                              {n.title}
+                            </p>
+                            {n.type && (
+                              <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-mono">
+                                {n.type}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 pl-4 leading-relaxed font-normal">{n.message}</p>
+                          <div className="pl-4 pt-1 flex items-center space-x-3 text-[10px] text-slate-400 font-mono">
+                            <span>{new Date(n.createdAt).toLocaleString('en-IN')}</span>
+                            {n.link && (
+                              <Link
+                                to={n.link}
+                                className="text-amber-700 hover:text-amber-800 font-bold hover:underline flex items-center space-x-0.5"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span>View Details</span>
+                                <ChevronRight className="w-3 h-3" />
+                              </Link>
+                            )}
+                          </div>
                         </div>
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />}
+
+                        <div className="flex items-center space-x-1 shrink-0 pt-1">
+                          {!n.read && (
+                            <button
+                              onClick={() => handleMarkNotificationRead(n._id)}
+                              title="Mark as read"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-100/60 transition-colors"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeleteCustomerNotification(n._id)}
+                            title="Delete notification"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

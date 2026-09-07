@@ -52,7 +52,7 @@ router.get('/id/:id', getProductBySlug);
 // Supports Admin direct creation/updates as well as approved brand management
 const adminOrBrandProtect = (req, res, next) => {
   protect(req, res, () => {
-    if (req.user && req.user.role === 'ADMIN') {
+    if (req.user && (req.user.role || '').toUpperCase() === 'ADMIN') {
       return next();
     }
     return checkBrandApproval(req, res, next);
@@ -60,22 +60,22 @@ const adminOrBrandProtect = (req, res, next) => {
 };
 
 router.post('/', adminOrBrandProtect, (req, res, next) => {
-  if (req.user && req.user.role === 'ADMIN') return createAdminProduct(req, res, next);
+  if (req.user && (req.user.role || '').toUpperCase() === 'ADMIN') return createAdminProduct(req, res, next);
   return createProduct(req, res, next);
 });
 
 router.put('/:id', adminOrBrandProtect, (req, res, next) => {
-  if (req.user && req.user.role === 'ADMIN') return updateAdminProduct(req, res, next);
+  if (req.user && (req.user.role || '').toUpperCase() === 'ADMIN') return updateAdminProduct(req, res, next);
   return updateProduct(req, res, next);
 });
 
 router.patch('/:id', adminOrBrandProtect, (req, res, next) => {
-  if (req.user && req.user.role === 'ADMIN') return updateAdminProduct(req, res, next);
+  if (req.user && (req.user.role || '').toUpperCase() === 'ADMIN') return updateAdminProduct(req, res, next);
   return updateProduct(req, res, next);
 });
 
 router.delete('/:id', adminOrBrandProtect, (req, res, next) => {
-  if (req.user && req.user.role === 'ADMIN') return deleteAdminProduct(req, res, next);
+  if (req.user && (req.user.role || '').toUpperCase() === 'ADMIN') return deleteAdminProduct(req, res, next);
   return deleteProduct(req, res, next);
 });
 

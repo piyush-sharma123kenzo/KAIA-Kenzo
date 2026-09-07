@@ -4,7 +4,7 @@ import {
   Search, ShoppingCart, MapPin, Menu, X, ChevronDown, 
   User, ShieldCheck, Heart, Building2, Package, ExternalLink,
   Navigation, Check, ArrowLeftRight, LogOut, Award, ShoppingBag, ChevronRight, Camera,
-  Sparkles, Flame, Tag, Eye
+  Sparkles, Flame, Tag, Eye, Bell
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
@@ -12,6 +12,7 @@ import { useWishlist } from '../../context/WishlistContext';
 import { useLocationContext } from '../../context/LocationContext';
 import { useCompare } from '../../context/CompareContext';
 import { useToast } from '../../context/ToastContext';
+import { useNotifications } from '../../context/NotificationContext';
 import categoryService from '../../services/categoryService';
 import productService from '../../services/productService';
 import axiosInstance from '../../api/axiosInstance';
@@ -28,6 +29,7 @@ const Header = () => {
   const { cart, cartTotals } = useContext(CartContext) || {};
   const { wishlistCount = 0 } = useWishlist() || {};
   const { deliveryLocation, openLocationModal } = useLocationContext();
+  const { unreadCount = 0 } = useNotifications() || {};
   const { compareCount = 0 } = useCompare() || {};
   const toast = useToast();
   const navigate = useNavigate();
@@ -270,19 +272,25 @@ const Header = () => {
                     <div
                       key={idx}
                       onMouseDown={() => {
-                        setSearchQuery(item.name);
-                        navigate(`/product/${item.slug || item._id}`);
+                        setSearchQuery(item.name || item.title);
+                        if (item.type === 'brand') {
+                          navigate(`/brand/${item.slug}`);
+                        } else if (item.type === 'category') {
+                          navigate(`/category/${item.slug}`);
+                        } else {
+                          navigate(`/product/${item.slug || item._id}`);
+                        }
                       }}
                       className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer flex items-center justify-between group"
                     >
                       <div className="flex items-center space-x-2.5">
                         <Search className="w-4 h-4 text-slate-400 group-hover:text-[#F5B400] transition-colors" />
                         <span className="text-xs md:text-sm text-slate-800 font-medium truncate max-w-sm">
-                          {item.name}
+                          {item.name || item.title}
                         </span>
                       </div>
                       <span className="text-[10px] text-slate-400 uppercase font-mono">
-                        {item.brandName || 'Verified'}
+                        {item.type === 'brand' ? 'Brand' : item.type === 'category' ? 'Category' : (item.brandName || 'Product')}
                       </span>
                     </div>
                   ))}
@@ -300,12 +308,32 @@ const Header = () => {
             </button>
           </form>
 
-          {/* 3. Right Action Bar: Wishlist, Cart, Account */}
-          <div className="flex items-center space-x-4 md:space-x-6 shrink-0 text-white text-xs font-semibold">
+          {/* 3. Right Action Bar: Wishlist, Notifications, Cart, Account */}
+          <div className="flex items-center space-x-3.5 md:space-x-5 shrink-0 text-white text-xs font-semibold">
             
+            {/* Notifications Bell */}
+            {user && (
+              <Link
+                to="/account?tab=notifications"
+                className="flex items-center space-x-1.5 hover:text-[#F5B400] transition-colors relative py-1"
+                title="View In-App Notifications"
+                aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+              >
+                <div className="relative">
+                  <Bell className="w-5 h-5 text-white" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 bg-amber-400 text-slate-950 font-black text-[9px] rounded-full w-4 h-4 flex items-center justify-center leading-none shadow-xs animate-pulse">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </div>
+                <span className="hidden 2xl:inline font-bold">Alerts</span>
+              </Link>
+            )}
+
             {/* Wishlist */}
             <Link
-              to="/account/wishlist"
+              to="/wishlist"
               className="flex items-center space-x-1.5 hover:text-[#F5B400] transition-colors relative py-1"
               title="View Saved Wishlist"
             >

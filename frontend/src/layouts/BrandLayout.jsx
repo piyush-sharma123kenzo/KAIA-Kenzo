@@ -4,15 +4,16 @@ import {
   LayoutDashboard, Package, PlusCircle, ShoppingBag, Barcode, Truck, ClipboardList, TrendingUp, Building2, Settings, Bell, LogOut, ShieldAlert, Menu, X, CheckCircle, ExternalLink, FileText, RotateCcw, Landmark, DollarSign
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import KaiaIcon from '../components/common/KaiaIcon';
 import ProfileAvatar from '../components/profile/ProfileAvatar';
 
 const BrandLayout = () => {
   const { user, brand, logout } = useContext(AuthContext);
+  const { unreadCount = 0 } = useNotifications() || {};
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   const isActive = (path) => {
     if (path === '/brand/dashboard' && (location.pathname === '/brand' || location.pathname === '/brand/dashboard')) {
@@ -205,7 +206,7 @@ const BrandLayout = () => {
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3 sm:space-x-4">
             {/* Direct Link to Add Product CTA */}
             <Link
               to="/brand/products/new"
@@ -215,8 +216,23 @@ const BrandLayout = () => {
               <span>New Listing</span>
             </Link>
 
+            {/* Brand Notifications */}
+            <Link
+              to="/brand/notifications"
+              className="p-2 rounded-sm hover:bg-brand-gray-100 text-brand-gray-600 hover:text-brand-gray-900 transition-colors relative"
+              title="Brand Notifications"
+              aria-label={`Brand Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+            >
+              <Bell className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 bg-amber-500 text-slate-950 font-black text-[9px] rounded-full w-4 h-4 flex items-center justify-center leading-none ring-2 ring-white animate-pulse">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+
             {/* Operator details */}
-            <div className="flex items-center space-x-3 border-l border-brand-gray-200 pl-4">
+            <div className="flex items-center space-x-3 border-l border-brand-gray-200 pl-3 sm:pl-4">
               <ProfileAvatar 
                 user={user} 
                 size="sm" 

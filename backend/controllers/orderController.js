@@ -10,6 +10,10 @@ import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import SerialNumber from '../models/SerialNumber.js';
 import Warranty from '../models/Warranty.js';
+import Refund from '../models/Refund.js';
+import Payment from '../models/Payment.js';
+import paymentService from '../services/payment/payment.service.js';
+import inventoryService from '../services/inventory/inventory.service.js';
 import { validateOrderDelivery } from './deliveryController.js';
 
 /**
@@ -476,7 +480,7 @@ export const getOrderById = async (req, res) => {
 
     // Security Authorization: Customer can only view their own order, Admin can view all
     const isOwner = order.customer && order.customer._id.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === 'ADMIN';
+    const isAdmin = (req.user.role || '').toUpperCase() === 'ADMIN';
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Unauthorized access to this order.' });
@@ -510,19 +514,33 @@ export const cancelOrder = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized to cancel this order.' });
     }
 
+    // Prevent duplicate cancellation
+    if (order.orderStatus === 'cancelled') {
+      return res.status(200).json({
+        success: true,
+        message: 'Order is already cancelled.',
+        order,
+      });
+    }
+
     // Check if order has already shipped or delivered
     const anyShipped = order.childOrders.some((so) => so.fulfillmentStatus === 'Shipped' || so.fulfillmentStatus === 'Delivered');
     if (anyShipped && !isAdmin) {
       return res.status(400).json({ message: 'Cannot cancel an order that is already shipped or delivered.' });
     }
 
+    const wasPaid = order.paymentStatus === 'Paid';
+
     // 1. Update Master Order
     order.orderStatus = 'cancelled';
     order.cancellationReason = reason;
     order.cancelledAt = new Date();
+    if (wasPaid) {
+      order.paymentStatus = 'Refund Processing';
+    }
     await order.save();
 
-    // 2. Update Child Seller Orders and Release Reserved Stock
+    // 2. Update Child Seller Orders and Inventory
     for (let so of order.childOrders) {
       const childDoc = await SellerOrder.findById(so._id);
       if (childDoc && childDoc.fulfillmentStatus !== 'Delivered') {
@@ -531,36 +549,107 @@ export const cancelOrder = async (req, res) => {
         childDoc.cancelledAt = new Date();
         await childDoc.save();
 
-        // Release reserved stock back to available
+        // Restore inventory based on whether stock was deducted (paid) or just reserved (unpaid)
         for (let item of childDoc.items) {
-          await Product.findByIdAndUpdate(item.product, {
-            $inc: { 'stock.reservedQuantity': -item.qty },
-          });
+          const qty = item.qty || item.quantity || 1;
+          const prodId = item.product?._id || item.product;
+
+          if (wasPaid) {
+            // Paid orders had stock deducted -> restore to available quantity
+            await Product.findByIdAndUpdate(prodId, {
+              $inc: { 'stock.quantity': qty },
+            });
+            try {
+              await inventoryService.addStock({
+                productId: prodId,
+                brandId: childDoc.seller,
+                quantity: qty,
+                reason: `Order Cancellation Restock (${order.orderId})`,
+                user: req.user,
+              });
+            } catch (invErr) {
+              console.error('[CancelOrder] Inventory addStock error:', invErr.message);
+            }
+          } else {
+            // Unpaid orders had stock reserved -> release reserved quantity
+            await Product.findByIdAndUpdate(prodId, {
+              $inc: { 'stock.reservedQuantity': -qty },
+            });
+          }
         }
       }
     }
 
-    // 3. Audit Log
+    // 3. Initiate Automatic Refund for Paid Online Orders
+    let refundDoc = null;
+    if (wasPaid && order.finalAmount > 0) {
+      const transactionId = order.paymentDetails?.transactionId;
+      if (transactionId && typeof transactionId === 'string' && transactionId.startsWith('pay_')) {
+        try {
+          const refundResult = await paymentService.initiateRefund({
+            paymentId: transactionId,
+            amountInRupees: order.finalAmount,
+            notes: { orderId: order.orderId, reason: 'Customer Order Cancellation' },
+          });
+
+          const idempotencyKey = `REFUND-CANCEL-${order.orderId}`;
+          refundDoc = await Refund.findOneAndUpdate(
+            { idempotencyKey },
+            {
+              refundId: refundResult.providerRefundId,
+              masterOrderId: order._id,
+              providerPaymentId: transactionId,
+              providerRefundId: refundResult.providerRefundId,
+              customerId: order.customer,
+              amount: order.finalAmount,
+              currency: 'INR',
+              status: 'processed',
+              idempotencyKey,
+              refundedAt: new Date(),
+            },
+            { upsert: true, new: true }
+          );
+
+          order.paymentStatus = 'Refunded';
+          await order.save();
+        } catch (refErr) {
+          console.error('[CancelOrder] Razorpay refund initiation failed:', refErr.message);
+          order.paymentStatus = 'Refund Failed';
+          await order.save();
+        }
+      } else {
+        // COD or offline order
+        order.paymentStatus = 'Cancelled';
+        await order.save();
+      }
+    }
+
+    // 4. Audit Log
     await AuditLog.create({
       user: req.user._id,
       action: 'ORDER_CANCELLED',
       entity: 'Order',
       entityId: order._id,
-      changes: { orderId: order.orderId, reason },
+      changes: { orderId: order.orderId, reason, wasPaid, refundId: refundDoc?.refundId },
     });
 
-    // 4. Notifications
+    // 5. Notifications
     await Notification.create({
       user: order.customer,
       title: 'Order Cancelled',
-      message: `Your order ${order.orderId} has been cancelled.`,
+      message: wasPaid
+        ? `Your order ${order.orderId} has been cancelled. A refund of ₹${order.finalAmount.toLocaleString('en-IN')} has been initiated.`
+        : `Your order ${order.orderId} has been cancelled.`,
       type: 'Order',
     });
 
     res.status(200).json({
       success: true,
-      message: 'Order cancelled successfully. Reserved inventory has been released.',
+      message: wasPaid
+        ? `Order cancelled successfully. Refund of ₹${order.finalAmount.toLocaleString('en-IN')} has been processed.`
+        : 'Order cancelled successfully. Reserved inventory has been released.',
       order,
+      refund: refundDoc,
     });
   } catch (error) {
     console.error('Error cancelling order:', error);

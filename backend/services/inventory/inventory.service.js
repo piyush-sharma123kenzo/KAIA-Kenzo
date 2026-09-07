@@ -6,6 +6,8 @@ import Product from '../../models/Product.js';
 import AuditLog from '../../models/AuditLog.js';
 import StockTransfer from '../../models/StockTransfer.js';
 
+import { createNotification } from '../notification/notification.service.js';
+
 export class InventoryService {
   /**
    * 1. Add Stock (Stock-In) to Warehouse
@@ -417,10 +419,27 @@ export class InventoryService {
       const totalAvailable = agg[0]?.totalAvailable || 0;
       const status = totalAvailable > 0 ? (totalAvailable <= 5 ? 'Low Stock' : 'In Stock') : 'Out of Stock';
 
-      await Product.findByIdAndUpdate(productId, {
-        'stock.quantity': totalAvailable,
-        'stock.status': status,
-      });
+      const updatedProduct = await Product.findByIdAndUpdate(
+        productId,
+        {
+          'stock.quantity': totalAvailable,
+          'stock.status': status,
+        },
+        { new: true }
+      ).populate('brand');
+
+      // Dispatch low-stock alert to brand owner if threshold reached
+      const threshold = updatedProduct?.stock?.reorderThreshold || 5;
+      if (updatedProduct && totalAvailable <= threshold && updatedProduct.brand?.owner) {
+        await createNotification({
+          userId: updatedProduct.brand.owner,
+          title: `Low Stock Alert: ${updatedProduct.name}`,
+          message: `Product '${updatedProduct.name}' (SKU: ${updatedProduct.SKU || 'N/A'}) has reached low stock level with ${totalAvailable} units remaining. Consider replenishing inventory.`,
+          type: 'STOCK',
+          referenceType: 'Product',
+          referenceId: String(productId),
+        });
+      }
     } catch (err) {
       console.error('Error syncing product aggregate stock:', err);
     }

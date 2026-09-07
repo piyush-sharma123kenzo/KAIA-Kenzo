@@ -9,11 +9,13 @@ import {
   Zap, ArrowUpRight, Cpu, Headphones, MessageSquare, MapPin
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import KaiaIcon from '../components/common/KaiaIcon';
 import ProfileAvatar from '../components/profile/ProfileAvatar';
 
 const AdminLayout = () => {
   const { user, logout } = useContext(AuthContext);
+  const { unreadCount = 0 } = useNotifications() || {};
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -40,17 +42,9 @@ const AdminLayout = () => {
       ],
     },
     {
-      group: 'PRODUCTS & CATALOG',
+      group: 'ORDERS & LOGISTICS',
       items: [
-        { name: 'All Products', path: '/admin/products', icon: PackageOpen, badge: null },
-        { name: 'Add Product', path: '/admin/products/add', icon: PlusCircle, badge: 'New' },
-        { name: 'Categories', path: '/admin/categories', icon: Layers, badge: null },
-        { name: 'Brands', path: '/admin/brands', icon: Building2, badge: null },
-      ],
-    },
-    {
-      group: 'LOGISTICS & OPERATIONS',
-      items: [
+        { name: 'All Orders', path: '/admin/orders', icon: FileText, badge: null },
         { name: 'Delivery Management', path: '/admin/delivery-locations', icon: MapPin, badge: '10 KM' },
         { name: 'Shipments & Logistics', path: '/admin/shipments', icon: Truck, badge: null },
         { name: 'Warehouse Inventory', path: '/admin/inventory', icon: Layers, badge: null },
@@ -59,32 +53,43 @@ const AdminLayout = () => {
       ],
     },
     {
-      group: 'CUSTOMER CARE & INQUIRIES',
+      group: 'PRODUCTS & CATALOG',
       items: [
-        { name: 'Support Tickets', path: '/admin/support-tickets', icon: Headphones, badge: null },
-        { name: 'Direct Supply Inquiries', path: '/admin/enquiries', icon: MessageSquare, badge: null },
+        { name: 'All Products', path: '/admin/products', icon: PackageOpen, badge: null },
+        { name: 'Add Product', path: '/admin/products/add', icon: PlusCircle, badge: 'New' },
+        { name: 'Categories', path: '/admin/categories', icon: Layers, badge: null },
+        { name: 'Brands & Sellers', path: '/admin/brands', icon: Building2, badge: null },
       ],
     },
     {
-      group: 'FINANCE & PAYOUTS',
+      group: 'FINANCE & PAYMENTS',
       items: [
-        { name: 'Revenue Analytics', path: '/admin/revenue', icon: TrendingUp, badge: null },
-        { name: 'Commission Rules', path: '/admin/commissions', icon: Landmark, badge: null },
-        { name: 'Seller Settlements', path: '/admin/settlements', icon: DollarSign, badge: null },
         { name: 'Payment Ledger', path: '/admin/payments', icon: CreditCard, badge: null },
+        { name: 'Revenue Analytics', path: '/admin/revenue', icon: TrendingUp, badge: null },
+        { name: 'Seller Settlements', path: '/admin/settlements', icon: DollarSign, badge: null },
+        { name: 'Commission Rules', path: '/admin/commissions', icon: Landmark, badge: null },
       ],
     },
     {
-      group: 'MARKETING',
+      group: 'MARKETING & REVIEWS',
       items: [
         { name: 'Discount Coupons', path: '/admin/coupons', icon: Tag, badge: null },
         { name: 'Promotions', path: '/admin/promotions', icon: Sparkles, badge: null },
+        { name: 'Customer Reviews', path: '/admin/reviews', icon: MessageSquare, badge: null },
       ],
     },
     {
-      group: 'SYSTEM & SECURITY',
+      group: 'SUPPORT & USERS',
       items: [
         { name: 'Accounts & Users', path: '/admin/users', icon: Users2, badge: null },
+        { name: 'Support Tickets', path: '/admin/support-tickets', icon: Headphones, badge: null },
+        { name: 'Direct Inquiries', path: '/admin/enquiries', icon: MessageSquare, badge: null },
+      ],
+    },
+    {
+      group: 'SYSTEM & SETTINGS',
+      items: [
+        { name: 'Marketplace Settings', path: '/admin/settings', icon: Sliders, badge: null },
         { name: 'Audit Logs', path: '/admin/audit-logs', icon: ShieldCheck, badge: null },
         { name: 'Reports & Exports', path: '/admin/reports', icon: FileText, badge: null },
         { name: 'Webhooks Monitor', path: '/admin/webhooks', icon: Radio, badge: null },
@@ -106,7 +111,10 @@ const AdminLayout = () => {
 
   const currentSection = getCurrentSection();
 
-  if (!user || user.role !== 'ADMIN') {
+  // Normalize role check (case-insensitive)
+  const isAdmin = (user?.role || '').toUpperCase() === 'ADMIN';
+
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 font-sans">
         <div className="max-w-md w-full bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-2xl text-center text-white backdrop-blur-xl">
@@ -349,6 +357,21 @@ const AdminLayout = () => {
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Add Product</span>
+            </Link>
+
+            {/* Notifications Link */}
+            <Link 
+              to="/admin/notifications" 
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors relative"
+              title="Admin Alerts & Notifications"
+              aria-label={`Admin Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+            >
+              <Bell className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 bg-amber-500 text-slate-950 font-black text-[9px] rounded-full w-4 h-4 flex items-center justify-center leading-none ring-2 ring-white animate-pulse">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Link>
 
             {/* Diagnostics Link */}

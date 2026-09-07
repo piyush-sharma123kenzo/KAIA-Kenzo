@@ -206,19 +206,23 @@ const Compare = () => {
                   </td>
                   {compareItems.map((prod) => {
                     const prodId = prod._id || prod.id;
-                    const rating = prod.ratings?.average || 4.5;
-                    const count = prod.ratings?.count || 18;
+                    const rating = Number(prod.ratings?.average || 0).toFixed(1);
+                    const count = Number(prod.ratings?.count || 0);
                     return (
                       <td key={prodId} className="p-4 md:p-5">
-                        <div className="flex items-center space-x-1.5">
-                          <div className="inline-flex items-center space-x-1 bg-amber-400/20 text-amber-900 border border-amber-300/60 font-black px-2 py-0.5 rounded text-[11px]">
-                            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                            <span>{rating}</span>
+                        {count > 0 ? (
+                          <div className="flex items-center space-x-1.5">
+                            <div className="inline-flex items-center space-x-1 bg-amber-400/20 text-amber-900 border border-amber-300/60 font-black px-2 py-0.5 rounded text-[11px]">
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                              <span>{rating}</span>
+                            </div>
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              ({count} reviews)
+                            </span>
                           </div>
-                          <span className="text-[11px] text-slate-500 font-medium">
-                            ({count} reviews)
-                          </span>
-                        </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 font-medium">No reviews yet</span>
+                        )}
                       </td>
                     );
                   })}

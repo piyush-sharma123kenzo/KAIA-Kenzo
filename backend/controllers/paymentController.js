@@ -1,14 +1,15 @@
 /**
- * paymentController.js — KAIA Technologies Payment Gateway Controller
+ * paymentController.js — KAIA Technologies Real Production Payment Controller
  *
  * Security Guarantees:
  * 1. Amount is ALWAYS calculated from the database — never from frontend.
- * 2. Payment is only marked "paid" after server-side signature verification.
- * 3. Webhooks are verified before processing.
- * 4. Webhook processing is idempotent (duplicate webhooks are ignored safely).
- * 5. Inventory is only deducted after payment confirmation — never before.
- * 6. No secrets are ever returned to the frontend.
- * 7. No sensitive data is logged.
+ * 2. Payment is only marked "Paid" after server-side cryptographic signature verification.
+ * 3. Webhooks are verified using raw request body before processing.
+ * 4. Webhook processing is idempotent (duplicate webhooks are ignored safely via WebhookEvent).
+ * 5. Inventory is only deducted after verified payment confirmation — never before.
+ * 6. No secrets or credentials are ever returned to the frontend.
+ * 7. Sensitive data is never logged.
+ * 8. Zero mock, zero synthetic test bypass.
  */
 
 import Order from '../models/Order.js';
@@ -23,6 +24,7 @@ import Notification from '../models/Notification.js';
 import paymentService from '../services/payment/payment.service.js';
 import inventoryService from '../services/inventory/inventory.service.js';
 import invoiceService from '../services/invoice/invoice.service.js';
+import { validateOrderDelivery } from './deliveryController.js';
 import {
   getSafePaymentErrorMessage,
   logPaymentEvent,
@@ -31,7 +33,7 @@ import {
 
 // ---------------------------------------------------------------------------
 // POST /api/payments/create-order
-// Creates a gateway payment order for an existing KAIA order.
+// Creates a gateway payment order for an existing real KAIA order.
 // @access Private (Customer)
 // ---------------------------------------------------------------------------
 export const createPaymentOrder = async (req, res) => {
@@ -62,14 +64,14 @@ export const createPaymentOrder = async (req, res) => {
       return res.status(400).json({ message: getSafePaymentErrorMessage('ORDER_ALREADY_PAID') });
     }
 
-    // 4. Check if there is an existing pending payment record for this order
+    // 4. Check if there is an existing pending payment record with active providerOrderId
     const existingPayment = await Payment.findOne({
       orderId: order._id,
       status: { $in: ['created', 'pending'] },
+      providerOrderId: { $exists: true, $ne: '' },
     });
 
-    if (existingPayment) {
-      // Return existing payment order info (safe for frontend)
+    if (existingPayment && existingPayment.providerOrderId) {
       logPaymentEvent('reuse_existing_payment_order', {
         kaiaOrderId: orderId,
         providerOrderId: existingPayment.providerOrderId,
@@ -80,22 +82,33 @@ export const createPaymentOrder = async (req, res) => {
         orderId: order.orderId,
         paymentId: existingPayment._id,
         providerOrderId: existingPayment.providerOrderId,
+        razorpayOrderId: existingPayment.providerOrderId,
         amount: existingPayment.amount,
         amountPaise: existingPayment.amount * 100,
         currency: existingPayment.currency,
-        provider: existingPayment.provider,
-        // Public key only — secret NEVER sent to frontend
+        provider: 'razorpay',
+        // Public key only — secret is NEVER sent to frontend
         razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
       });
     }
 
-    // 5. Re-verify product availability from database
+    // 5. Re-verify product availability and delivery serviceability from database
+    if (order.shippingAddress) {
+      const deliveryCheck = await validateOrderDelivery(order.shippingAddress);
+      if (!deliveryCheck.isValid) {
+        return res.status(400).json({
+          message: deliveryCheck.error || 'Delivery is currently unavailable for this order shipping address.',
+          isDeliveryUnavailable: true,
+        });
+      }
+    }
+
     for (const childOrder of order.childOrders) {
       for (const item of childOrder.items) {
         const product = item.product;
         if (!product) continue;
 
-        const available = product.stock.quantity - product.stock.reservedQuantity;
+        const available = (product.stock?.quantity || 0) - (product.stock?.reservedQuantity || 0);
         if (available < 0) {
           return res.status(400).json({
             message: `Product "${product.name}" is no longer available in required quantity.`,
@@ -113,7 +126,7 @@ export const createPaymentOrder = async (req, res) => {
       return res.status(400).json({ message: 'Order amount is invalid for payment processing.' });
     }
 
-    // 7. Create payment provider order
+    // 7. Create payment provider order via Razorpay SDK
     const providerOrderData = await paymentService.createPaymentOrder({
       internalOrderId: order.orderId,
       amountInRupees,
@@ -124,15 +137,20 @@ export const createPaymentOrder = async (req, res) => {
       },
     });
 
-    // 8. Create Payment record in database
+    // 8. Create or update Payment record in database
     const paymentRecord = await Payment.create({
       orderId: order._id,
+      order: order._id,
       customerId: req.user._id,
-      provider: providerOrderData.provider,
+      user: req.user._id,
+      provider: 'razorpay',
       providerOrderId: providerOrderData.providerOrderId,
+      razorpayOrderId: providerOrderData.providerOrderId,
       amount: amountInRupees,
       currency: 'INR',
       status: 'created',
+      signatureVerified: false,
+      webhookProcessed: false,
       attempts: [
         {
           attemptNumber: 1,
@@ -144,14 +162,12 @@ export const createPaymentOrder = async (req, res) => {
 
     // 9. Update order with payment reference
     order.paymentDetails = {
-      provider: providerOrderData.provider,
+      provider: 'razorpay',
       transactionId: '',
       signature: '',
     };
-    // Store providerOrderId on order for cross-reference (added field gracefully)
-    if (!order.providerOrderId) {
-      order.set('providerOrderId', providerOrderData.providerOrderId, { strict: false });
-    }
+    order.providerOrderId = providerOrderData.providerOrderId;
+    order.paymentId = paymentRecord._id;
     await order.save();
 
     logPaymentEvent('payment_order_created', {
@@ -167,10 +183,11 @@ export const createPaymentOrder = async (req, res) => {
       orderId: order.orderId,
       paymentId: paymentRecord._id,
       providerOrderId: providerOrderData.providerOrderId,
+      razorpayOrderId: providerOrderData.providerOrderId,
       amount: amountInRupees,
       amountPaise: providerOrderData.amountPaise,
       currency: 'INR',
-      provider: providerOrderData.provider,
+      provider: 'razorpay',
       // ONLY the public key — NEVER the secret key
       razorpayKeyId: providerOrderData.razorpayKeyId,
       merchantName: 'KAIA Technologies',
@@ -226,16 +243,18 @@ export const verifyPayment = async (req, res) => {
     // 4. Find the Payment record
     const paymentRecord = await Payment.findOne({
       orderId: order._id,
-      providerOrderId: razorpayOrderId,
+      $or: [
+        { providerOrderId: razorpayOrderId },
+        { razorpayOrderId: razorpayOrderId },
+      ],
     });
 
     if (!paymentRecord) {
       return res.status(404).json({ message: 'Payment record not found for this order.' });
     }
 
-    // 5. SERVER-SIDE SIGNATURE VERIFICATION
+    // 5. SERVER-SIDE CRYPTOGRAPHIC SIGNATURE VERIFICATION
     //    This is the AUTHORITATIVE verification step.
-    //    Do NOT mark payment paid without this.
     const verificationResult = await paymentService.verifyPaymentSignature({
       razorpayOrderId,
       razorpayPaymentId,
@@ -245,6 +264,7 @@ export const verifyPayment = async (req, res) => {
     if (!verificationResult.verified) {
       // Mark payment attempt as failed
       paymentRecord.status = 'failed';
+      paymentRecord.failureReason = 'Signature verification failed';
       paymentRecord.attempts.push({
         attemptNumber: paymentRecord.attempts.length + 1,
         providerPaymentId: razorpayPaymentId,
@@ -254,7 +274,6 @@ export const verifyPayment = async (req, res) => {
       });
       await paymentRecord.save();
 
-      // Mark order as failed
       order.paymentStatus = 'Failed';
       await order.save();
 
@@ -269,7 +288,20 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    // 6. Signature verified — process the payment
+    // 6. Signature verified — update payment record flags
+    paymentRecord.signatureVerified = true;
+    paymentRecord.status = 'paid';
+    paymentRecord.providerPaymentId = razorpayPaymentId;
+    paymentRecord.razorpayPaymentId = razorpayPaymentId;
+    paymentRecord.method = 'razorpay';
+    if (paymentRecord.attempts.length > 0) {
+      const lastAttempt = paymentRecord.attempts[paymentRecord.attempts.length - 1];
+      lastAttempt.status = 'paid';
+      lastAttempt.providerPaymentId = razorpayPaymentId;
+    }
+    await paymentRecord.save();
+
+    // 7. Process confirmed payment (atomic order, inventory, invoices, notifications)
     await _processConfirmedPayment({
       order,
       paymentRecord,
@@ -302,8 +334,8 @@ export const verifyPayment = async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // POST /api/payments/webhook
-// Handle Razorpay webhook events (called directly by Razorpay, not customer).
-// @access Public (signature-verified)
+// Handle Razorpay webhook events (called directly by Razorpay).
+// @access Public (HMAC signature-verified against raw body)
 // ---------------------------------------------------------------------------
 export const paymentWebhook = async (req, res) => {
   // 1. Verify webhook signature FIRST — reject all unsigned webhooks immediately
@@ -330,11 +362,10 @@ export const paymentWebhook = async (req, res) => {
   const existingEvent = await WebhookEvent.findOne({ eventId: webhookData.eventId });
   if (existingEvent && existingEvent.processed) {
     logPaymentEvent('webhook_duplicate_skipped', { eventId: webhookData.eventId });
-    // Return 200 to acknowledge the provider — do NOT reprocess
     return res.status(200).json({ success: true, message: 'Event already processed.' });
   }
 
-  // 4. Create or update WebhookEvent record (mark as received, not yet processed)
+  // 4. Create or update WebhookEvent record
   let webhookEventDoc;
   if (existingEvent) {
     webhookEventDoc = existingEvent;
@@ -354,18 +385,19 @@ export const paymentWebhook = async (req, res) => {
   const action = paymentService.resolveWebhookAction(webhookData);
 
   if (action.action === 'UNHANDLED') {
-    // Acknowledge but don't process unknown events
     webhookEventDoc.processed = true;
     webhookEventDoc.processedAt = new Date();
     await webhookEventDoc.save();
-
     return res.status(200).json({ success: true, message: 'Webhook acknowledged.' });
   }
 
   try {
     // 6. Find the related Payment record
     const paymentRecord = await Payment.findOne({
-      providerOrderId: webhookData.providerOrderId,
+      $or: [
+        { providerOrderId: webhookData.providerOrderId },
+        { razorpayOrderId: webhookData.providerOrderId },
+      ],
     });
 
     if (!paymentRecord) {
@@ -393,6 +425,7 @@ export const paymentWebhook = async (req, res) => {
 
     // 8. Process the action
     if (action.action === 'MARK_PAID' && order.paymentStatus !== 'Paid') {
+      paymentRecord.webhookProcessed = true;
       await _processConfirmedPayment({
         order,
         paymentRecord,
@@ -412,11 +445,14 @@ export const paymentWebhook = async (req, res) => {
 
       paymentRecord.status = 'failed';
       paymentRecord.providerPaymentId = webhookData.providerPaymentId;
+      paymentRecord.razorpayPaymentId = webhookData.providerPaymentId;
+      paymentRecord.webhookProcessed = true;
       await paymentRecord.save();
 
       logPaymentEvent('webhook_payment_failed', { orderId: order.orderId });
     } else if (action.action === 'MARK_AUTHORIZED') {
       paymentRecord.status = 'authorized';
+      paymentRecord.webhookProcessed = true;
       await paymentRecord.save();
     }
 
@@ -433,11 +469,9 @@ export const paymentWebhook = async (req, res) => {
     });
     console.error('[PaymentController] Webhook processing error:', error.message);
 
-    // Update webhook event with error (do not mark as processed so it can be retried)
     webhookEventDoc.processingError = error.message.substring(0, 200);
     await webhookEventDoc.save();
 
-    // Always return 200 to the provider to stop retries for non-retryable errors
     return res.status(200).json({ success: false, message: 'Processing error logged.' });
   }
 };
@@ -458,17 +492,18 @@ export const getPaymentById = async (req, res) => {
     }
 
     // Ensure customer can only view their own payment
-    if (payment.customerId.toString() !== req.user._id.toString()) {
+    const customerOwnerId = payment.customerId || payment.user;
+    if (customerOwnerId && customerOwnerId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Unauthorized.' });
     }
 
-    // Return safe payment details (no secrets)
     return res.status(200).json({
       success: true,
       payment: {
         _id: payment._id,
         orderId: payment.orderId,
-        providerOrderId: payment.providerOrderId,
+        providerOrderId: payment.providerOrderId || payment.razorpayOrderId,
+        providerPaymentId: payment.providerPaymentId || payment.razorpayPaymentId,
         provider: payment.provider,
         amount: payment.amount,
         currency: payment.currency,
@@ -512,7 +547,6 @@ export const retryPayment = async (req, res) => {
     const existingPayment = await Payment.findOne({ orderId: order._id });
 
     if (!existingPayment) {
-      // No existing payment record — delegate to create-order flow
       return res.status(400).json({
         message: 'No existing payment found for this order. Please initiate a new payment.',
       });
@@ -526,7 +560,7 @@ export const retryPayment = async (req, res) => {
       });
     }
 
-    // Create new provider order for retry
+    // Create new provider order for retry using authoritative amount from DB
     const providerOrderData = await paymentService.createPaymentOrder({
       internalOrderId: order.orderId,
       amountInRupees: order.finalAmount,
@@ -535,6 +569,7 @@ export const retryPayment = async (req, res) => {
 
     // Update payment record with new provider order and new attempt
     existingPayment.providerOrderId = providerOrderData.providerOrderId;
+    existingPayment.razorpayOrderId = providerOrderData.providerOrderId;
     existingPayment.status = 'created';
     existingPayment.attempts.push({
       attemptNumber: existingPayment.attempts.length + 1,
@@ -542,6 +577,10 @@ export const retryPayment = async (req, res) => {
       timestamp: new Date(),
     });
     await existingPayment.save();
+
+    // Cross reference on order
+    order.providerOrderId = providerOrderData.providerOrderId;
+    await order.save();
 
     logPaymentEvent('payment_retry_initiated', {
       orderId,
@@ -555,10 +594,11 @@ export const retryPayment = async (req, res) => {
       orderId: order.orderId,
       paymentId: existingPayment._id,
       providerOrderId: providerOrderData.providerOrderId,
+      razorpayOrderId: providerOrderData.providerOrderId,
       amount: order.finalAmount,
       amountPaise: providerOrderData.amountPaise,
       currency: 'INR',
-      provider: providerOrderData.provider,
+      provider: 'razorpay',
       razorpayKeyId: providerOrderData.razorpayKeyId,
       attemptNumber: existingPayment.attempts.length,
     });
@@ -571,7 +611,7 @@ export const retryPayment = async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // GET /api/payments/status/:orderId
-// Poll payment status for an order (for pending payments).
+// Poll payment status for an order.
 // @access Private (Customer)
 // ---------------------------------------------------------------------------
 export const getPaymentStatusByOrderId = async (req, res) => {
@@ -594,7 +634,7 @@ export const getPaymentStatusByOrderId = async (req, res) => {
       success: true,
       orderId: order.orderId,
       orderPaymentStatus: order.paymentStatus,
-      paymentStatus: paymentRecord?.status || 'unknown',
+      paymentStatus: paymentRecord?.status || (order.paymentStatus === 'Paid' ? 'paid' : 'pending'),
       attempts: paymentRecord?.attempts?.length || 0,
     });
   } catch (error) {
@@ -616,16 +656,17 @@ async function _processConfirmedPayment({
   method = 'razorpay',
   isWebhook = false,
 }) {
-  // Idempotency guard: if order is already paid, do nothing
+  // Idempotency guard: if order is already paid, do not re-process
   if (order.paymentStatus === 'Paid') {
     logPaymentEvent('process_payment_already_paid_skip', { orderId: order.orderId });
     return;
   }
 
-  // 1. Mark order as paid
+  // 1. Mark order as paid and confirmed
   order.paymentStatus = 'Paid';
+  order.orderStatus = 'confirmed';
   order.paymentDetails = {
-    provider: paymentRecord.provider,
+    provider: 'razorpay',
     transactionId: razorpayPaymentId,
     signature: isWebhook ? 'webhook_verified' : razorpaySignature,
   };
@@ -634,8 +675,10 @@ async function _processConfirmedPayment({
   // 2. Update payment record
   paymentRecord.status = 'paid';
   paymentRecord.providerPaymentId = razorpayPaymentId;
+  paymentRecord.razorpayPaymentId = razorpayPaymentId;
   paymentRecord.method = method;
-  if (paymentRecord.attempts.length > 0) {
+  paymentRecord.signatureVerified = true;
+  if (paymentRecord.attempts && paymentRecord.attempts.length > 0) {
     const lastAttempt = paymentRecord.attempts[paymentRecord.attempts.length - 1];
     lastAttempt.status = 'paid';
     lastAttempt.providerPaymentId = razorpayPaymentId;
@@ -644,13 +687,16 @@ async function _processConfirmedPayment({
 
   // 3. Process each child brand order
   for (const childOrder of order.childOrders) {
-    // Populate items if not already populated
     const populatedChildOrder = await SellerOrder.findById(childOrder._id).populate({
       path: 'items.product',
       select: 'name stock',
     });
 
     if (!populatedChildOrder) continue;
+
+    populatedChildOrder.paymentStatus = 'Paid';
+    populatedChildOrder.orderStatus = 'confirmed';
+    await populatedChildOrder.save();
 
     // Create Transaction ledger entry
     const netSellerPayout = populatedChildOrder.finalAmount - populatedChildOrder.commissionAmount;
@@ -666,17 +712,14 @@ async function _processConfirmedPayment({
       payoutStatus: 'Pending',
     });
 
-    // 4. ATOMIC INVENTORY DEDUCTION — only after payment confirmation
-    //    Guard: check if stock was already deducted for this order
+    // 4. ATOMIC INVENTORY DEDUCTION — strictly after payment confirmation
     for (const item of populatedChildOrder.items) {
       if (!item.product) continue;
 
-      // Atomic update: deduct from quantity AND reserved simultaneously
-      // This prevents overselling if webhook fires twice
       const updateResult = await Product.findOneAndUpdate(
         {
           _id: item.product._id,
-          'stock.reservedQuantity': { $gte: item.qty }, // Ensure reserved stock exists
+          'stock.reservedQuantity': { $gte: item.qty },
         },
         {
           $inc: {
@@ -710,14 +753,29 @@ async function _processConfirmedPayment({
 
       // Create Warranty record
       const startDate = new Date();
+      const endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + 12);
+
+      try {
+        await Warranty.create({
+          user: order.customer,
+          product: item.product._id,
+          order: order._id,
+          sellerOrder: populatedChildOrder._id,
+          warrantyStartDate: startDate,
+          warrantyEndDate: endDate,
+          status: 'Active',
+        });
+      } catch (wErr) {
+        // Non-fatal if warranty model already records
+      }
 
       // 5. AUTO-GENERATE OFFICIAL GST INVOICE & SNAPSHOT
       try {
         await invoiceService.generateInvoiceForSellerOrder({
           sellerOrderId: populatedChildOrder._id,
           paymentDetails: {
-            provider: paymentRecord.provider,
+            provider: 'razorpay',
             paymentId: razorpayPaymentId,
             method: method,
           },
@@ -727,7 +785,7 @@ async function _processConfirmedPayment({
       }
     }
 
-    // 5. Notify brand seller
+    // 6. Notify brand seller
     try {
       const sellerWithOwner = await SellerOrder.findById(populatedChildOrder._id).populate({
         path: 'seller',
@@ -743,15 +801,14 @@ async function _processConfirmedPayment({
         });
       }
     } catch (notifError) {
-      // Non-fatal: log but don't fail the payment confirmation
       console.error('[PaymentController] Seller notification failed:', notifError.message);
     }
   }
 
-  // 6. Clear the customer's cart
+  // 7. Clear the customer's cart
   await Cart.findOneAndUpdate({ user: order.customer }, { $set: { items: [] } });
 
-  // 7. Notify customer
+  // 8. Notify customer
   try {
     await Notification.create({
       user: order.customer,
@@ -809,16 +866,35 @@ export const confirmCodOrder = async (req, res) => {
       child.orderStatus = 'confirmed';
       await child.save();
 
-      // Deduct inventory
+      // Deduct inventory atomically
       for (const item of child.items) {
         if (item.product) {
-          await Product.findByIdAndUpdate(item.product._id, {
-            $inc: {
-              'stock.quantity': -item.quantity,
-              'stock.availableQuantity': -item.quantity,
-              stockQuantity: -item.quantity,
+          const qty = item.qty || item.quantity || 1;
+          const prodId = item.product._id || item.product;
+          await Product.findOneAndUpdate(
+            {
+              _id: prodId,
             },
-          });
+            {
+              $inc: {
+                'stock.quantity': -qty,
+                'stock.reservedQuantity': -qty,
+                stockQuantity: -qty,
+              },
+            }
+          );
+
+          try {
+            await inventoryService.commitSale({
+              productId: prodId,
+              brandId: child.seller,
+              quantity: qty,
+              referenceType: 'SellerOrder',
+              referenceId: child.orderId,
+            });
+          } catch (invErr) {
+            console.error('[PaymentController COD] Inventory commitSale error:', invErr.message);
+          }
         }
       }
     }
@@ -848,4 +924,3 @@ export const confirmCodOrder = async (req, res) => {
     res.status(500).json({ message: 'Error confirming COD order.' });
   }
 };
-

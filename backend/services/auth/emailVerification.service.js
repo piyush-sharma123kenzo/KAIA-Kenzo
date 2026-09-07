@@ -10,6 +10,7 @@
 
 import User from '../../models/User.js';
 import { verifyOtpCode, generateAndSendOtp } from './otp.service.js';
+import { createNotification } from '../notification/notification.service.js';
 
 /**
  * Verify signup email verification OTP and activate user account.
@@ -39,6 +40,17 @@ export const verifySignupEmailOtp = async (email, otp) => {
 
   user.emailVerified = true;
   await user.save();
+
+  // 3. Trigger Welcome In-App Notification
+  await createNotification({
+    userId: user._id,
+    title: 'Account Verified & Active',
+    message: `Welcome to KAIA Technologies! Your email (${user.email}) has been verified successfully.`,
+    type: 'AUTH',
+    referenceType: 'User',
+    referenceId: String(user._id),
+    link: '/account',
+  });
 
   return {
     success: true,
