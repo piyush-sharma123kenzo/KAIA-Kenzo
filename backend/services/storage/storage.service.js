@@ -12,13 +12,14 @@ import { v2 as cloudinary } from 'cloudinary';
 
 class StorageService {
   /**
-   * Check if Cloudinary is configured via environment variables
+   * Check if Cloudinary is configured via environment variables (CLOUDINARY_URL or keys)
    */
   isCloudinaryConfigured() {
     return Boolean(
-      process.env.CLOUDINARY_CLOUD_NAME &&
-      process.env.CLOUDINARY_API_KEY &&
-      process.env.CLOUDINARY_API_SECRET
+      process.env.CLOUDINARY_URL ||
+      (process.env.CLOUDINARY_CLOUD_NAME &&
+       process.env.CLOUDINARY_API_KEY &&
+       process.env.CLOUDINARY_API_SECRET)
     );
   }
 
@@ -26,12 +27,19 @@ class StorageService {
    * Configure Cloudinary client
    */
   initCloudinary() {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-      secure: true,
-    });
+    if (process.env.CLOUDINARY_URL) {
+      cloudinary.config({
+        cloudinary_url: process.env.CLOUDINARY_URL.trim(),
+        secure: true,
+      });
+    } else {
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+        secure: true,
+      });
+    }
   }
 
   /**
