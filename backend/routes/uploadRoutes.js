@@ -2,13 +2,14 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import storageService from '../services/storage/storage.service.js';
 
 const router = express.Router();
 
-// Define storage engine
-const storage = multer.diskStorage({
+// Define temporary storage engine for parsing incoming uploads
+const tempStorage = multer.diskStorage({
   destination(req, file, cb) {
-    const dir = 'uploads/';
+    const dir = 'uploads/temp/';
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -23,58 +24,124 @@ const storage = multer.diskStorage({
   },
 });
 
-// File validation filter
-function checkFileType(file, cb) {
-  const filetypes = /jpg|jpeg|png|webp|svg|gif|avif/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype) || file.mimetype.startsWith('image/');
+// Media validation filter (Images + Videos)
+function checkMediaType(file, cb) {
+  const allowedExts = /jpg|jpeg|png|webp|svg|gif|avif|mp4|webm|mov|mkv|avi/i;
+  const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+  const mime = (file.mimetype || '').toLowerCase();
 
-  if (extname || mimetype) {
+  const isImage = mime.startsWith('image/') || allowedExts.test(ext);
+  const isVideo = mime.startsWith('video/') || allowedExts.test(ext);
+
+  if (isImage || isVideo) {
     return cb(null, true);
   } else {
-    cb(new Error('Images only (jpg, jpeg, png, webp, svg, avif)!'));
+    cb(new Error('Invalid file format. Only images (JPG, PNG, WEBP, SVG, AVIF) and videos (MP4, WEBM, MOV) are allowed.'));
   }
 }
 
 const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  storage: tempStorage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit to support videos
   fileFilter(req, file, cb) {
-    checkFileType(file, cb);
+    checkMediaType(file, cb);
   },
 });
 
-// @desc    Upload single image
+// @desc    Upload single image or video
 // @route   POST /api/upload
-router.post('/', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No image file uploaded.' });
+router.post('/', upload.single('image'), async (req, res) => {
+  const file = req.file || req.files?.[0];
+  if (!file) {
+    return res.status(400).json({ success: false, message: 'No media file uploaded.' });
   }
 
-  const normalizedPath = req.file.path.replace(/\\/g, '/');
+  try {
+    const isVideo = (file.mimetype || '').startsWith('video/') || /\.(mp4|webm|mov|mkv|avi)$/i.test(file.originalname || '');
+    const folder = req.body.folder || (isVideo ? 'kaia/videos' : 'kaia/products');
 
-  res.status(200).json({
-    success: true,
-    message: 'Image uploaded successfully.',
-    url: `/${normalizedPath}`,
-    filename: req.file.filename,
-  });
+    const result = await storageService.upload(file, 'media', {
+      folder,
+      resourceType: isVideo ? 'video' : 'image',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `${isVideo ? 'Video' : 'Image'} uploaded successfully.`,
+      url: result.url,
+      publicId: result.publicId,
+      resourceType: result.resourceType,
+    });
+  } catch (err) {
+    console.error('[Upload API] Error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to upload media file.',
+    });
+  }
 });
 
-// @desc    Upload multiple product images (up to 10)
-// @route   POST /api/upload/multiple
-router.post('/multiple', upload.array('images', 10), (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ message: 'No image files uploaded.' });
+// @desc    Upload single video
+// @route   POST /api/upload/video
+router.post('/video', upload.single('video'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No video file uploaded.' });
   }
 
-  const urls = req.files.map((file) => `/${file.path.replace(/\\/g, '/')}`);
+  try {
+    const folder = req.body.folder || 'kaia/videos';
+    const result = await storageService.upload(req.file, 'video', {
+      folder,
+      resourceType: 'video',
+    });
 
-  res.status(200).json({
-    success: true,
-    message: `${req.files.length} images uploaded successfully.`,
-    urls,
-  });
+    res.status(200).json({
+      success: true,
+      message: 'Video uploaded successfully.',
+      url: result.url,
+      publicId: result.publicId,
+      resourceType: 'video',
+    });
+  } catch (err) {
+    console.error('[Upload Video API] Error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to upload video.',
+    });
+  }
+});
+
+// @desc    Upload multiple product media files (up to 10)
+// @route   POST /api/upload/multiple
+router.post('/multiple', upload.array('images', 10), async (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ success: false, message: 'No media files uploaded.' });
+  }
+
+  try {
+    const uploadPromises = req.files.map((file) => {
+      const isVideo = (file.mimetype || '').startsWith('video/') || /\.(mp4|webm|mov|mkv|avi)$/i.test(file.originalname || '');
+      const folder = req.body.folder || (isVideo ? 'kaia/videos' : 'kaia/products');
+      return storageService.upload(file, 'media', { folder, resourceType: isVideo ? 'video' : 'image' });
+    });
+
+    const results = await Promise.all(uploadPromises);
+    const urls = results.map((r) => r.url);
+
+    res.status(200).json({
+      success: true,
+      message: `${results.length} files uploaded successfully.`,
+      urls,
+      assets: results,
+    });
+  } catch (err) {
+    console.error('[Upload Multiple API] Error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to upload multiple files.',
+    });
+  }
 });
 
 export default router;
+

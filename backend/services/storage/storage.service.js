@@ -1,20 +1,21 @@
 /**
- * KAIA Technologies — Pluggable Storage Service
+ * KAIA Technologies — Pluggable Cloud & Local Storage Service
  * 
- * Provides a unified, replaceable storage abstraction layer.
  * Supports:
- *  - Cloudinary (when CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET are configured)
- *  - AWS S3 / Object Storage (when configured)
- *  - Resilient Local Disk Storage (default fallback for development & offline environments)
+ *  - Cloudinary for all Images & Videos (CDN-hosted with automatic optimization)
+ *  - Resilient Local Disk Storage (fallback when Cloudinary is not configured)
  */
 
 import fs from 'fs';
 import path from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 
 class StorageService {
-  constructor() {
-    this.provider = (process.env.STORAGE_PROVIDER || 'local').toLowerCase();
-    this.cloudinaryConfigured = Boolean(
+  /**
+   * Check if Cloudinary is configured via environment variables
+   */
+  isCloudinaryConfigured() {
+    return Boolean(
       process.env.CLOUDINARY_CLOUD_NAME &&
       process.env.CLOUDINARY_API_KEY &&
       process.env.CLOUDINARY_API_SECRET
@@ -22,102 +23,116 @@ class StorageService {
   }
 
   /**
-   * Upload an image file from multer (disk or buffer).
-   * @param {object} file - Express/Multer file object
-   * @param {string} userId - User ID for isolation and naming
-   * @param {object} [options={}] - Additional upload options
-   * @returns {Promise<{ url: string, publicId: string, updatedAt: Date }>}
+   * Configure Cloudinary client
    */
-  async upload(file, userId, options = {}) {
+  initCloudinary() {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+      secure: true,
+    });
+  }
+
+  /**
+   * Upload an image or video file from multer (disk or buffer).
+   * @param {object} file - Express/Multer file object
+   * @param {string} [identifier='asset'] - Identifier or user ID for naming
+   * @param {object} [options={}] - Additional upload options ({ folder, resourceType, transformation })
+   * @returns {Promise<{ url: string, publicId: string, resourceType: string, updatedAt: Date }>}
+   */
+  async upload(file, identifier = 'asset', options = {}) {
     if (!file) {
       throw new Error('No file provided for upload.');
     }
 
     // 1. Cloudinary upload provider if configured
-    if (this.cloudinaryConfigured || this.provider === 'cloudinary') {
+    if (this.isCloudinaryConfigured() || (process.env.STORAGE_PROVIDER || '').toLowerCase() === 'cloudinary') {
       try {
-        return await this.uploadToCloudinary(file, userId, options);
+        return await this.uploadToCloudinary(file, identifier, options);
       } catch (cloudErr) {
-        console.warn('[StorageService] Cloudinary upload failed, falling back to local storage:', cloudErr.message);
+        console.warn('[StorageService] Cloudinary upload error:', cloudErr.message);
         // Fallback to local storage if Cloudinary fails
       }
     }
 
     // 2. Default Local Storage Provider
-    return await this.uploadToLocalStorage(file, userId, options);
+    return await this.uploadToLocalStorage(file, identifier, options);
   }
 
   /**
-   * Upload to Cloudinary (using dynamic import or REST API)
+   * Upload file to Cloudinary
    */
-  async uploadToCloudinary(file, userId, options) {
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
-    const folder = process.env.CLOUDINARY_FOLDER || 'kaia/profiles';
+  async uploadToCloudinary(file, identifier, options = {}) {
+    this.initCloudinary();
 
-    if (!cloudName || !apiKey || !apiSecret) {
-      throw new Error('Cloudinary credentials missing in environment.');
+    const folder = options.folder || process.env.CLOUDINARY_FOLDER || 'kaia/media';
+    const isVideo = (file.mimetype || '').startsWith('video/') || /\.(mp4|webm|mov|mkv|avi)$/i.test(file.originalname || '');
+    const resourceType = options.resourceType || (isVideo ? 'video' : 'image');
+    const publicId = `${folder}/${identifier}-${Date.now()}`;
+
+    const uploadOptions = {
+      public_id: publicId,
+      folder: folder,
+      resource_type: resourceType,
+    };
+
+    if (!isVideo && !options.noTransform) {
+      uploadOptions.transformation = options.transformation || [
+        { quality: 'auto', fetch_format: 'auto' }
+      ];
     }
 
-    try {
-      const cloudinary = await import('cloudinary');
-      cloudinary.v2.config({
-        cloud_name: cloudName,
-        api_key: apiKey,
-        api_secret: apiSecret,
-        secure: true,
-      });
-
-      const publicId = `${folder}/${userId}-${Date.now()}`;
-
-      let result;
-      if (file.path) {
-        result = await cloudinary.v2.uploader.upload(file.path, {
-          public_id: publicId,
-          folder: folder,
-          resource_type: 'image',
-          transformation: [{ width: 500, height: 500, crop: 'fill', gravity: 'face', quality: 'auto', fetch_format: 'auto' }],
-        });
-      } else if (file.buffer) {
-        result = await new Promise((resolve, reject) => {
-          const uploadStream = cloudinary.v2.uploader.upload_stream(
-            {
-              public_id: publicId,
-              folder: folder,
-              resource_type: 'image',
-              transformation: [{ width: 500, height: 500, crop: 'fill', gravity: 'face', quality: 'auto', fetch_format: 'auto' }],
-            },
-            (error, res) => {
-              if (error) return reject(error);
-              resolve(res);
-            }
-          );
-          uploadStream.end(file.buffer);
-        });
+    let result;
+    if (file.path) {
+      result = await cloudinary.uploader.upload(file.path, uploadOptions);
+      // Clean up temporary local file if present
+      try {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch (e) {
+        // Ignore unlink error
       }
-
-      return {
-        url: result.secure_url || result.url,
-        publicId: result.public_id,
-        updatedAt: new Date(),
-      };
-    } catch (err) {
-      throw new Error(`Cloudinary service error: ${err.message}`);
+    } else if (file.buffer) {
+      result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          uploadOptions,
+          (error, res) => {
+            if (error) return reject(error);
+            resolve(res);
+          }
+        );
+        uploadStream.end(file.buffer);
+      });
+    } else {
+      throw new Error('Invalid file structure provided to storage uploader.');
     }
+
+    return {
+      url: result.secure_url || result.url,
+      publicId: result.public_id,
+      resourceType: result.resource_type || resourceType,
+      format: result.format,
+      bytes: result.bytes,
+      updatedAt: new Date(),
+    };
   }
 
   /**
-   * Save file to secure local disk storage directory
+   * Save file to local disk storage directory
    */
-  async uploadToLocalStorage(file, userId, options) {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
+  async uploadToLocalStorage(file, identifier, options = {}) {
+    const isVideo = (file.mimetype || '').startsWith('video/') || /\.(mp4|webm|mov|mkv|avi)$/i.test(file.originalname || '');
+    const subfolder = isVideo ? 'videos' : (options.subfolder || 'media');
+    const uploadDir = path.join(process.cwd(), 'uploads', subfolder);
+
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    const ext = path.extname(file.originalname || '.jpg').toLowerCase() || '.jpg';
-    const filename = `avatar-${userId}-${Date.now()}${ext}`;
+    const ext = path.extname(file.originalname || (isVideo ? '.mp4' : '.jpg')).toLowerCase() || (isVideo ? '.mp4' : '.jpg');
+    const filename = `${identifier}-${Date.now()}${ext}`;
     const targetPath = path.join(uploadDir, filename);
 
     if (file.buffer) {
@@ -131,10 +146,11 @@ class StorageService {
       }
     }
 
-    const publicUrl = `/uploads/avatars/${filename}`;
+    const publicUrl = `/uploads/${subfolder}/${filename}`;
     return {
       url: publicUrl,
-      publicId: `local:${filename}`,
+      publicId: `local:${subfolder}/${filename}`,
+      resourceType: isVideo ? 'video' : 'image',
       updatedAt: new Date(),
     };
   }
@@ -143,40 +159,35 @@ class StorageService {
    * Safely delete a file from storage.
    * @param {string} publicId - Storage identifier or relative local URL
    * @param {string} [url=''] - Fallback URL
+   * @param {string} [resourceType='image'] - 'image' | 'video' | 'raw'
    * @returns {Promise<boolean>}
    */
-  async delete(publicId, url = '') {
+  async delete(publicId, url = '', resourceType = 'image') {
     if (!publicId && !url) return true;
 
     try {
       // 1. If stored in Cloudinary
       if (publicId && !publicId.startsWith('local:') && !publicId.startsWith('/')) {
-        if (this.cloudinaryConfigured || this.provider === 'cloudinary') {
-          try {
-            const cloudinary = await import('cloudinary');
-            cloudinary.v2.config({
-              cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-              api_key: process.env.CLOUDINARY_API_KEY,
-              api_secret: process.env.CLOUDINARY_API_SECRET,
-            });
-            await cloudinary.v2.uploader.destroy(publicId, { resource_type: 'image' });
-            return true;
-          } catch (e) {
-            console.warn('[StorageService] Cloudinary deletion error:', e.message);
-          }
+        if (this.isCloudinaryConfigured()) {
+          this.initCloudinary();
+          const isVideo = resourceType === 'video' || (url && /\.(mp4|webm|mov|mkv|avi)$/i.test(url));
+          await cloudinary.uploader.destroy(publicId, {
+            resource_type: isVideo ? 'video' : 'image'
+          });
+          return true;
         }
       }
 
       // 2. If stored locally
-      let filename = '';
+      let subPath = '';
       if (publicId && publicId.startsWith('local:')) {
-        filename = publicId.replace('local:', '');
-      } else if (url && url.includes('/uploads/avatars/')) {
-        filename = path.basename(url);
+        subPath = publicId.replace('local:', '');
+      } else if (url && url.includes('/uploads/')) {
+        subPath = url.replace('/uploads/', '');
       }
 
-      if (filename) {
-        const filePath = path.join(process.cwd(), 'uploads', 'avatars', filename);
+      if (subPath) {
+        const filePath = path.join(process.cwd(), 'uploads', subPath);
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
@@ -192,3 +203,4 @@ class StorageService {
 
 export const storageService = new StorageService();
 export default storageService;
+

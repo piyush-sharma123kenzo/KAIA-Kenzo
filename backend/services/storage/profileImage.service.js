@@ -37,7 +37,10 @@ export const updateProfileImage = async (userId, file) => {
   // 1. Upload new image to storage
   let newImageData;
   try {
-    newImageData = await storageService.upload(file, user._id.toString());
+    newImageData = await storageService.upload(file, user._id.toString(), {
+      folder: 'kaia/profiles',
+      resourceType: 'image',
+    });
   } catch (uploadError) {
     const error = new Error(`Failed to upload image: ${uploadError.message}`);
     error.statusCode = 500;
