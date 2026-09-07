@@ -27,6 +27,8 @@ import {
   getUserProfile,
   updateUserProfile,
 } from '../services/auth/auth.service.js';
+import User from '../models/User.js';
+import { createNotification } from '../services/notification/notification.service.js';
 
 import {
   sendAuthTokenResponse,
@@ -261,15 +263,33 @@ export const updateProfile = async (req, res) => {
  */
 export const googleLogin = async (req, res) => {
   try {
-    const { credential, email, name, picture, googleId } = req.body;
+    const { credential, accessToken, email, name, picture, googleId } = req.body;
 
     let userEmail = email;
     let userName = name;
     let userAvatar = picture;
     let userGoogleId = googleId;
 
-    // If credential JWT string is sent from Google Identity Services
-    if (credential && typeof credential === 'string') {
+    // 1. If accessToken is provided, query Google userinfo API
+    if (accessToken && !userEmail) {
+      try {
+        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (userInfoRes.ok) {
+          const googleData = await userInfoRes.json();
+          userEmail = googleData.email;
+          userName = googleData.name || `${googleData.given_name || ''} ${googleData.family_name || ''}`.trim();
+          userAvatar = googleData.picture;
+          userGoogleId = googleData.sub;
+        }
+      } catch (tokenErr) {
+        console.warn('[Google Sign-In] Could not fetch Google userinfo from access token:', tokenErr.message);
+      }
+    }
+
+    // 2. If credential JWT string is sent from Google Identity Services
+    if (credential && typeof credential === 'string' && !userEmail) {
       try {
         const base64Url = credential.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -311,7 +331,19 @@ export const googleLogin = async (req, res) => {
         user.avatar = userAvatar;
       }
       user.emailVerified = true;
+      user.lastLogin = new Date();
       await user.save();
+
+      // Dispatch Auth Notification (idempotent)
+      createNotification({
+        user: user._id,
+        role: user.role || 'CUSTOMER',
+        type: 'AUTH',
+        title: 'Google Sign-In Successful',
+        message: `Welcome back, ${user.name}! You signed in via Google.`,
+        referenceType: 'User',
+        referenceId: user._id,
+      }).catch((e) => console.warn('Auth notification notice:', e.message));
 
       return sendAuthTokenResponse(user, 200, res, {
         message: 'Successfully signed in with Google.',
@@ -328,7 +360,19 @@ export const googleLogin = async (req, res) => {
       role: 'CUSTOMER',
       emailVerified: true,
       status: 'Active',
+      lastLogin: new Date(),
     });
+
+    // Welcome Notification
+    createNotification({
+      user: newUser._id,
+      role: 'CUSTOMER',
+      type: 'AUTH',
+      title: 'Welcome to KAIA Technologies!',
+      message: `Your account has been created via Google Sign-In. Start exploring premium technology products.`,
+      referenceType: 'User',
+      referenceId: newUser._id,
+    }).catch((e) => console.warn('Welcome notification notice:', e.message));
 
     return sendAuthTokenResponse(newUser, 201, res, {
       message: 'Account created with Google successfully.',
