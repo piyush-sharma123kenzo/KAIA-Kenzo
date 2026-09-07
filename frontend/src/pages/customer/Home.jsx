@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { 
   ChevronRight, ChevronLeft, ShieldCheck, ArrowRight, Star, 
   Truck, Award, RotateCcw, Headphones, Heart, LayoutGrid,
-  CreditCard, Shield, Zap, Sparkles, Percent
+  CreditCard, Shield, Zap, Sparkles, Percent, Tag, Flame
 } from 'lucide-react';
 import productService from '../../services/productService';
 import brandService from '../../services/brandService';
+import ProductCard from '../../components/product/ProductCard';
+import { ProductSkeleton } from '../../components/feedback/Skeleton';
 import { getBrandLogo } from '../../utils/brandLogos';
 import { getAccurateProductImage } from '../../utils/productImageMap';
 
@@ -84,6 +86,13 @@ const Home = () => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
+  // Live Database Products State
+  const [deals, setDeals] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [newArrivals, setNewArrivals] = useState([]);
+  const [bestSellers, setBestSellers] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
   const checkBrandsScroll = () => {
     if (brandsScrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = brandsScrollRef.current;
@@ -96,6 +105,30 @@ const Home = () => {
     checkBrandsScroll();
     window.addEventListener('resize', checkBrandsScroll);
     return () => window.removeEventListener('resize', checkBrandsScroll);
+  }, []);
+
+  useEffect(() => {
+    const loadHomeProducts = async () => {
+      setLoadingProducts(true);
+      try {
+        const [dRes, fRes, nRes, bRes] = await Promise.all([
+          productService.getDeals(4).catch(() => ({ products: [] })),
+          productService.getFeaturedProducts(4).catch(() => ({ products: [] })),
+          productService.getNewArrivals(4).catch(() => ({ products: [] })),
+          productService.getBestSellers(4).catch(() => ({ products: [] })),
+        ]);
+
+        if (dRes?.products) setDeals(dRes.products);
+        if (fRes?.products) setFeaturedProducts(fRes.products);
+        if (nRes?.products) setNewArrivals(nRes.products);
+        if (bRes?.products) setBestSellers(bRes.products);
+      } catch (err) {
+        console.error('Error loading homepage product collections:', err);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+    loadHomeProducts();
   }, []);
 
   const scrollBrands = (direction) => {
@@ -275,11 +308,189 @@ const Home = () => {
         </div>
       </div>
 
-
-
       {/* ========================================================================= */}
-      {/* 5. TOP BRANDS STRIP (Interactive Smooth Carousel)                          */}
+      {/* 4. REAL DATABASE PRODUCT SHOWCASE SECTIONS                                */}
       {/* ========================================================================= */}
+      
+      {/* Section A: Best Deals / Flash Offers */}
+      {(loadingProducts || deals.length > 0) && (
+        <section className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
+          <div className="flex justify-between items-center mb-5 border-b border-slate-200 pb-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-black">
+                <Flame className="w-4 h-4 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="text-base md:text-lg font-black uppercase text-slate-900 tracking-tight">
+                  BEST DEALS OF THE DAY
+                </h3>
+                <p className="text-[11px] text-slate-500">Live verified marketplace offers directly from verified brands</p>
+              </div>
+            </div>
+
+            <Link
+              to="/deals"
+              className="text-xs font-black uppercase text-amber-600 hover:text-amber-700 flex items-center space-x-1 tracking-wider"
+            >
+              <span>View All</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {loadingProducts ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((n) => (
+                <ProductSkeleton key={n} />
+              ))}
+            </div>
+          ) : deals.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {deals.map((prod) => (
+                <ProductCard key={prod._id || prod.id} product={prod} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl p-8 text-center border border-slate-200 text-slate-500 text-xs font-semibold">
+              No live promotional deals active at the moment. Check back soon!
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Section B: Featured Hardware */}
+      {(loadingProducts || featuredProducts.length > 0) && (
+        <section className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
+          <div className="flex justify-between items-center mb-5 border-b border-slate-200 pb-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-slate-900 text-[#F5B400] flex items-center justify-center font-black">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-base md:text-lg font-black uppercase text-slate-900 tracking-tight">
+                  FEATURED HARDWARE & ELECTRONICS
+                </h3>
+                <p className="text-[11px] text-slate-500">Curated high-performance systems and authentic PC components</p>
+              </div>
+            </div>
+
+            <Link
+              to="/products?featured=true"
+              className="text-xs font-black uppercase text-slate-900 hover:text-amber-600 flex items-center space-x-1 tracking-wider"
+            >
+              <span>Explore</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {loadingProducts ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((n) => (
+                <ProductSkeleton key={n} />
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {featuredProducts.map((prod) => (
+                <ProductCard key={prod._id || prod.id} product={prod} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl p-8 text-center border border-slate-200 text-slate-500 text-xs font-semibold">
+              Featured products catalog is currently being updated.
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Section C: New Arrivals */}
+      {(loadingProducts || newArrivals.length > 0) && (
+        <section className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
+          <div className="flex justify-between items-center mb-5 border-b border-slate-200 pb-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-black">
+                <Zap className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-base md:text-lg font-black uppercase text-slate-900 tracking-tight">
+                  NEW ARRIVALS
+                </h3>
+                <p className="text-[11px] text-slate-500">Fresh stock recently added to the marketplace catalog</p>
+              </div>
+            </div>
+
+            <Link
+              to="/new-arrivals"
+              className="text-xs font-black uppercase text-blue-600 hover:text-blue-700 flex items-center space-x-1 tracking-wider"
+            >
+              <span>View All</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {loadingProducts ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((n) => (
+                <ProductSkeleton key={n} />
+              ))}
+            </div>
+          ) : newArrivals.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {newArrivals.map((prod) => (
+                <ProductCard key={prod._id || prod.id} product={prod} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl p-8 text-center border border-slate-200 text-slate-500 text-xs font-semibold">
+              New arrivals catalog updating. Check back soon!
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Section D: Popular / Best Sellers */}
+      {(loadingProducts || bestSellers.length > 0) && (
+        <section className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
+          <div className="flex justify-between items-center mb-5 border-b border-slate-200 pb-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black">
+                <Award className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-base md:text-lg font-black uppercase text-slate-900 tracking-tight">
+                  POPULAR BEST SELLERS
+                </h3>
+                <p className="text-[11px] text-slate-500">Most preferred computing hardware across verified customer orders</p>
+              </div>
+            </div>
+
+            <Link
+              to="/best-sellers"
+              className="text-xs font-black uppercase text-emerald-600 hover:text-emerald-700 flex items-center space-x-1 tracking-wider"
+            >
+              <span>View All</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {loadingProducts ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((n) => (
+                <ProductSkeleton key={n} />
+              ))}
+            </div>
+          ) : bestSellers.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {bestSellers.map((prod) => (
+                <ProductCard key={prod._id || prod.id} product={prod} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl p-8 text-center border border-slate-200 text-slate-500 text-xs font-semibold">
+              Best sellers list is updating.
+            </div>
+          )}
+        </section>
+      )}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10 mb-12">
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5 md:p-4 flex items-center gap-3 md:gap-4 relative">
           

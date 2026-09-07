@@ -48,12 +48,55 @@ export const adminService = {
     }
   },
 
-  deleteProduct: async (id) => {
+  deleteProduct: async (id, hard = false) => {
     try {
-      const res = await axiosInstance.delete(`/admin/products/${id}`);
+      const res = await axiosInstance.delete(`/admin/products/${id}${hard ? '?hard=true' : ''}`);
       return res.data;
     } catch (err) {
       console.error('Error deleting product:', err);
+      throw err;
+    }
+  },
+
+  updateProductStock: async (id, stockData) => {
+    try {
+      const payload = typeof stockData === 'object' ? stockData : { quantity: stockData };
+      const res = await axiosInstance.patch(`/admin/products/${id}/stock`, payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error updating admin product stock:', err);
+      throw err;
+    }
+  },
+
+  toggleProductStatus: async (id, statusData) => {
+    try {
+      const payload = typeof statusData === 'object' ? statusData : { isActive: statusData };
+      const res = await axiosInstance.patch(`/admin/products/${id}/status`, payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error updating admin product status:', err);
+      throw err;
+    }
+  },
+
+  addProductImages: async (id, images) => {
+    try {
+      const payload = Array.isArray(images) ? { images } : { url: images };
+      const res = await axiosInstance.post(`/admin/products/${id}/images`, payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error adding product images:', err);
+      throw err;
+    }
+  },
+
+  deleteProductImage: async (id, imageId) => {
+    try {
+      const res = await axiosInstance.delete(`/admin/products/${id}/images/${imageId}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error deleting product image:', err);
       throw err;
     }
   },

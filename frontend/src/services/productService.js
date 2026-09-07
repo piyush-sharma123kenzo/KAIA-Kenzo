@@ -110,6 +110,49 @@ export const productService = {
       };
     }
   },
+
+  updateStock: async (id, stockData) => {
+    try {
+      const payload = typeof stockData === 'object' ? stockData : { quantity: stockData };
+      const res = await axiosInstance.patch(`/products/${id}/stock`, payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error updating stock via productService:', err);
+      throw err;
+    }
+  },
+
+  toggleStatus: async (id, statusData) => {
+    try {
+      const payload = typeof statusData === 'object' ? statusData : { isActive: statusData };
+      const res = await axiosInstance.patch(`/products/${id}/status`, payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error toggling status via productService:', err);
+      throw err;
+    }
+  },
+
+  addImages: async (id, images) => {
+    try {
+      const payload = Array.isArray(images) ? { images } : { url: images };
+      const res = await axiosInstance.post(`/products/${id}/images`, payload);
+      return res.data;
+    } catch (err) {
+      console.error('Error adding images via productService:', err);
+      throw err;
+    }
+  },
+
+  deleteImage: async (id, imageId) => {
+    try {
+      const res = await axiosInstance.delete(`/products/${id}/images/${imageId}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error deleting image via productService:', err);
+      throw err;
+    }
+  },
 };
 
 export default productService;

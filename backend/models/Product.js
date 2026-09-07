@@ -99,10 +99,15 @@ const productSchema = new mongoose.Schema(
     },
     isNewArrival: {
       type: Boolean,
-      default: false,
+      default: true,
       index: true,
     },
     isBestSeller: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isBestDeal: {
       type: Boolean,
       default: false,
       index: true,
@@ -112,9 +117,35 @@ const productSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    weight: {
+      type: Number,
+      default: 0,
+    },
+    dimensions: {
+      length: { type: Number, default: 0 },
+      width: { type: Number, default: 0 },
+      height: { type: Number, default: 0 },
+      unit: { type: String, default: 'cm' },
+    },
+    salesCount: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     status: {
       type: String,
-      enum: ['Draft', 'Pending Approval', 'Approved', 'Rejected', 'published', 'archived'],
+      enum: ['Draft', 'Pending Approval', 'Approved', 'Rejected', 'published', 'archived', 'Inactive'],
       default: 'Approved',
       index: true,
     },
@@ -134,12 +165,30 @@ const productSchema = new mongoose.Schema(
   }
 );
 
-// Virtual aliases for compatibility
+// Virtual aliases for compatibility across all customer and admin components
 productSchema.virtual('price').get(function () {
   return this.sellingPrice;
 });
+productSchema.virtual('originalPrice').get(function () {
+  return this.mrp;
+});
 productSchema.virtual('compareAtPrice').get(function () {
   return this.mrp;
+});
+productSchema.virtual('featured').get(function () {
+  return this.isFeatured;
+});
+productSchema.virtual('ratingAverage').get(function () {
+  return this.ratings?.average || 4.5;
+});
+productSchema.virtual('thumbnail').get(function () {
+  if (Array.isArray(this.images) && this.images.length > 0) {
+    const primary = this.images.find((img) => img.isPrimary);
+    if (primary) return primary.url || (typeof primary === 'string' ? primary : '');
+    const first = this.images[0];
+    return first.url || (typeof first === 'string' ? first : '');
+  }
+  return '';
 });
 productSchema.virtual('discount').get(function () {
   if (this.mrp && this.sellingPrice && this.mrp > this.sellingPrice) {
@@ -151,14 +200,16 @@ productSchema.virtual('discount').get(function () {
 // Pre-save hook to calculate available stock: availableQuantity = quantity - reservedQuantity
 productSchema.pre('save', function (next) {
   if (this.stock) {
-    this.stock.availableQuantity = Math.max(0, (this.stock.quantity || 0) - (this.stock.reservedQuantity || 0));
+    const qty = Number(this.stock.quantity ?? 0);
+    const reserved = Number(this.stock.reservedQuantity ?? 0);
+    this.stock.availableQuantity = Math.max(0, qty - reserved);
   }
   this.reviewCount = this.ratings?.count || this.reviewCount || 0;
   next();
 });
 
 // Compound search index for fast text matching
-productSchema.index({ name: 'text', modelNumber: 'text', SKU: 'text', description: 'text' });
+productSchema.index({ name: 'text', modelNumber: 'text', SKU: 'text', description: 'text', tags: 'text' });
 
 const Product = mongoose.models.Product || mongoose.model('Product', productSchema);
 export default Product;

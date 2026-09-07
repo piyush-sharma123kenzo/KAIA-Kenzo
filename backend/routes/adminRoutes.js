@@ -79,6 +79,10 @@ import {
   createAdminProduct,
   updateAdminProduct,
   deleteAdminProduct,
+  updateAdminProductStock,
+  toggleAdminProductStatus,
+  addAdminProductImages,
+  deleteAdminProductImage,
 } from '../controllers/adminProductController.js';
 import { getCategories } from '../controllers/categoryController.js';
 import { protect, authorize } from '../middleware/auth.js';
@@ -161,6 +165,10 @@ router.get('/products/:id', getAdminProductById);
 router.post('/products', createAdminProduct);
 router.put('/products/:id', updateAdminProduct);
 router.delete('/products/:id', deleteAdminProduct);
+router.patch('/products/:id/stock', updateAdminProductStock);
+router.patch('/products/:id/status', toggleAdminProductStatus);
+router.post('/products/:id/images', addAdminProductImages);
+router.delete('/products/:id/images/:imageId', deleteAdminProductImage);
 router.put('/products/:id/verify', verifyProduct);
 
 // 12. Categories Management

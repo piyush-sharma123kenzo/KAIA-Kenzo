@@ -482,7 +482,10 @@ export const updateAdminProduct = async (req, res) => {
       });
     }
 
-    if (specifications !== undefined) product.specifications = specifications;
+    if (specifications !== undefined) {
+      product.specifications = specifications;
+      product.markModified('specifications');
+    }
     if (status !== undefined) product.status = status;
     if (isActive !== undefined) product.isActive = Boolean(isActive);
     if (isFeatured !== undefined) product.isFeatured = Boolean(isFeatured);
@@ -507,24 +510,233 @@ export const updateAdminProduct = async (req, res) => {
   }
 };
 
-// @desc    Delete a product
+// @desc    Delete a product (Soft delete by default, hard delete if ?hard=true)
 // @route   DELETE /api/admin/products/:id
 // @access  Private (ADMIN)
 export const deleteAdminProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await Product.findByIdAndDelete(id);
+    const { hard } = req.query;
 
-    if (!deleted) {
-      return res.status(404).json({ message: 'Product not found.' });
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found.' });
     }
+
+    if (hard === 'true') {
+      await Product.findByIdAndDelete(id);
+      return res.status(200).json({
+        success: true,
+        message: 'Product permanently removed from database.',
+      });
+    }
+
+    product.isDeleted = true;
+    product.isActive = false;
+    product.status = 'Inactive';
+    await product.save();
 
     res.status(200).json({
       success: true,
-      message: 'Product deleted from database and live storefront.',
+      message: `Product '${product.name}' deactivated and removed from customer catalog.`,
     });
   } catch (error) {
     console.error('Admin product deletion error:', error);
-    res.status(500).json({ message: 'Server error deleting product.' });
+    res.status(500).json({ success: false, message: 'Server error deleting product.' });
+  }
+};
+
+// @desc    Update product stock
+// @route   PATCH /api/admin/products/:id/stock
+// @route   PATCH /api/products/:id/stock
+// @access  Private (ADMIN / Brand)
+export const updateAdminProductStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { stock, quantity, stockQuantity } = req.body;
+
+    const rawStock = stockQuantity ?? quantity ?? (typeof stock === 'object' ? stock?.quantity : stock);
+    if (rawStock === undefined || rawStock === null || isNaN(Number(rawStock))) {
+      return res.status(400).json({ success: false, message: 'Valid non-negative stock quantity is required.' });
+    }
+
+    const newStock = Math.max(0, Number(rawStock));
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    product.stock = {
+      ...product.stock,
+      quantity: newStock,
+      availableQuantity: Math.max(0, newStock - (product.stock?.reservedQuantity || 0)),
+    };
+    product.stockQuantity = newStock;
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Stock updated to ${newStock} units for '${product.name}'.`,
+      product,
+    });
+  } catch (error) {
+    console.error('Error updating product stock:', error);
+    res.status(500).json({ success: false, message: 'Server error updating stock.' });
+  }
+};
+
+// @desc    Toggle product active / inactive status
+// @route   PATCH /api/admin/products/:id/status
+// @route   PATCH /api/products/:id/status
+// @access  Private (ADMIN / Brand)
+export const toggleAdminProductStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive, status } = req.body;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    if (isActive !== undefined) {
+      product.isActive = Boolean(isActive);
+      product.status = Boolean(isActive) ? 'Approved' : 'Inactive';
+    } else if (status !== undefined) {
+      product.status = status;
+      product.isActive = status === 'Approved' || status === 'published';
+    } else {
+      product.isActive = !product.isActive;
+      product.status = product.isActive ? 'Approved' : 'Inactive';
+    }
+
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Product is now ${product.isActive ? 'Active and published' : 'Inactive and hidden'}.`,
+      product,
+    });
+  } catch (error) {
+    console.error('Error toggling product status:', error);
+    res.status(500).json({ success: false, message: 'Server error updating product status.' });
+  }
+};
+
+// @desc    Add image(s) to product
+// @route   POST /api/admin/products/:id/images
+// @route   POST /api/products/:id/images
+// @access  Private (ADMIN / Brand)
+export const addAdminProductImages = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { url, images } = req.body;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    const currentImages = Array.isArray(product.images) ? [...product.images] : [];
+    const toAdd = Array.isArray(images) ? images : url ? [url] : [];
+
+    if (toAdd.length === 0) {
+      return res.status(400).json({ success: false, message: 'No image URLs provided.' });
+    }
+
+    toAdd.forEach((img, idx) => {
+      if (typeof img === 'string') {
+        currentImages.push({
+          url: img,
+          altText: `${product.name} - Additional View`,
+          isPrimary: currentImages.length === 0 && idx === 0,
+        });
+      } else if (img && img.url) {
+        currentImages.push(img);
+      }
+    });
+
+    product.images = currentImages;
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Images added successfully.',
+      images: product.images,
+    });
+  } catch (error) {
+    console.error('Error adding product images:', error);
+    res.status(500).json({ success: false, message: 'Server error adding images.' });
+  }
+};
+
+// @desc    Delete image from product
+// @route   DELETE /api/admin/products/:id/images/:imageId
+// @route   DELETE /api/products/:id/images/:imageId
+// @access  Private (ADMIN / Brand)
+export const deleteAdminProductImage = async (req, res) => {
+  try {
+    const { id, imageId } = req.params;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    const initialLength = product.images.length;
+    product.images = product.images.filter((img) => {
+      if (img._id && img._id.toString() === imageId) return false;
+      if (img.url && img.url.includes(imageId)) return false;
+      return true;
+    });
+
+    if (product.images.length === initialLength && product.images.length > 0 && !isNaN(Number(imageId))) {
+      product.images.splice(Number(imageId), 1);
+    }
+
+    if (product.images.length > 0 && !product.images.some((img) => img.isPrimary)) {
+      product.images[0].isPrimary = true;
+    }
+
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Image removed successfully.',
+      images: product.images,
+    });
+  } catch (error) {
+    console.error('Error deleting product image:', error);
+    res.status(500).json({ success: false, message: 'Server error deleting image.' });
+  }
+};
+
+// @desc    Approve / Verify pending product
+// @route   PUT /api/admin/products/:id/verify
+// @access  Private (ADMIN)
+export const verifyProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approvalStatus, isApproved, status } = req.body;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    const finalStatus = status || (approvalStatus === 'Approved' || isApproved ? 'Approved' : 'Rejected');
+    product.status = finalStatus;
+    product.isActive = finalStatus === 'Approved';
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Product status updated to '${finalStatus}'.`,
+      product,
+    });
+  } catch (error) {
+    console.error('Error verifying product:', error);
+    res.status(500).json({ success: false, message: 'Server error verifying product.' });
   }
 };
