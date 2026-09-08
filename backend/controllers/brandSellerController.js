@@ -471,12 +471,17 @@ export const createBrandProduct = async (req, res) => {
 
     // Create corresponding Inventory record
     await Inventory.create({
+      productId: newProduct._id,
       product: newProduct._id,
+      brandId: brandId,
       brand: brandId,
       sku: newProduct.SKU,
-      quantity: stockQty,
-      reservedQuantity: 0,
+      totalQuantity: stockQty,
       availableQuantity: stockQty,
+      reservedQuantity: 0,
+      soldQuantity: 0,
+      damagedQuantity: 0,
+      returnedQuantity: 0,
       lowStockThreshold: reorderThresh,
       warehouse: {
         name: `${req.brand.name} Logistics Center`,
@@ -597,9 +602,15 @@ export const updateBrandProduct = async (req, res) => {
 
       // Sync Inventory model
       await Inventory.findOneAndUpdate(
-        { product: product._id, brand: brandId },
+        { $or: [{ productId: product._id }, { product: product._id }], brandId },
         {
           $set: {
+            productId: product._id,
+            product: product._id,
+            brandId: brandId,
+            brand: brandId,
+            sku: product.SKU,
+            totalQuantity: newQty,
             quantity: newQty,
             availableQuantity: product.stock.availableQuantity,
             lowStockThreshold: stock.reorderThreshold || product.stock.reorderThreshold,
@@ -795,9 +806,15 @@ export const updateBrandStock = async (req, res) => {
 
     // Sync Inventory model
     await Inventory.findOneAndUpdate(
-      { product: product._id, brand: brandId },
+      { $or: [{ productId: product._id }, { product: product._id }], brandId },
       {
         $set: {
+          productId: product._id,
+          product: product._id,
+          brandId: brandId,
+          brand: brandId,
+          sku: product.SKU,
+          totalQuantity: newQuantity,
           quantity: newQuantity,
           availableQuantity: product.stock.availableQuantity,
           lowStockThreshold: product.stock.reorderThreshold,

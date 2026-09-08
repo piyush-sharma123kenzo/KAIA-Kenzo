@@ -82,6 +82,10 @@ const inventorySchema = new mongoose.Schema(
       default: 'in_stock',
       index: true,
     },
+    quantity: {
+      type: Number,
+      default: 0,
+    },
     warehouse: {
       name: { type: String, default: 'Primary Warehouse' },
       location: { type: String, default: 'India Central Depot' },
@@ -97,26 +101,42 @@ const inventorySchema = new mongoose.Schema(
 inventorySchema.index({ productId: 1, warehouseId: 1 });
 inventorySchema.index({ brandId: 1, warehouseId: 1 });
 
-// Pre-save synchronization: ensure fields & status are consistent
+// Pre-validate synchronization: ensure required fields are present before validation checks
+inventorySchema.pre('validate', function (next) {
+  if (!this.productId && this.product) this.productId = this.product;
+  if (!this.product && this.productId) this.product = this.productId;
+  if (!this.brandId && this.brand) this.brandId = this.brand;
+  if (!this.brand && this.brandId) this.brand = this.brandId;
+
+  if (this.totalQuantity === undefined && this.quantity !== undefined) {
+    this.totalQuantity = this.quantity;
+  }
+  if (this.availableQuantity === undefined) {
+    this.availableQuantity = this.totalQuantity || this.quantity || 0;
+  }
+  if (this.reservedQuantity === undefined) this.reservedQuantity = 0;
+  if (this.soldQuantity === undefined) this.soldQuantity = 0;
+  if (this.damagedQuantity === undefined) this.damagedQuantity = 0;
+  if (this.returnedQuantity === undefined) this.returnedQuantity = 0;
+
+  // Derive status
+  if (this.availableQuantity <= 0) {
+    this.status = 'out_of_stock';
+  } else if (this.availableQuantity <= (this.lowStockThreshold || 5)) {
+    this.status = 'low_stock';
+  } else {
+    this.status = 'in_stock';
+  }
+
+  next();
+});
+
+// Pre-save synchronization
 inventorySchema.pre('save', function (next) {
   if (!this.product && this.productId) this.product = this.productId;
   if (!this.productId && this.product) this.productId = this.product;
   if (!this.brand && this.brandId) this.brand = this.brandId;
   if (!this.brandId && this.brand) this.brandId = this.brand;
-
-  // Backward compatibility calculation
-  if (this.isModified('quantity') && !this.isModified('totalQuantity') && this.quantity !== undefined) {
-    this.totalQuantity = this.quantity;
-  }
-
-  // Derive status
-  if (this.availableQuantity <= 0) {
-    this.status = 'out_of_stock';
-  } else if (this.availableQuantity <= this.lowStockThreshold) {
-    this.status = 'low_stock';
-  } else {
-    this.status = 'in_stock';
-  }
 
   next();
 });
