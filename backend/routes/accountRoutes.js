@@ -31,20 +31,8 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Avatar storage config
-const avatarStorage = multer.diskStorage({
-  destination(req, file, cb) {
-    const dir = 'uploads/avatars/';
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `avatar-${uniqueSuffix}${path.extname(file.originalname)}`);
-  },
-});
+// Avatar in-memory storage config for pure Cloudinary streaming
+const avatarStorage = multer.memoryStorage();
 
 const avatarUpload = multer({
   storage: avatarStorage,

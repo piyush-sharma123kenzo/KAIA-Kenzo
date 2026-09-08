@@ -11,21 +11,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// Temporary disk storage for processing uploads
-const tempStorage = multer.diskStorage({
-  destination(req, file, cb) {
-    const dir = 'uploads/temp/';
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-    cb(null, `upload-${uniqueSuffix}${ext}`);
-  },
-});
+// In-memory storage for high-performance direct streaming to Cloudinary
+const memoryStorage = multer.memoryStorage();
 
 // Allowed file types: JPG, JPEG, PNG, WEBP
 const ALLOWED_MIME_TYPES = new Set([
@@ -60,7 +47,7 @@ const profileImageFilter = (req, file, cb) => {
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 const uploadInstance = multer({
-  storage: tempStorage,
+  storage: memoryStorage,
   limits: {
     fileSize: MAX_FILE_SIZE,
     files: 1,

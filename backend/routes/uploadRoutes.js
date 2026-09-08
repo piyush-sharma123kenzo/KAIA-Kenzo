@@ -1,28 +1,13 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import storageService from '../services/storage/storage.service.js';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Define temporary storage engine for parsing incoming uploads
-const tempStorage = multer.diskStorage({
-  destination(req, file, cb) {
-    const dir = 'uploads/temp/';
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`
-    );
-  },
-});
+// Pure in-memory storage engine for streaming uploads directly to Cloudinary
+const memoryStorage = multer.memoryStorage();
 
 // Media validation filter (Images + Videos)
 function checkMediaType(file, cb) {
@@ -41,12 +26,15 @@ function checkMediaType(file, cb) {
 }
 
 const upload = multer({
-  storage: tempStorage,
+  storage: memoryStorage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit to support videos
   fileFilter(req, file, cb) {
     checkMediaType(file, cb);
   },
 });
+
+// Require authentication for uploads
+router.use(protect);
 
 // @desc    Upload single image or video
 // @route   POST /api/upload
