@@ -111,9 +111,17 @@ const AddProduct = () => {
     const initData = async () => {
       try {
         const catRes = await categoryService.getCategories();
-        if (catRes.success) {
-          setCategories(catRes.categories || catRes.data || []);
+        let catList = [];
+        if (Array.isArray(catRes)) {
+          catList = catRes;
+        } else if (catRes?.categories && Array.isArray(catRes.categories)) {
+          catList = catRes.categories;
+        } else if (catRes?.data && Array.isArray(catRes.data)) {
+          catList = catRes.data;
+        } else if (catRes?.data?.categories && Array.isArray(catRes.data.categories)) {
+          catList = catRes.data.categories;
         }
+        setCategories(catList);
 
         if (isEditMode) {
           const prodRes = await brandSellerService.getProductById(id);
@@ -536,7 +544,9 @@ const AddProduct = () => {
               >
                 <option value="">Select Platform Category</option>
                 {categories.map((c) => (
-                  <option key={c._id} value={c._id}>{c.name}</option>
+                  <option key={c._id || c.id || c.slug} value={c._id || c.id || c.slug}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
             </div>

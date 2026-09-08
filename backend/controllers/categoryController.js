@@ -6,7 +6,25 @@ import Product from '../models/Product.js';
 // @access  Public
 export const getCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ isActive: true }).populate('parentCategory', 'name slug').lean();
+    let count = await Category.countDocuments();
+    if (count === 0) {
+      // Auto-initialize standard platform electronics categories
+      const defaultCategories = [
+        { name: 'Laptops', slug: 'laptops', description: 'Gaming, Ultrabooks & Productivity Laptops', baseCommission: 5.0, isActive: true },
+        { name: 'Smartphones', slug: 'smartphones', description: 'Flagship 5G Smartphones & Cellular Hardware', baseCommission: 5.0, isActive: true },
+        { name: 'Audio & Headphones', slug: 'audio-and-sound', description: 'ANC Headphones, Wireless Earbuds & Studio Monitors', baseCommission: 5.0, isActive: true },
+        { name: 'PC Components', slug: 'pc-components', description: 'Processors, Graphics Cards, RAM & Motherboards', baseCommission: 5.0, isActive: true },
+        { name: 'Monitors & Displays', slug: 'monitors-and-displays', description: '4K OLED & High Refresh Rate Gaming Panels', baseCommission: 5.0, isActive: true },
+        { name: 'Keyboards & Mice', slug: 'keyboards-and-accessories', description: 'Custom Mechanical Keyboards & Wireless Mice', baseCommission: 5.0, isActive: true },
+        { name: 'Cameras & Imaging', slug: 'cameras-and-imaging', description: 'Mirrorless Cameras, Lenses & Production Gear', baseCommission: 5.0, isActive: true },
+        { name: 'Smart Devices', slug: 'smart-devices', description: 'Smartwatches, IoT Hubs & Connected Tech', baseCommission: 5.0, isActive: true },
+        { name: 'Tablets', slug: 'tablets', description: 'Productivity Tablets, iPads & Drawing Slates', baseCommission: 5.0, isActive: true },
+        { name: 'Storage & Drives', slug: 'storage', description: 'PCIe NVMe SSDs, External Drives & High-Speed Media', baseCommission: 5.0, isActive: true },
+      ];
+      await Category.insertMany(defaultCategories);
+    }
+
+    const categories = await Category.find({ isActive: { $ne: false } }).populate('parentCategory', 'name slug').lean();
 
     // Attach dynamic product counts
     const catIds = categories.map((c) => c._id);
