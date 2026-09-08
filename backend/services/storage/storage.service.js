@@ -88,8 +88,8 @@ class StorageService {
 
     const folder = options.folder || process.env.CLOUDINARY_FOLDER || 'kaia/media';
     const isVideo = (file.mimetype || '').startsWith('video/') || /\.(mp4|webm|mov|mkv|avi)$/i.test(file.originalname || '');
-    const resourceType = options.resourceType || (isVideo ? 'video' : 'image');
-    const publicId = `${folder}/${identifier}-${Date.now()}`;
+    const cleanId = String(identifier || 'asset').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const publicId = `${cleanId}-${Date.now()}`;
 
     const uploadOptions = {
       public_id: publicId,
