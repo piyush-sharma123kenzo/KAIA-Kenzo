@@ -425,7 +425,7 @@ const AddProduct = () => {
       }
     } catch (err) {
       console.error('Error saving draft:', err);
-      setErrorMsg(err.response?.data?.message || 'Error saving draft. Please check SKU uniqueness.');
+      setErrorMsg(err.safeMessage || err.response?.data?.message || err.message || 'Error saving draft. Please check SKU uniqueness.');
     } finally {
       setDraftLoading(false);
     }
@@ -486,7 +486,7 @@ const AddProduct = () => {
       }
     } catch (err) {
       console.error('Error saving product:', err);
-      setErrorMsg(err.response?.data?.message || 'Error submitting product. Please verify SKU and required fields.');
+      setErrorMsg(err.safeMessage || err.response?.data?.message || err.message || 'Error submitting product. Please verify SKU and required fields.');
     } finally {
       setLoading(false);
     }
