@@ -131,7 +131,7 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const dbRole = selectedRole === 'ADMIN' ? 'ADMIN' : selectedRole === 'VENDOR' ? 'BRAND' : 'CUSTOMER';
+      const dbRole = selectedRole === 'VENDOR' ? 'BRAND' : 'CUSTOMER';
       const result = await register(trimmedName, normalizedEmail, password, confirmPassword, dbRole, phone.trim());
       if (result?.requiresVerification) {
         navigate('/verify-otp', {
@@ -141,9 +141,7 @@ const Register = () => {
           },
         });
       } else if (result?.user) {
-        if (dbRole === 'ADMIN') {
-          navigate('/admin/dashboard');
-        } else if (dbRole === 'BRAND') {
+        if (dbRole === 'BRAND' || dbRole === 'VENDOR') {
           navigate('/brand/dashboard');
         } else {
           navigate('/account');
@@ -164,6 +162,8 @@ const Register = () => {
             email: err.email || normalizedEmail,
           });
         }
+      } else {
+        setValidationError(err.message || 'Registration failed. Please check your details.');
       }
     } finally {
       setLoading(false);
@@ -178,18 +178,14 @@ const Register = () => {
         <div className="text-center space-y-3 flex flex-col items-center">
           <KaiaLogo to="/" variant="full" theme="light" size="lg" />
           <h1 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">
-            {selectedRole === 'ADMIN'
-              ? 'Create Administrator Account'
-              : selectedRole === 'VENDOR'
-                ? 'Create Vendor / Brand Account'
-                : 'Create Customer Account'}
+            {selectedRole === 'VENDOR'
+              ? 'Create Vendor / Brand Account'
+              : 'Create Customer Account'}
           </h1>
           <p className="text-xs text-brand-gray-500">
-            {selectedRole === 'ADMIN'
-              ? 'Provision root administrative and management privileges.'
-              : selectedRole === 'VENDOR'
-                ? 'Join as an authorized brand partner to sell and manage hardware.'
-                : 'A 6-digit verification code will be sent to your email.'}
+            {selectedRole === 'VENDOR'
+              ? 'Join as an authorized brand partner to sell and manage hardware.'
+              : 'A 6-digit verification code will be sent to your email.'}
           </p>
         </div>
 
@@ -256,7 +252,7 @@ const Register = () => {
           </div>
         )}
 
-        {/* 3. Generic Validation / Network Error Banner */}
+        {/* 3. Validation / Network Error Banner */}
         {!conflictState && (error || validationError) && (
           <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-sm flex items-start space-x-2">
             <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
@@ -269,7 +265,7 @@ const Register = () => {
           <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
             Registering As:
           </label>
-          <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-slate-100 rounded-xl border border-slate-250">
+          <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl border border-slate-250">
             <button
               type="button"
               onClick={() => {
@@ -277,16 +273,16 @@ const Register = () => {
                 if (error) clearError();
                 if (validationError) setValidationError('');
               }}
-              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 selectedRole === 'USER'
                   ? 'bg-slate-950 text-white shadow-md font-extrabold'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
               }`}
             >
-              <User className="w-3.5 h-3.5 mb-0.5" />
-              <div className="text-[11px] font-bold">Customer</div>
-              <div className={`text-[8px] font-mono tracking-wider ${selectedRole === 'USER' ? 'text-amber-400' : 'text-slate-400'}`}>
-                BUYER
+              <User className="w-4 h-4 mb-0.5" />
+              <div className="text-xs font-bold">Customer</div>
+              <div className={`text-[9px] font-mono tracking-wider ${selectedRole === 'USER' ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
+                BUYER ACCOUNT
               </div>
             </button>
 
@@ -297,45 +293,23 @@ const Register = () => {
                 if (error) clearError();
                 if (validationError) setValidationError('');
               }}
-              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 selectedRole === 'VENDOR'
                   ? 'bg-amber-500 text-slate-950 shadow-md font-black'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
               }`}
             >
-              <Store className="w-3.5 h-3.5 mb-0.5" />
-              <div className="text-[11px] font-bold">Vendor</div>
-              <div className={`text-[8px] font-mono tracking-wider ${selectedRole === 'VENDOR' ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
-                SELLER
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedRole('ADMIN');
-                if (error) clearError();
-                if (validationError) setValidationError('');
-              }}
-              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                selectedRole === 'ADMIN'
-                  ? 'bg-indigo-900 text-white shadow-md font-extrabold'
-                  : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 mb-0.5" />
-              <div className="text-[11px] font-bold">Admin</div>
-              <div className={`text-[8px] font-mono tracking-wider ${selectedRole === 'ADMIN' ? 'text-indigo-300' : 'text-slate-400'}`}>
-                ROOT
+              <Store className="w-4 h-4 mb-0.5" />
+              <div className="text-xs font-bold">Vendor / Brand</div>
+              <div className={`text-[9px] font-mono tracking-wider ${selectedRole === 'VENDOR' ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
+                SELLER PARTNER
               </div>
             </button>
           </div>
           <p className="text-[11px] text-slate-500 font-medium px-1">
             {selectedRole === 'USER'
-              ? '📦 Customer account: Shop items, track orders, manage addresses.'
-              : selectedRole === 'VENDOR'
-                ? '🏢 Vendor account: Manage catalog, inventory, sales, and payouts.'
-                : '🛡️ Admin console: Full governance, settlements, logistics, and controls.'}
+              ? '📦 Customer account: Shop premium electronics, track orders, and register warranties.'
+              : '🏢 Vendor account: Manage hardware listings, logistics, warehouse inventory, and payouts.'}
           </p>
         </div>
 
@@ -345,19 +319,15 @@ const Register = () => {
             mode="signUp"
             role={selectedRole}
             text={
-              selectedRole === 'ADMIN'
-                ? 'Sign up with Clerk as Admin'
-                : selectedRole === 'VENDOR'
-                  ? 'Sign up with Clerk as Vendor'
-                  : 'Sign up with Clerk'
+              selectedRole === 'VENDOR'
+                ? 'Sign up with Clerk as Vendor'
+                : 'Sign up with Clerk'
             }
           />
-          {selectedRole !== 'ADMIN' && (
-            <GoogleAuthButton
-              text={selectedRole === 'VENDOR' ? 'Sign up with Google as Vendor' : 'Sign up with Google'}
-              mode="register"
-            />
-          )}
+          <GoogleAuthButton
+            text={selectedRole === 'VENDOR' ? 'Sign up with Google as Vendor' : 'Sign up with Google'}
+            mode="register"
+          />
 
           <div className="relative flex py-1 items-center">
             <div className="flex-grow border-t border-slate-200" />

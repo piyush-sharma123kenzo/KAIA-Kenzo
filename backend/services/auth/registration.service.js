@@ -78,9 +78,17 @@ export const registerNewUser = async ({
     throw error;
   }
 
-  const userRole = role === 'ADMIN' ? 'CUSTOMER' : (role || 'CUSTOMER');
+  // 5. Strict Role Validation: Public signup accepts CUSTOMER and BRAND / VENDOR
+  const requestedRole = (role || 'CUSTOMER').toUpperCase();
+  if (requestedRole === 'ADMIN') {
+    const error = new Error('Administrative accounts cannot be created via public registration. Please use the secure server bootstrap.');
+    error.statusCode = 403;
+    throw error;
+  }
 
-  // 5. Strict Unique Email Check
+  const userRole = (requestedRole === 'BRAND' || requestedRole === 'VENDOR') ? 'BRAND' : 'CUSTOMER';
+
+  // 6. Strict Unique Email Check
   const existingUser = await User.findOne({ email: normalizedEmail });
 
   if (existingUser) {
