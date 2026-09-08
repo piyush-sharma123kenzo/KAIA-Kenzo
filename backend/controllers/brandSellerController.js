@@ -403,9 +403,49 @@ export const createBrandProduct = async (req, res) => {
       }];
     }
 
+    // Resolve category ObjectId flexibly (handles ObjectId string, slug, or category name)
+    let resolvedCategoryId = null;
+    if (category && mongoose.Types.ObjectId.isValid(category)) {
+      const found = await Category.findById(category);
+      if (found) resolvedCategoryId = found._id;
+    }
+    if (!resolvedCategoryId && category) {
+      const found = await Category.findOne({
+        $or: [
+          { slug: String(category).toLowerCase() },
+          { name: { $regex: new RegExp(`^${category}$`, 'i') } },
+        ],
+      });
+      if (found) {
+        resolvedCategoryId = found._id;
+      } else {
+        const catName = String(category).trim();
+        const catSlug = catName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        const createdCat = await Category.create({
+          name: catName,
+          slug: catSlug || `cat-${Date.now()}`,
+          baseCommission: 5.0,
+          isActive: true,
+        });
+        resolvedCategoryId = createdCat._id;
+      }
+    }
+    if (!resolvedCategoryId) {
+      let defaultCat = await Category.findOne({ isActive: true });
+      if (!defaultCat) {
+        defaultCat = await Category.create({
+          name: 'Laptops',
+          slug: 'laptops',
+          baseCommission: 5.0,
+          isActive: true,
+        });
+      }
+      resolvedCategoryId = defaultCat._id;
+    }
+
     const newProduct = await Product.create({
       brand: brandId,
-      category,
+      category: resolvedCategoryId,
       name: name.trim(),
       slug,
       modelNumber: modelNumber || `MOD-${Date.now().toString().slice(-4)}`,
@@ -501,7 +541,23 @@ export const updateBrandProduct = async (req, res) => {
     };
 
     if (name) product.name = name.trim();
-    if (category) product.category = category;
+    if (category) {
+      let resolvedCategoryId = null;
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        const found = await Category.findById(category);
+        if (found) resolvedCategoryId = found._id;
+      }
+      if (!resolvedCategoryId) {
+        const found = await Category.findOne({
+          $or: [
+            { slug: String(category).toLowerCase() },
+            { name: { $regex: new RegExp(`^${category}$`, 'i') } },
+          ],
+        });
+        if (found) resolvedCategoryId = found._id;
+      }
+      if (resolvedCategoryId) product.category = resolvedCategoryId;
+    }
     if (description !== undefined) product.description = description;
     if (shortDescription !== undefined) product.shortDescription = shortDescription;
     if (warranty !== undefined) product.warranty = warranty;

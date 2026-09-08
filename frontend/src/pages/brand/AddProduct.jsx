@@ -66,6 +66,22 @@ const CATEGORY_SPEC_PRESETS = {
   ],
 };
 
+const DEFAULT_PLATFORM_CATEGORIES = [
+  { _id: 'laptops', name: 'Laptops', slug: 'laptops' },
+  { _id: 'smartphones', name: 'Smartphones', slug: 'smartphones' },
+  { _id: 'audio-and-sound', name: 'Audio & Headphones', slug: 'audio-and-sound' },
+  { _id: 'pc-components', name: 'PC Components', slug: 'pc-components' },
+  { _id: 'monitors-and-displays', name: 'Monitors & Displays', slug: 'monitors-and-displays' },
+  { _id: 'keyboards-and-accessories', name: 'Keyboards & Mice', slug: 'keyboards-and-accessories' },
+  { _id: 'cameras-and-imaging', name: 'Cameras & Imaging', slug: 'cameras-and-imaging' },
+  { _id: 'smart-devices', name: 'Smart Devices', slug: 'smart-devices' },
+  { _id: 'tablets', name: 'Tablets', slug: 'tablets' },
+  { _id: 'storage', name: 'Storage & Drives', slug: 'storage' },
+  { _id: 'networking', name: 'Networking & Smart Home', slug: 'networking' },
+  { _id: 'gaming-consoles', name: 'Gaming Consoles & VR', slug: 'gaming-consoles' },
+  { _id: 'accessories', name: 'Accessories & Cables', slug: 'accessories' },
+];
+
 const AddProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -73,7 +89,7 @@ const AddProduct = () => {
   const basePath = location.pathname.startsWith('/vendor') ? '/vendor' : '/brand';
   const isEditMode = !!id;
 
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(DEFAULT_PLATFORM_CATEGORIES);
   const [loading, setLoading] = useState(false);
   const [draftLoading, setDraftLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(isEditMode);
@@ -110,7 +126,7 @@ const AddProduct = () => {
   useEffect(() => {
     const initData = async () => {
       try {
-        const catRes = await categoryService.getCategories();
+        const catRes = await categoryService.getCategories().catch(() => null);
         let catList = [];
         if (Array.isArray(catRes)) {
           catList = catRes;
@@ -121,7 +137,11 @@ const AddProduct = () => {
         } else if (catRes?.data?.categories && Array.isArray(catRes.data.categories)) {
           catList = catRes.data.categories;
         }
-        setCategories(catList);
+
+        if (catList && catList.length > 0) {
+          // Merge unique categories preferring real DB IDs
+          setCategories(catList);
+        }
 
         if (isEditMode) {
           const prodRes = await brandSellerService.getProductById(id);
@@ -131,7 +151,7 @@ const AddProduct = () => {
               name: p.name || '',
               modelNumber: p.modelNumber || '',
               SKU: p.SKU || '',
-              category: p.category?._id || p.category || '',
+              category: p.category?._id || p.category?.id || p.category || '',
               description: p.description || '',
               shortDescription: p.shortDescription || '',
               mrp: p.mrp ? p.mrp.toString() : '',
@@ -174,11 +194,11 @@ const AddProduct = () => {
 
   // Apply preset specs based on selected category slug
   const handleCategoryChange = (catId) => {
-    setForm({ ...form, category: catId });
-    const selected = categories.find((c) => c._id === catId);
+    setForm((prev) => ({ ...prev, category: catId }));
+    const selected = categories.find((c) => (c._id || c.id || c.slug) === catId);
     if (!selected) return;
 
-    const slug = selected.slug || '';
+    const slug = selected.slug || selected.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || '';
     let presetKey = Object.keys(CATEGORY_SPEC_PRESETS).find((k) => slug.includes(k));
     if (presetKey && CATEGORY_SPEC_PRESETS[presetKey] && (!specList[0]?.key || specList.length <= 1)) {
       setSpecList(
