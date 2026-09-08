@@ -10,7 +10,7 @@ import Notification from '../models/Notification.js';
 import Invoice from '../models/Invoice.js';
 import Warranty from '../models/Warranty.js';
 import AuditLog from '../models/AuditLog.js';
-import profileImageService from '../services/storage/profileImage.service.js';
+import storageService from '../services/storage.service.js';
 import { formatUserResponse } from '../utils/jwt.utils.js';
 import {
   getWishlist as getWishlistHandler,
@@ -129,12 +129,41 @@ export const uploadAvatar = async (req, res) => {
     const file = req.file || (req.files && req.files.length > 0 ? req.files[0] : null);
 
     if (file) {
-      const updatedUser = await profileImageService.updateProfileImage(req.user._id, file);
+      const user = await User.findById(req.user._id);
+      if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+      const oldPublicId = user.profileImage?.publicId || '';
+      const oldUrl = user.profileImage?.url || user.avatar || '';
+
+      // 1. Upload directly to Cloudinary
+      const uploadRes = await storageService.upload(file, user._id.toString(), {
+        folder: 'kaia/profiles',
+        resourceType: 'image',
+      });
+
+      // 2. Update user profile in database
+      user.profileImage = {
+        url: uploadRes.url,
+        publicId: uploadRes.publicId,
+        updatedAt: uploadRes.updatedAt || new Date(),
+      };
+      user.avatar = uploadRes.url;
+      await user.save();
+
+      // 3. Safe cleanup of old image after successful DB write
+      if (oldPublicId || oldUrl) {
+        try {
+          await storageService.delete(oldPublicId, oldUrl);
+        } catch (e) {
+          // Ignore cleanup warning
+        }
+      }
+
       return res.status(200).json({
         success: true,
         message: 'Profile avatar updated successfully.',
-        avatar: updatedUser.profileImage?.url || updatedUser.avatar,
-        user: formatUserResponse(updatedUser),
+        avatar: user.avatar,
+        user: formatUserResponse(user),
       });
     }
 
@@ -169,11 +198,28 @@ export const uploadAvatar = async (req, res) => {
 
 export const removeAvatar = async (req, res) => {
   try {
-    const updatedUser = await profileImageService.deleteProfileImage(req.user._id);
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const publicId = user.profileImage?.publicId || '';
+    const url = user.profileImage?.url || user.avatar || '';
+
+    if (publicId || url) {
+      await storageService.delete(publicId, url);
+    }
+
+    user.profileImage = {
+      url: '',
+      publicId: '',
+      updatedAt: new Date(),
+    };
+    user.avatar = '';
+    await user.save();
+
     return res.status(200).json({
       success: true,
       message: 'Profile avatar removed successfully.',
-      user: formatUserResponse(updatedUser),
+      user: formatUserResponse(user),
     });
   } catch (error) {
     console.error('Error removing avatar:', error);

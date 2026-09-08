@@ -11,7 +11,7 @@
  */
 
 import { formatUserResponse, clearAuthCookie } from '../utils/jwt.utils.js';
-import profileImageService from '../services/storage/profileImage.service.js';
+import storageService from '../services/storage.service.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 
@@ -141,12 +141,42 @@ export const uploadProfileImage = async (req, res) => {
       });
     }
 
-    const updatedUser = await profileImageService.updateProfileImage(userId, req.file);
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const oldPublicId = user.profileImage?.publicId || '';
+    const oldUrl = user.profileImage?.url || user.avatar || '';
+
+    // 1. Stream upload to Cloudinary
+    const uploadRes = await storageService.upload(req.file, user._id.toString(), {
+      folder: 'kaia/profiles',
+      resourceType: 'image',
+    });
+
+    // 2. Save new Cloudinary metadata in MongoDB
+    user.profileImage = {
+      url: uploadRes.url,
+      publicId: uploadRes.publicId,
+      updatedAt: uploadRes.updatedAt || new Date(),
+    };
+    user.avatar = uploadRes.url;
+    await user.save();
+
+    // 3. Safe cleanup of old Cloudinary image
+    if (oldPublicId || oldUrl) {
+      try {
+        await storageService.delete(oldPublicId, oldUrl);
+      } catch (e) {
+        // Ignore cleanup warning
+      }
+    }
 
     return res.status(200).json({
       success: true,
       message: 'Profile picture updated successfully.',
-      user: formatUserResponse(updatedUser),
+      user: formatUserResponse(user),
     });
   } catch (error) {
     console.error('[UserController] uploadProfileImage error:', error);
@@ -173,12 +203,30 @@ export const removeProfileImage = async (req, res) => {
       });
     }
 
-    const updatedUser = await profileImageService.deleteProfileImage(userId);
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const publicId = user.profileImage?.publicId || '';
+    const url = user.profileImage?.url || user.avatar || '';
+
+    if (publicId || url) {
+      await storageService.delete(publicId, url);
+    }
+
+    user.profileImage = {
+      url: '',
+      publicId: '',
+      updatedAt: new Date(),
+    };
+    user.avatar = '';
+    await user.save();
 
     return res.status(200).json({
       success: true,
       message: 'Profile picture removed successfully.',
-      user: formatUserResponse(updatedUser),
+      user: formatUserResponse(user),
     });
   } catch (error) {
     console.error('[UserController] removeProfileImage error:', error);

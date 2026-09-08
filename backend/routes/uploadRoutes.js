@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import storageService from '../services/storage/storage.service.js';
+import storageService from '../services/storage.service.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
