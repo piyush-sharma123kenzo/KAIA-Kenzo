@@ -91,10 +91,10 @@ export const AuthProvider = ({ children }) => {
   }, [loadUser]);
 
   // Login handler
-  const login = async (email, password) => {
+  const login = async (email, password, role = null) => {
     setError(null);
     try {
-      const res = await authApi.loginUser({ email, password });
+      const res = await authApi.loginUser({ email, password, role });
       if (res.success) {
         if (res.token) {
           localStorage.setItem('kaia_token', res.token);

@@ -60,10 +60,18 @@ export const protect = async (req, res, next) => {
  * @param  {...string} roles
  */
 export const authorize = (...roles) => {
-  const normalizedRoles = roles.map((r) => r.toUpperCase());
+  const allowedSet = new Set(
+    roles.flatMap((r) => {
+      const up = r.toUpperCase();
+      if (up === 'USER' || up === 'CUSTOMER') return ['USER', 'CUSTOMER'];
+      if (up === 'VENDOR' || up === 'BRAND') return ['VENDOR', 'BRAND'];
+      return [up];
+    })
+  );
+
   return (req, res, next) => {
     const userRole = (req.user?.role || '').toUpperCase();
-    if (!req.user || !normalizedRoles.includes(userRole)) {
+    if (!req.user || !allowedSet.has(userRole)) {
       return res.status(403).json({
         success: false,
         message: `Role (${req.user ? req.user.role : 'Guest'}) is not authorized to access this resource`,
@@ -74,12 +82,13 @@ export const authorize = (...roles) => {
 };
 
 /**
- * Verify that a brand partner's store application is Approved.
+ * Verify that a brand/vendor partner's store application is Approved.
  * Attaches the brand entity to `req.brand`.
  */
 export const checkBrandApproval = async (req, res, next) => {
-  if (req.user.role !== 'BRAND') {
-    return res.status(403).json({ message: 'Only brand partners can access this resource' });
+  const role = (req.user?.role || '').toUpperCase();
+  if (role !== 'BRAND' && role !== 'VENDOR') {
+    return res.status(403).json({ message: 'Only vendor/brand partners can access this resource' });
   }
 
   try {

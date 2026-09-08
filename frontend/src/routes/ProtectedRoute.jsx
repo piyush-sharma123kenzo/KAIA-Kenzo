@@ -22,15 +22,25 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
 
   // Role permissions checks (case-insensitive for robust role verification)
   const userRole = (user.role || '').toUpperCase();
-  const normalizedAllowedRoles = allowedRoles ? allowedRoles.map((r) => r.toUpperCase()) : null;
+  const canonicalRole = (role) => {
+    const r = (role || '').toUpperCase();
+    if (r === 'USER' || r === 'CUSTOMER') return 'USER';
+    if (r === 'VENDOR' || r === 'BRAND') return 'VENDOR';
+    return r;
+  };
 
-  if (normalizedAllowedRoles && !normalizedAllowedRoles.includes(userRole)) {
-    if (userRole === 'ADMIN') {
-      return <Navigate to="/admin/dashboard" replace />;
-    } else if (userRole === 'BRAND') {
-      return <Navigate to="/brand/dashboard" replace />;
-    } else {
-      return <Navigate to="/account" replace />;
+  const userCanonical = canonicalRole(userRole);
+
+  if (allowedRoles && allowedRoles.length > 0) {
+    const allowedCanonicals = allowedRoles.map((r) => canonicalRole(r));
+    if (!allowedCanonicals.includes(userCanonical)) {
+      if (userCanonical === 'ADMIN') {
+        return <Navigate to="/admin/dashboard" replace />;
+      } else if (userCanonical === 'VENDOR') {
+        return <Navigate to="/brand/dashboard" replace />;
+      } else {
+        return <Navigate to="/account" replace />;
+      }
     }
   }
 

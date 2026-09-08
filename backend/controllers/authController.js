@@ -183,10 +183,10 @@ export const resetPassword = async (req, res) => {
  * @access  Public
  */
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
 
   try {
-    const user = await authenticateCredentials(email, password);
+    const user = await authenticateCredentials(email, password, role);
     return sendAuthTokenResponse(user, 200, res);
   } catch (error) {
     const statusCode = error.statusCode || 500;

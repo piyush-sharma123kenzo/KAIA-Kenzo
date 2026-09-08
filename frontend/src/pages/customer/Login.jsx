@@ -13,6 +13,7 @@ const Login = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState('USER');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -21,17 +22,18 @@ const Login = () => {
     clearError();
   }, []);
 
-  // Redirect if already logged in
+  // Redirect if already logged in based on verified database role
   useEffect(() => {
     if (user) {
       const targetRedirect = searchParams.get('redirect');
-      if (user.role === 'ADMIN') {
+      const userRole = (user.role || '').toUpperCase();
+      if (userRole === 'ADMIN') {
         if (targetRedirect && targetRedirect.startsWith('/admin')) {
           navigate(targetRedirect);
         } else {
           navigate('/admin/dashboard');
         }
-      } else if (user.role === 'BRAND') {
+      } else if (userRole === 'BRAND' || userRole === 'VENDOR') {
         if (targetRedirect && targetRedirect.startsWith('/brand')) {
           navigate(targetRedirect);
         } else {
@@ -51,7 +53,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, selectedRole);
     } catch (err) {
       // Handle unverified account — redirect to OTP page
       if (err.requiresVerification && err.email) {
@@ -66,12 +68,44 @@ const Login = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-left space-y-8">
+      <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-left space-y-7">
         
         {/* Header */}
         <div className="text-center space-y-3 flex flex-col items-center">
           <KaiaLogo to="/" variant="full" theme="light" size="lg" />
           <h2 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">Sign In to Your Workspace</h2>
+          <p className="text-xs text-brand-gray-500">Select your account role to continue</p>
+        </div>
+
+        {/* Role Selector Tabs */}
+        <div className="grid grid-cols-3 gap-1 bg-brand-light p-1 rounded-sm border border-brand-gray-200">
+          {[
+            { id: 'USER', label: 'Customer', badge: 'USER' },
+            { id: 'VENDOR', label: 'Vendor', badge: 'BRAND' },
+            { id: 'ADMIN', label: 'Admin', badge: 'ROOT' },
+          ].map((r) => {
+            const isSelected = selectedRole === r.id;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => {
+                  setSelectedRole(r.id);
+                  if (error) clearError();
+                }}
+                className={`py-2 px-1 text-center rounded-sm text-xs font-bold transition-all ${
+                  isSelected
+                    ? 'bg-brand-dark text-white shadow-sm'
+                    : 'text-brand-gray-600 hover:text-brand-gray-900 hover:bg-white/60'
+                }`}
+              >
+                <div>{r.label}</div>
+                <div className={`text-[9px] font-mono tracking-wider opacity-80 ${isSelected ? 'text-brand-accent' : 'text-brand-gray-400'}`}>
+                  {r.badge}
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Error notification */}
@@ -82,21 +116,23 @@ const Login = () => {
           </div>
         )}
 
-        {/* Social / SSO Auth Options */}
-        <div className="space-y-3">
-          <ClerkAuthButton mode="signIn" text="Sign in with Clerk" />
-          <GoogleAuthButton text="Continue with Google" mode="login" />
+        {/* Social / SSO Auth Options (for normal customer logins) */}
+        {selectedRole === 'USER' && (
+          <div className="space-y-3">
+            <ClerkAuthButton mode="signIn" text="Sign in with Clerk" />
+            <GoogleAuthButton text="Continue with Google" mode="login" />
 
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-200" />
-            <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Or with email
-            </span>
-            <div className="flex-grow border-t border-slate-200" />
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-slate-200" />
+              <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Or with email
+              </span>
+              <div className="flex-grow border-t border-slate-200" />
+            </div>
           </div>
-        </div>
+        )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-brand-gray-650">Email Address:</label>
@@ -104,12 +140,12 @@ const Login = () => {
                 <input
                   type="email"
                   required
-                  placeholder="name@company.com"
+                  placeholder={selectedRole === 'ADMIN' ? 'admin@kaia.tech' : selectedRole === 'VENDOR' ? 'brand@company.com' : 'name@company.com'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-brand-light border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm"
+                  className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
                 />
-                <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-gray-450" />
+                <Mail className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
               </div>
             </div>
 
@@ -125,9 +161,9 @@ const Login = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-brand-light border-brand-gray-250 pl-10 pr-10 py-2.5 rounded-sm text-sm"
+                  className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-10 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
                 />
-                <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-brand-gray-450" />
+                <Lock className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -145,7 +181,7 @@ const Login = () => {
             disabled={loading}
             className="w-full bg-brand-dark hover:bg-brand-gray-850 text-white font-semibold py-3 rounded-sm text-sm transition-colors flex items-center justify-center space-x-2"
           >
-            <span>{loading ? 'Signing In...' : 'Secure Sign In'}</span>
+            <span>{loading ? 'Authenticating...' : `Sign In as ${selectedRole}`}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
@@ -160,7 +196,7 @@ const Login = () => {
           <p>
             Brand Operator?{' '}
             <Link to="/brand/register" className="text-brand-accent font-semibold hover:underline">
-              Submit Brand Registration
+              Register as Vendor
             </Link>
           </p>
         </div>

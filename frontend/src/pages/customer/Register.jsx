@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ShieldAlert, Eye, EyeOff, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, User, Phone, ArrowRight, ShieldAlert, Eye, EyeOff, CheckCircle2, XCircle, RotateCcw, Store } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import KaiaLogo from '../../components/common/KaiaLogo';
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton';
@@ -53,6 +53,7 @@ const Register = () => {
   const navigate = useNavigate();
   const { user, register, resendOtp, error, clearError } = useContext(AuthContext);
 
+  const [selectedRole, setSelectedRole] = useState('USER');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -70,8 +71,9 @@ const Register = () => {
   useEffect(() => { clearError(); }, []);
   useEffect(() => {
     if (user) {
-      if (user.role === 'ADMIN') navigate('/admin/dashboard');
-      else if (user.role === 'BRAND') navigate('/brand/dashboard');
+      const roleUpper = (user.role || '').toUpperCase();
+      if (roleUpper === 'ADMIN') navigate('/admin/dashboard');
+      else if (roleUpper === 'BRAND' || roleUpper === 'VENDOR') navigate('/brand/dashboard');
       else navigate('/account');
     }
   }, [user, navigate]);
@@ -129,7 +131,8 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const result = await register(trimmedName, normalizedEmail, password, confirmPassword, 'CUSTOMER', phone.trim());
+      const dbRole = selectedRole === 'VENDOR' ? 'BRAND' : 'CUSTOMER';
+      const result = await register(trimmedName, normalizedEmail, password, confirmPassword, dbRole, phone.trim());
       if (result?.requiresVerification) {
         navigate('/verify-otp', {
           state: {
@@ -138,7 +141,11 @@ const Register = () => {
           },
         });
       } else if (result?.user) {
-        navigate('/account');
+        if (dbRole === 'BRAND') {
+          navigate('/brand/dashboard');
+        } else {
+          navigate('/account');
+        }
       }
     } catch (err) {
       if (err.statusCode === 409 || err.code === 'EMAIL_ALREADY_REGISTERED' || err.code === 'EMAIL_UNVERIFIED') {
@@ -168,8 +175,48 @@ const Register = () => {
         {/* Header */}
         <div className="text-center space-y-3 flex flex-col items-center">
           <KaiaLogo to="/" variant="full" theme="light" size="lg" />
-          <h1 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">Create Customer Account</h1>
+          <h1 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">
+            {selectedRole === 'VENDOR' ? 'Create Brand / Vendor Account' : 'Create Customer Account'}
+          </h1>
           <p className="text-xs text-brand-gray-500">A 6-digit verification code will be sent to your email.</p>
+        </div>
+
+        {/* Role Selector: USER vs VENDOR */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+            Select Account Type:
+          </label>
+          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setSelectedRole('USER')}
+              className={`flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                selectedRole === 'USER'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Customer</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedRole('VENDOR')}
+              className={`flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                selectedRole === 'VENDOR'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm font-black'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span>Vendor / Brand</span>
+            </button>
+          </div>
+          <p className="text-[11px] text-slate-500 italic">
+            {selectedRole === 'USER'
+              ? 'Create a customer account to shop and track orders.'
+              : 'Create a brand partner account to sell and manage products.'}
+          </p>
         </div>
 
         {/* 1. Unverified Account Conflict Banner with Action Buttons */}

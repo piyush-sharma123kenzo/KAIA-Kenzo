@@ -17,7 +17,7 @@ import User from '../../models/User.js';
  * @param {string} password
  * @returns {Promise<object>} Authenticated User document
  */
-export const authenticateCredentials = async (email, password) => {
+export const authenticateCredentials = async (email, password, selectedRole = null) => {
   if (!email || !password) {
     const error = new Error('Please provide an email and password.');
     error.statusCode = 400;
@@ -44,6 +44,23 @@ export const authenticateCredentials = async (email, password) => {
     const error = new Error('Invalid credentials.');
     error.statusCode = 401;
     throw error;
+  }
+
+  // Strict database role verification if selectedRole is specified from login
+  if (selectedRole && typeof selectedRole === 'string' && selectedRole.trim()) {
+    const normSelected = selectedRole.trim().toUpperCase();
+    const dbRole = String(user.role || 'CUSTOMER').trim().toUpperCase();
+
+    const isMatchRole =
+      (normSelected === 'ADMIN' && dbRole === 'ADMIN') ||
+      ((normSelected === 'VENDOR' || normSelected === 'BRAND') && (dbRole === 'VENDOR' || dbRole === 'BRAND')) ||
+      ((normSelected === 'USER' || normSelected === 'CUSTOMER') && (dbRole === 'USER' || dbRole === 'CUSTOMER'));
+
+    if (!isMatchRole) {
+      const error = new Error('The selected role does not match this account.');
+      error.statusCode = 403;
+      throw error;
+    }
   }
 
   // Block access if email is unverified
