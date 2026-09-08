@@ -7,7 +7,7 @@ import Brand from '../models/Brand.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+dotenv.config({ path: path.join(__dirname, '../.env') });
 dotenv.config();
 
 const MONGO_URI = process.env.MONGO_URI || process.env.ATLAS_URI || 'mongodb://127.0.0.1:27017/kaia-tech';

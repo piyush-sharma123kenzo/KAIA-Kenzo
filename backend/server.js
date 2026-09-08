@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import { rawBodyPreserver } from './middleware/webhookMiddleware.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -38,9 +39,12 @@ import supportRoutes from './routes/supportRoutes.js';
 import deliveryRoutes from './routes/deliveryRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
-// Load dotenv pointing to parent directory if .env is at root
-dotenv.config({ path: '../.env' });
-dotenv.config(); // Fallback for local backend .env
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load backend .env directly
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config();
 
 // Connect to MongoDB database
 connectDB();
