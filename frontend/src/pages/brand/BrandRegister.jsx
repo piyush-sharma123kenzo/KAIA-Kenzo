@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Building2, ShieldCheck, Landmark, CheckCircle, ArrowRight, ShieldAlert } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import axiosInstance from '../../api/axiosInstance';
+import ClerkAuthButton from '../../components/auth/ClerkAuthButton';
 
 const BrandRegister = () => {
   const navigate = useNavigate();
@@ -74,21 +75,27 @@ const BrandRegister = () => {
           <div className="space-y-2">
             <h2 className="text-xl font-extrabold text-brand-gray-900 tracking-tight">Become a Brand Partner</h2>
             <p className="text-sm text-brand-gray-500 max-w-xs mx-auto">
-              Please sign in or create a standard user account before submitting brand verification details.
+              Please sign in or create an account to start your brand registration and submit compliance verification.
             </p>
           </div>
+
           <div className="space-y-3 pt-2">
+            <ClerkAuthButton
+              mode="signIn"
+              role="VENDOR"
+              text="Sign in with Clerk as Vendor"
+            />
             <Link
-              to="/login"
+              to="/login?role=VENDOR"
               className="block w-full bg-brand-dark hover:bg-brand-gray-850 text-white font-semibold py-3 rounded-sm text-sm"
             >
-              Sign In to Continue
+              Sign In with Email
             </Link>
             <Link
               to="/register"
               className="block text-xs font-semibold text-brand-accent hover:underline"
             >
-              Create Customer Account First
+              Create Account First
             </Link>
           </div>
         </div>

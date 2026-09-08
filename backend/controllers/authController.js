@@ -407,7 +407,13 @@ export const clerkLogin = async (req, res) => {
     }
 
     const normalizedEmail = String(email).toLowerCase().trim();
-    const targetRole = (role === 'VENDOR' || role === 'BRAND') ? 'BRAND' : 'CUSTOMER';
+    const normalizedRole = (role || '').toUpperCase();
+    const targetRole = normalizedRole === 'ADMIN'
+      ? 'ADMIN'
+      : (normalizedRole === 'VENDOR' || normalizedRole === 'BRAND')
+        ? 'BRAND'
+        : 'CUSTOMER';
+
     let user = await User.findOne({
       $or: [
         { clerkId: clerkId || 'none' },
@@ -431,9 +437,14 @@ export const clerkLogin = async (req, res) => {
       if (!user.avatar && avatar) {
         user.avatar = avatar;
       }
-      if ((role === 'VENDOR' || role === 'BRAND') && (user.role === 'CUSTOMER' || user.role === 'USER')) {
+
+      // Upgrade role or retain existing elevated privileges
+      if (targetRole === 'ADMIN' && user.role !== 'ADMIN') {
+        user.role = 'ADMIN';
+      } else if (targetRole === 'BRAND' && (user.role === 'CUSTOMER' || user.role === 'USER')) {
         user.role = 'BRAND';
       }
+
       user.emailVerified = true;
       user.lastLogin = new Date();
       await user.save();
@@ -473,7 +484,7 @@ export const clerkLogin = async (req, res) => {
       role: targetRole,
       type: 'AUTH',
       title: 'Welcome to KAIA Technologies!',
-      message: `Your account has been created via Clerk. Start exploring premium technology products.`,
+      message: `Your account has been created via Clerk as ${targetRole}. Start exploring premium technology products.`,
       referenceType: 'User',
       referenceId: newUser._id,
     }).catch((e) => console.warn('Welcome notification notice:', e.message));

@@ -116,28 +116,34 @@ const Login = () => {
           </div>
         )}
 
-        {/* Social / SSO Auth Options (for Customer & Vendor logins) */}
-        {selectedRole !== 'ADMIN' && (
-          <div className="space-y-3">
-            <ClerkAuthButton
-              mode="signIn"
-              role={selectedRole}
-              text={selectedRole === 'VENDOR' ? 'Sign in with Clerk as Vendor' : 'Sign in with Clerk'}
-            />
+        {/* Social / SSO Auth Options (for Admin, Vendor, and Customer) */}
+        <div className="space-y-3">
+          <ClerkAuthButton
+            mode="signIn"
+            role={selectedRole}
+            text={
+              selectedRole === 'ADMIN'
+                ? 'Sign in with Clerk as Admin'
+                : selectedRole === 'VENDOR'
+                  ? 'Sign in with Clerk as Vendor'
+                  : 'Sign in with Clerk'
+            }
+          />
+          {selectedRole !== 'ADMIN' && (
             <GoogleAuthButton
               text={selectedRole === 'VENDOR' ? 'Continue with Google as Vendor' : 'Continue with Google'}
               mode="login"
             />
+          )}
 
-            <div className="relative flex py-1 items-center">
-              <div className="flex-grow border-t border-slate-200" />
-              <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Or with email
-              </span>
-              <div className="flex-grow border-t border-slate-200" />
-            </div>
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-slate-200" />
+            <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Or with email & password
+            </span>
+            <div className="flex-grow border-t border-slate-200" />
           </div>
-        )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-4">
