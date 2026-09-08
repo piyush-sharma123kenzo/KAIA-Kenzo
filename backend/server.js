@@ -122,6 +122,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/brand', brandSellerRoutes);
+app.use('/api/vendor', brandSellerRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/returns', returnRoutes);

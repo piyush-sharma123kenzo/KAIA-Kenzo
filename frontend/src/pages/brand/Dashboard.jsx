@@ -73,51 +73,91 @@ const Dashboard = () => {
     );
   }
 
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/vendor') ? '/vendor' : '/brand';
+
   const metrics = data?.metrics || {};
   const salesChart = data?.salesChart || [];
   const recentOrders = data?.recentOrders || [];
 
-  // Primary Catalog & Order Metric Cards
-  const statCards = [
+  // 14 Real Statistics Cards categorized logically
+  const productAndInventoryCards = [
     {
       title: 'Total Products',
       value: metrics.totalProducts || 0,
-      sub: `${metrics.publishedProducts || 0} published`,
+      sub: `${metrics.activeProducts || metrics.publishedProducts || 0} active in catalog`,
       icon: Package,
-      link: '/brand/products',
+      link: `${basePath}/products`,
       color: 'text-brand-gray-900 bg-brand-light',
     },
     {
-      title: 'Published Catalog',
-      value: metrics.publishedProducts || 0,
-      sub: `${metrics.pendingProducts || 0} pending review`,
+      title: 'Active Products',
+      value: metrics.activeProducts || metrics.publishedProducts || 0,
+      sub: 'Approved & available to buyers',
       icon: CheckCircle2,
-      link: '/brand/products?status=Approved',
+      link: `${basePath}/products?status=Approved`,
       color: 'text-emerald-700 bg-emerald-50',
     },
     {
-      title: 'Low Stock Alerts',
-      value: metrics.lowStockProducts || 0,
-      sub: metrics.lowStockProducts > 0 ? 'Restock immediately' : 'Inventory healthy',
-      icon: AlertTriangle,
-      link: '/brand/inventory?lowStockOnly=true',
-      color: metrics.lowStockProducts > 0 ? 'text-amber-700 bg-amber-50 border-amber-200 animate-pulse' : 'text-brand-gray-700 bg-brand-light',
+      title: 'Draft Products',
+      value: metrics.draftProducts || 0,
+      sub: 'Unpublished work in progress',
+      icon: Clock,
+      link: `${basePath}/products?status=Draft`,
+      color: 'text-slate-700 bg-slate-100',
     },
     {
-      title: 'Total Gross Sales',
-      value: `₹${(metrics.totalSales || 0).toLocaleString('en-IN')}`,
-      sub: `${metrics.totalUnitsSold || 0} units fulfilled`,
-      icon: IndianRupee,
-      link: '/brand/sales',
-      color: 'text-brand-accent bg-brand-accent/5',
+      title: 'Out of Stock Products',
+      value: metrics.outOfStockProducts || 0,
+      sub: metrics.outOfStockProducts > 0 ? 'Requires immediate restock' : 'Zero inventory shortages',
+      icon: ShieldAlert,
+      link: `${basePath}/inventory?outOfStock=true`,
+      color: metrics.outOfStockProducts > 0 ? 'text-red-700 bg-red-50 border-red-200' : 'text-brand-gray-700 bg-brand-light',
+    },
+    {
+      title: 'Low Stock Products',
+      value: metrics.lowStockProducts || 0,
+      sub: metrics.lowStockProducts > 0 ? 'Near minimum threshold' : 'Optimal buffer stock',
+      icon: AlertTriangle,
+      link: `${basePath}/inventory?lowStockOnly=true`,
+      color: metrics.lowStockProducts > 0 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-brand-gray-700 bg-brand-light',
     },
   ];
 
-  const orderStatusCards = [
-    { title: 'Pending / Processing', value: metrics.pendingOrders || 0, icon: Clock, color: 'text-amber-700 bg-amber-50' },
-    { title: 'Packed & Ready', value: metrics.packedOrders || 0, icon: Package, color: 'text-blue-700 bg-blue-50' },
-    { title: 'Dispatched / In-Transit', value: metrics.shippedOrders || 0, icon: Truck, color: 'text-indigo-700 bg-indigo-50' },
-    { title: 'Delivered Orders', value: metrics.deliveredOrders || 0, icon: CheckCheck, color: 'text-emerald-700 bg-emerald-50' },
+  const financialCards = [
+    {
+      title: 'Total Revenue',
+      value: `₹${(metrics.totalRevenue || metrics.totalSales || 0).toLocaleString('en-IN')}`,
+      sub: `${metrics.totalUnitsSold || 0} total hardware units`,
+      icon: IndianRupee,
+      link: `${basePath}/earnings`,
+      color: 'text-brand-accent bg-brand-accent/5',
+    },
+    {
+      title: 'Pending Settlement',
+      value: `₹${(metrics.pendingSettlement || 0).toLocaleString('en-IN')}`,
+      sub: 'Eligible for next payout cycle',
+      icon: Calendar,
+      link: `${basePath}/settlements`,
+      color: 'text-amber-700 bg-amber-50',
+    },
+    {
+      title: 'Available Balance',
+      value: `₹${(metrics.availableBalance || 0).toLocaleString('en-IN')}`,
+      sub: `Paid to date: ₹${(metrics.paidSettlements || 0).toLocaleString('en-IN')}`,
+      icon: TrendingUp,
+      link: `${basePath}/settlements`,
+      color: 'text-emerald-700 bg-emerald-50',
+    },
+  ];
+
+  const orderCards = [
+    { title: 'Total Orders', value: metrics.totalOrders || 0, icon: ShoppingBag, link: `${basePath}/orders`, color: 'text-blue-700 bg-blue-50' },
+    { title: 'Pending Orders', value: metrics.pendingOrders || 0, icon: Clock, link: `${basePath}/orders?status=Pending`, color: 'text-amber-700 bg-amber-50' },
+    { title: 'Processing Orders', value: metrics.processingOrders || 0, icon: Package, link: `${basePath}/fulfillment`, color: 'text-purple-700 bg-purple-50' },
+    { title: 'Shipped Orders', value: metrics.shippedOrders || 0, icon: Truck, link: `${basePath}/shipments`, color: 'text-indigo-700 bg-indigo-50' },
+    { title: 'Delivered Orders', value: metrics.deliveredOrders || 0, icon: CheckCheck, link: `${basePath}/orders?status=Delivered`, color: 'text-emerald-700 bg-emerald-50' },
+    { title: 'Returned Orders', value: metrics.returnedOrders || 0, icon: AlertTriangle, link: `${basePath}/returns`, color: 'text-rose-700 bg-rose-50' },
   ];
 
   const salesPeriods = [
@@ -135,25 +175,25 @@ const Dashboard = () => {
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
             <h2 className="text-xl font-black uppercase tracking-tight">
-              {data?.brand?.name} Seller Operations
+              {data?.brand?.name || 'Authorized Partner'} Operations Hub
             </h2>
             <Badge variant="success" className="text-[9px] uppercase font-bold tracking-wider">
               {data?.brand?.status || 'Approved'}
             </Badge>
           </div>
           <p className="text-xs text-brand-gray-400">
-            Real-time fulfillment metrics, synchronized catalog telemetry, and private order pipelines.
+            Real-time fulfillment telemetry, live inventory synchronization, and verified order settlement pipeline.
           </p>
         </div>
 
         <div className="flex items-center space-x-3">
-          <Link to="/brand/products/new">
+          <Link to={`${basePath}/products/new`}>
             <Button variant="primary" size="sm" className="text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5">
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Add New Product</span>
             </Button>
           </Link>
-          <Link to="/brand/orders">
+          <Link to={`${basePath}/orders`}>
             <Button variant="outline" size="sm" className="text-xs font-bold uppercase tracking-wider text-white border-brand-gray-700 hover:bg-brand-surface">
               Manage Orders
             </Button>
@@ -161,32 +201,97 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 2. Top Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {statCards.map((card, i) => {
-          const Icon = card.icon;
-          return (
-            <Link
-              key={i}
-              to={card.link}
-              className="bg-white border border-brand-gray-200 hover:border-brand-accent p-5 rounded-sm shadow-premium flex flex-col justify-between transition-all group"
-            >
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <p className="text-[11px] font-bold text-brand-gray-500 uppercase tracking-wider">{card.title}</p>
-                  <h3 className="text-2xl font-black text-brand-gray-900 tracking-tight">{card.value}</h3>
+      {/* 2. Primary Financial & Catalog Performance */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-black text-brand-gray-800 uppercase tracking-wider">
+          Financial Settlements & Earnings
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {financialCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <Link
+                key={i}
+                to={card.link}
+                className="bg-white border border-brand-gray-200 hover:border-brand-accent p-5 rounded-sm shadow-premium flex flex-col justify-between transition-all group"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-bold text-brand-gray-500 uppercase tracking-wider">{card.title}</p>
+                    <h3 className="text-2xl font-black text-brand-gray-900 tracking-tight">{card.value}</h3>
+                  </div>
+                  <div className={`p-2.5 rounded-sm ${card.color}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
                 </div>
-                <div className={`p-2.5 rounded-sm ${card.color}`}>
-                  <Icon className="w-5 h-5" />
+                <div className="mt-4 pt-3 border-t border-brand-gray-100 flex justify-between items-center text-[10px]">
+                  <span className="font-semibold text-brand-gray-500">{card.sub}</span>
+                  <ArrowRight className="w-3 h-3 text-brand-gray-400 group-hover:text-brand-accent transition-colors" />
                 </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-brand-gray-100 flex justify-between items-center text-[10px]">
-                <span className="font-semibold text-brand-gray-500">{card.sub}</span>
-                <ArrowRight className="w-3 h-3 text-brand-gray-400 group-hover:text-brand-accent transition-colors" />
-              </div>
-            </Link>
-          );
-        })}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Catalog & Warehouse Inventory Metrics */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-black text-brand-gray-800 uppercase tracking-wider">
+          Catalog & Warehouse Inventory
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {productAndInventoryCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <Link
+                key={i}
+                to={card.link}
+                className="bg-white border border-brand-gray-200 hover:border-brand-accent p-4 rounded-sm shadow-premium flex flex-col justify-between transition-all group"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-brand-gray-500 uppercase tracking-wider">{card.title}</p>
+                    <h3 className="text-xl font-black text-brand-gray-900 tracking-tight">{card.value}</h3>
+                  </div>
+                  <div className={`p-2 rounded-sm ${card.color}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-brand-gray-100 flex justify-between items-center text-[9px]">
+                  <span className="font-medium text-brand-gray-500 truncate mr-1">{card.sub}</span>
+                  <ArrowRight className="w-2.5 h-2.5 text-brand-gray-400 group-hover:text-brand-accent shrink-0" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. Orders & Fulfillment Pipeline */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-black text-brand-gray-800 uppercase tracking-wider">
+          Orders & Fulfillment Pipeline
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {orderCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <Link
+                key={i}
+                to={card.link}
+                className="bg-white border border-brand-gray-200 hover:border-brand-accent p-3.5 rounded-sm shadow-premium flex flex-col justify-between transition-all group"
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-brand-gray-500 uppercase tracking-wider">{card.title}</span>
+                  <div className={`p-1.5 rounded-sm ${card.color}`}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-2 text-xl font-black text-brand-gray-900">{card.value}</div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       {/* 3. Sales Breakdown Strip */}
@@ -230,7 +335,7 @@ const Dashboard = () => {
             <h3 className="text-sm font-black text-brand-gray-900 uppercase tracking-tight">Recent Fulfillment Orders</h3>
             <p className="text-[11px] text-brand-gray-500 mt-0.5">Private dispatch items destined for customer deliveries.</p>
           </div>
-          <Link to="/brand/orders" className="text-xs font-bold text-brand-accent hover:underline flex items-center space-x-1 uppercase tracking-wider">
+          <Link to={`${basePath}/orders`} className="text-xs font-bold text-brand-accent hover:underline flex items-center space-x-1 uppercase tracking-wider">
             <span>View All Orders</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
@@ -239,7 +344,7 @@ const Dashboard = () => {
         {recentOrders.length === 0 ? (
           <div className="p-12 text-center text-xs text-brand-gray-400 italic space-y-3">
             <ShoppingBag className="w-10 h-10 mx-auto text-brand-gray-300" />
-            <p>No customer orders received yet for this brand.</p>
+            <p>No customer orders received yet for this partner.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -290,7 +395,7 @@ const Dashboard = () => {
                       {new Date(order.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
                     <td className="px-5 py-3.5 text-center">
-                      <Link to={`/brand/orders/${order._id}`}>
+                      <Link to={`${basePath}/orders/${order._id}`}>
                         <button className="text-brand-accent hover:text-brand-dark font-bold text-xs p-1">
                           <Eye className="w-4 h-4" />
                         </button>

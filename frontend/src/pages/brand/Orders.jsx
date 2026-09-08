@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { 
   ShoppingBag, Search, ChevronLeft, ChevronRight, Eye, 
   Clock, Package, Truck, CheckCheck, FileText, ArrowUpDown, Filter
@@ -12,6 +12,8 @@ import Button from '../../components/ui/Button';
 
 const Orders = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/vendor') ? '/vendor' : '/brand';
   const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -210,7 +212,7 @@ const Orders = () => {
 
                     {/* Action */}
                     <td className="px-5 py-3.5 text-center whitespace-nowrap">
-                      <Link to={`/brand/orders/${order._id}`}>
+                      <Link to={`${basePath}/orders/${order._id}`}>
                         <Button
                           variant="outline"
                           size="sm"

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Upload, FileText, CheckCircle, Info, Sparkles, AlertCircle } from 'lucide-react';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { 
+  ArrowLeft, Plus, Trash2, Upload, FileText, CheckCircle, Info, Sparkles, 
+  AlertCircle, Image as ImageIcon, Video as VideoIcon, Star, Loader2, X
+} from 'lucide-react';
 import brandSellerService from '../../services/brandSellerService';
 import categoryService from '../../services/categoryService';
+import axiosInstance from '../../api/axiosInstance';
 import Button from '../../components/ui/Button';
 import { Skeleton } from '../../components/feedback/Skeleton';
 
@@ -65,13 +69,18 @@ const CATEGORY_SPEC_PRESETS = {
 const AddProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/vendor') ? '/vendor' : '/brand';
   const isEditMode = !!id;
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [draftLoading, setDraftLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(isEditMode);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   // Form Fields
   const [form, setForm] = useState({
@@ -83,13 +92,14 @@ const AddProduct = () => {
     shortDescription: '',
     mrp: '',
     sellingPrice: '',
-    warranty: '1 Year Brand Manufacturer Warranty',
-    status: 'Draft',
+    warranty: '1 Year Official Brand Warranty with GST Invoicing',
+    status: 'Pending Approval',
     stock: {
       quantity: '10',
       reorderThreshold: '4',
     },
-    images: [{ url: '', alt: '', order: 0 }],
+    images: [{ url: '', alt: '', isPrimary: true, order: 0 }],
+    video: { url: '', publicId: '' },
   });
 
   // Dynamic Specs & Highlights List
@@ -118,13 +128,22 @@ const AddProduct = () => {
               shortDescription: p.shortDescription || '',
               mrp: p.mrp ? p.mrp.toString() : '',
               sellingPrice: p.sellingPrice ? p.sellingPrice.toString() : '',
-              warranty: p.warranty || '1 Year Brand Manufacturer Warranty',
+              warranty: p.warranty || '1 Year Official Brand Warranty with GST Invoicing',
               status: p.status || 'Draft',
               stock: {
                 quantity: p.stock?.quantity ? p.stock.quantity.toString() : '0',
                 reorderThreshold: p.stock?.reorderThreshold ? p.stock.reorderThreshold.toString() : '4',
               },
-              images: p.images && p.images.length > 0 ? p.images : [{ url: '', alt: '', order: 0 }],
+              images: p.images && p.images.length > 0 
+                ? p.images.map((img, idx) => ({
+                    url: typeof img === 'string' ? img : img.url,
+                    alt: img.alt || '',
+                    isPrimary: img.isPrimary || idx === 0,
+                    publicId: img.publicId || '',
+                    order: idx,
+                  }))
+                : [{ url: '', alt: '', isPrimary: true, order: 0 }],
+              video: p.video || { url: '', publicId: '' },
             });
 
             // Specs
@@ -151,7 +170,7 @@ const AddProduct = () => {
     const selected = categories.find((c) => c._id === catId);
     if (!selected) return;
 
-    const slug = selected.slug;
+    const slug = selected.slug || '';
     let presetKey = Object.keys(CATEGORY_SPEC_PRESETS).find((k) => slug.includes(k));
     if (presetKey && CATEGORY_SPEC_PRESETS[presetKey] && (!specList[0]?.key || specList.length <= 1)) {
       setSpecList(
@@ -185,38 +204,139 @@ const AddProduct = () => {
   const handleAddImageRow = () => {
     setForm({
       ...form,
-      images: [...form.images, { url: '', alt: '', order: form.images.length }],
+      images: [...form.images, { url: '', alt: '', isPrimary: form.images.length === 0, order: form.images.length }],
     });
   };
+
   const handleRemoveImageRow = (idx) => {
-    if (form.images.length === 1) return;
-    setForm({
-      ...form,
-      images: form.images.filter((_, i) => i !== idx),
-    });
+    if (form.images.length === 1) {
+      setForm({ ...form, images: [{ url: '', alt: '', isPrimary: true, order: 0 }] });
+      return;
+    }
+    const filtered = form.images.filter((_, i) => i !== idx);
+    // Ensure one image is marked primary
+    if (!filtered.some((img) => img.isPrimary) && filtered.length > 0) {
+      filtered[0].isPrimary = true;
+    }
+    setForm({ ...form, images: filtered });
   };
+
+  const handleSetPrimaryImage = (idx) => {
+    const updated = form.images.map((img, i) => ({
+      ...img,
+      isPrimary: i === idx,
+    }));
+    setForm({ ...form, images: updated });
+  };
+
   const handleImageChange = (idx, value) => {
     const updated = [...form.images];
     updated[idx].url = value;
     setForm({ ...form, images: updated });
   };
 
-  // Form Submit
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Cloudinary Direct Media Upload Handlers
+  const handleImageFileUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingImage(true);
     setErrorMsg('');
-    setSuccessMsg('');
+    try {
+      if (files.length === 1) {
+        const formData = new FormData();
+        formData.append('image', files[0]);
+        formData.append('folder', 'kaia/products');
 
-    if (Number(form.sellingPrice) <= 0) {
-      setErrorMsg('Selling Price must be greater than zero.');
-      return;
-    }
-    if (Number(form.mrp) < Number(form.sellingPrice)) {
-      setErrorMsg('MRP cannot be lower than Selling Price.');
-      return;
-    }
+        const res = await axiosInstance.post('/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
 
-    // Convert specs array back to object
+        if (res.data?.success && res.data.url) {
+          const currentValid = form.images.filter((img) => img.url.trim() !== '');
+          setForm({
+            ...form,
+            images: [
+              ...currentValid,
+              {
+                url: res.data.url,
+                publicId: res.data.publicId,
+                alt: form.name || 'Product Image',
+                isPrimary: currentValid.length === 0,
+                order: currentValid.length,
+              },
+            ],
+          });
+        }
+      } else {
+        const formData = new FormData();
+        files.slice(0, 8).forEach((f) => formData.append('images', f));
+        formData.append('folder', 'kaia/products');
+
+        const res = await axiosInstance.post('/upload/multiple', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        if (res.data?.success && Array.isArray(res.data.urls)) {
+          const currentValid = form.images.filter((img) => img.url.trim() !== '');
+          const newItems = res.data.urls.map((url, idx) => ({
+            url,
+            publicId: res.data.assets?.[idx]?.publicId || '',
+            alt: form.name || `Product image ${currentValid.length + idx + 1}`,
+            isPrimary: currentValid.length === 0 && idx === 0,
+            order: currentValid.length + idx,
+          }));
+
+          setForm({
+            ...form,
+            images: [...currentValid, ...newItems],
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Cloudinary Image Upload Error:', err);
+      setErrorMsg(err.response?.data?.message || 'Error uploading image to Cloudinary. You may also enter direct URLs.');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleVideoFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingVideo(true);
+    setErrorMsg('');
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+      formData.append('folder', 'kaia/videos');
+
+      const res = await axiosInstance.post('/upload/video', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (res.data?.success && res.data.url) {
+        setForm({
+          ...form,
+          video: {
+            url: res.data.url,
+            publicId: res.data.publicId,
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Cloudinary Video Upload Error:', err);
+      setErrorMsg(err.response?.data?.message || 'Error uploading video to Cloudinary.');
+    } finally {
+      setUploadingVideo(false);
+      e.target.value = '';
+    }
+  };
+
+  // Build Payload
+  const buildPayload = (targetStatus) => {
     const specificationsObj = {};
     specList.forEach((s) => {
       if (s.key.trim() && s.val.trim()) {
@@ -224,50 +344,121 @@ const AddProduct = () => {
       }
     });
 
-    // Filter highlights
     const cleanHighlights = highlights.map((h) => h.trim()).filter(Boolean);
+    const cleanImages = form.images.filter((img) => img.url && img.url.trim() !== '');
 
-    // Filter images
-    const cleanImages = form.images.filter((img) => img.url.trim() !== '');
-
-    const payload = {
+    return {
       name: form.name.trim(),
       modelNumber: form.modelNumber.trim(),
       SKU: form.SKU.trim(),
       category: form.category,
       description: form.description.trim(),
       shortDescription: form.shortDescription.trim() || form.description.trim().substring(0, 120),
-      mrp: Number(form.mrp),
-      sellingPrice: Number(form.sellingPrice),
+      mrp: Number(form.mrp) || Number(form.sellingPrice) || 0,
+      sellingPrice: Number(form.sellingPrice) || 0,
       warranty: form.warranty.trim(),
-      status: form.status,
+      status: targetStatus,
       stock: {
         quantity: parseInt(form.stock.quantity, 10) || 0,
         reorderThreshold: parseInt(form.stock.reorderThreshold, 10) || 4,
       },
       specifications: specificationsObj,
       highlights: cleanHighlights,
-      images: cleanImages,
+      images: cleanImages.length > 0 ? cleanImages : [{ url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800', alt: form.name, isPrimary: true, order: 0 }],
+      video: form.video?.url ? form.video : undefined,
     };
+  };
+
+  // Save as Draft
+  const handleSaveDraft = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (!form.name.trim()) {
+      setErrorMsg('Product name is required even when saving a draft.');
+      return;
+    }
+
+    setDraftLoading(true);
+    try {
+      const payload = buildPayload('Draft');
+      if (isEditMode) {
+        const res = await brandSellerService.updateProduct(id, payload);
+        if (res.success) {
+          setSuccessMsg('Product draft saved successfully.');
+          setTimeout(() => navigate(`${basePath}/products`), 1200);
+        }
+      } else {
+        const res = await brandSellerService.createProduct(payload);
+        if (res.success) {
+          setSuccessMsg('Product draft created successfully.');
+          setTimeout(() => navigate(`${basePath}/products`), 1200);
+        }
+      }
+    } catch (err) {
+      console.error('Error saving draft:', err);
+      setErrorMsg(err.response?.data?.message || 'Error saving draft. Please check SKU uniqueness.');
+    } finally {
+      setDraftLoading(false);
+    }
+  };
+
+  // Full Submission for Catalog Review / Publish
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (!form.name.trim()) {
+      setErrorMsg('Product Name / Title is required.');
+      return;
+    }
+    if (!form.category) {
+      setErrorMsg('Category selection is mandatory.');
+      return;
+    }
+    if (!form.modelNumber.trim()) {
+      setErrorMsg('Model Number is required.');
+      return;
+    }
+    if (!form.SKU.trim()) {
+      setErrorMsg('SKU is required.');
+      return;
+    }
+    if (Number(form.sellingPrice) <= 0) {
+      setErrorMsg('Selling Price must be greater than zero ₹.');
+      return;
+    }
+    if (Number(form.mrp) < Number(form.sellingPrice)) {
+      setErrorMsg('MRP cannot be lower than Selling Price.');
+      return;
+    }
+    if (!form.description.trim()) {
+      setErrorMsg('Technical Description is required.');
+      return;
+    }
+
+    const targetStatus = form.status === 'Draft' ? 'Draft' : 'Pending Approval';
+    const payload = buildPayload(targetStatus);
 
     setLoading(true);
     try {
       if (isEditMode) {
         const res = await brandSellerService.updateProduct(id, payload);
         if (res.success) {
-          setSuccessMsg('Product listing updated successfully.');
-          setTimeout(() => navigate('/brand/products'), 1500);
+          setSuccessMsg('Product listing updated and submitted successfully.');
+          setTimeout(() => navigate(`${basePath}/products`), 1200);
         }
       } else {
         const res = await brandSellerService.createProduct(payload);
         if (res.success) {
-          setSuccessMsg('Product listing published/submitted successfully.');
-          setTimeout(() => navigate('/brand/products'), 1500);
+          setSuccessMsg('Product listing published/submitted for review successfully.');
+          setTimeout(() => navigate(`${basePath}/products`), 1200);
         }
       }
     } catch (err) {
       console.error('Error saving product:', err);
-      setErrorMsg(err.response?.data?.message || 'Error saving product. Please check your fields.');
+      setErrorMsg(err.response?.data?.message || 'Error submitting product. Please verify SKU and required fields.');
     } finally {
       setLoading(false);
     }
@@ -287,7 +478,7 @@ const AddProduct = () => {
       
       {/* Header */}
       <div className="flex items-center space-x-3 border-b border-brand-gray-200 pb-4">
-        <Link to="/brand/products" className="p-2 border border-brand-gray-200 rounded hover:bg-brand-gray-100 text-brand-gray-600 transition-colors">
+        <Link to={`${basePath}/products`} className="p-2 border border-brand-gray-200 rounded hover:bg-brand-gray-100 text-brand-gray-600 transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
@@ -485,59 +676,165 @@ const AddProduct = () => {
           </div>
         </div>
 
-        {/* Section 3: High-Res Image URLs */}
+        {/* Section 3: High-Res Image Uploads & URLs */}
         <div className="space-y-4">
-          <div className="flex justify-between items-center border-b border-brand-gray-200 pb-2.5">
-            <h3 className="font-black text-xs text-brand-gray-900 uppercase tracking-wider">
-              3. Product Imagery (Direct URLs)
-            </h3>
-            <button
-              type="button"
-              onClick={handleAddImageRow}
-              className="text-xs font-bold text-brand-accent hover:underline flex items-center space-x-1 uppercase"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Image URL</span>
-            </button>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-brand-gray-200 pb-2.5">
+            <div>
+              <h3 className="font-black text-xs text-brand-gray-900 uppercase tracking-wider">
+                3. Product Imagery (Cloudinary & Direct URLs)
+              </h3>
+              <p className="text-[10px] text-brand-gray-400">Upload high-resolution media directly to Cloudinary or specify image URLs.</p>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {/* File Upload Trigger */}
+              <label className="cursor-pointer inline-flex items-center space-x-1.5 bg-brand-dark hover:bg-brand-gray-800 text-white px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider transition-colors shadow-sm">
+                <Upload className="w-3.5 h-3.5 text-brand-accent" />
+                <span>{uploadingImage ? 'Uploading...' : 'Upload Files'}</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  multiple
+                  disabled={uploadingImage}
+                  onChange={handleImageFileUpload}
+                  className="hidden"
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={handleAddImageRow}
+                className="text-xs font-bold text-brand-accent hover:underline flex items-center space-x-1 uppercase"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add URL Slot</span>
+              </button>
+            </div>
           </div>
+
+          {uploadingImage && (
+            <div className="p-3 bg-brand-light border border-brand-accent/30 rounded flex items-center space-x-2 text-xs font-bold text-brand-accent animate-pulse">
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+              <span>Uploading media to Cloudinary CDN storage...</span>
+            </div>
+          )}
 
           <div className="space-y-3">
             {form.images.map((img, i) => (
-              <div key={i} className="flex items-center space-x-3">
-                <span className="text-[10px] font-bold text-brand-gray-400 w-6 shrink-0">#{i + 1}</span>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/photo-..."
-                  value={img.url}
-                  onChange={(e) => handleImageChange(i, e.target.value)}
-                  className="flex-1 bg-brand-light border border-brand-gray-250 p-2 rounded-sm text-xs font-mono focus:border-brand-accent focus:ring-0"
-                />
-                {img.url && (
-                  <div className="w-8 h-8 rounded border overflow-hidden shrink-0 bg-brand-gray-100">
-                    <img src={img.url} alt="" className="object-cover h-full w-full" />
-                  </div>
-                )}
-                <button
-                  type="button"
-                  disabled={form.images.length === 1}
-                  onClick={() => handleRemoveImageRow(i)}
-                  className="p-2 text-brand-gray-400 hover:text-red-500 rounded disabled:opacity-30"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+              <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2.5 p-3 bg-brand-gray-50/50 border border-brand-gray-200 rounded-sm">
+                <div className="flex items-center space-x-2 shrink-0">
+                  <span className="text-[10px] font-bold text-brand-gray-400 w-6">#{i + 1}</span>
+                  {img.url ? (
+                    <div className="relative w-12 h-12 rounded border overflow-hidden shrink-0 bg-brand-gray-100 group">
+                      <img src={img.url} alt="" className="object-cover h-full w-full" />
+                      {img.isPrimary && (
+                        <span className="absolute bottom-0 inset-x-0 bg-brand-dark/90 text-amber-400 font-bold text-[8px] text-center uppercase leading-tight py-0.5">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded border border-dashed border-brand-gray-300 flex items-center justify-center bg-white text-brand-gray-400">
+                      <ImageIcon className="w-5 h-5" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 space-y-1">
+                  <input
+                    type="url"
+                    placeholder="https://res.cloudinary.com/... or image URL"
+                    value={img.url}
+                    onChange={(e) => handleImageChange(i, e.target.value)}
+                    className="w-full bg-white border border-brand-gray-250 p-2 rounded-sm text-xs font-mono focus:border-brand-accent focus:ring-0"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                  <button
+                    type="button"
+                    onClick={() => handleSetPrimaryImage(i)}
+                    className={`text-[10px] font-bold uppercase px-2.5 py-1.5 rounded flex items-center space-x-1 border transition-colors ${
+                      img.isPrimary
+                        ? 'bg-amber-500 text-slate-950 border-amber-500 font-black'
+                        : 'bg-white text-brand-gray-600 border-brand-gray-300 hover:border-brand-accent'
+                    }`}
+                  >
+                    <Star className="w-3 h-3" />
+                    <span>{img.isPrimary ? 'Primary' : 'Set Primary'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImageRow(i)}
+                    className="p-1.5 text-brand-gray-400 hover:text-red-500 rounded border border-transparent hover:border-red-200 transition-colors"
+                    title="Remove Image"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Section 4: Dynamic Category Specifications */}
+        {/* Section 4: Product Video */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-brand-gray-200 pb-2.5">
+            <div>
+              <h3 className="font-black text-xs text-brand-gray-900 uppercase tracking-wider">
+                4. Product Video (Optional)
+              </h3>
+              <p className="text-[10px] text-brand-gray-400">Upload MP4/WebM video showcase or enter video stream URL.</p>
+            </div>
+
+            <label className="cursor-pointer inline-flex items-center space-x-1.5 bg-brand-dark hover:bg-brand-gray-800 text-white px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider transition-colors shadow-sm">
+              <VideoIcon className="w-3.5 h-3.5 text-brand-accent" />
+              <span>{uploadingVideo ? 'Uploading Video...' : 'Upload Video'}</span>
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                disabled={uploadingVideo}
+                onChange={handleVideoFileUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          <div className="space-y-2">
+            <input
+              type="url"
+              placeholder="e.g. https://res.cloudinary.com/.../video.mp4"
+              value={form.video?.url || ''}
+              onChange={(e) => setForm({ ...form, video: { ...form.video, url: e.target.value } })}
+              className="w-full bg-brand-light border border-brand-gray-250 p-2.5 rounded-sm text-xs font-mono focus:border-brand-accent focus:ring-0"
+            />
+            {form.video?.url && (
+              <div className="p-3 bg-brand-gray-50 border border-brand-gray-200 rounded flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-xs text-brand-gray-700">
+                  <VideoIcon className="w-4 h-4 text-emerald-600" />
+                  <span className="font-mono truncate max-w-md">{form.video.url}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, video: { url: '', publicId: '' } })}
+                  className="text-brand-gray-400 hover:text-red-500"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Section 5: Dynamic Category Specifications */}
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b border-brand-gray-200 pb-2.5">
             <div>
               <h3 className="font-black text-xs text-brand-gray-900 uppercase tracking-wider">
-                4. Technical Specifications
+                5. Technical Specifications
               </h3>
-              <p className="text-[10px] text-brand-gray-400">Dynamic category parameters displayed on public customer specs sheets.</p>
+              <p className="text-[10px] text-brand-gray-400">Dynamic category parameters displayed on customer specs sheets.</p>
             </div>
             <button
               type="button"
@@ -578,11 +875,11 @@ const AddProduct = () => {
           </div>
         </div>
 
-        {/* Section 5: Highlights Bullet Points */}
+        {/* Section 6: Highlights Bullet Points */}
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b border-brand-gray-200 pb-2.5">
             <h3 className="font-black text-xs text-brand-gray-900 uppercase tracking-wider">
-              5. Product Highlights (Bullet Points)
+              6. Product Highlights (Bullet Points)
             </h3>
             <button
               type="button"
@@ -619,19 +916,29 @@ const AddProduct = () => {
 
         {/* Submit Actions */}
         <div className="pt-4 border-t border-brand-gray-200 flex flex-col sm:flex-row justify-end items-center gap-3">
-          <Link to="/brand/products" className="w-full sm:w-auto text-center">
+          <Link to={`${basePath}/products`} className="w-full sm:w-auto text-center">
             <Button variant="outline" size="md" className="w-full sm:w-auto text-xs uppercase font-bold tracking-wider">
               Cancel
             </Button>
           </Link>
           <Button
+            type="button"
+            variant="outline"
+            size="md"
+            disabled={loading || draftLoading}
+            onClick={handleSaveDraft}
+            className="w-full sm:w-auto text-xs uppercase font-bold tracking-wider border-brand-gray-400 text-brand-gray-800 hover:bg-brand-gray-100"
+          >
+            {draftLoading ? 'Saving Draft...' : 'Save as Draft'}
+          </Button>
+          <Button
             type="submit"
             variant="primary"
             size="md"
-            disabled={loading}
+            disabled={loading || draftLoading}
             className="w-full sm:w-auto text-xs uppercase font-bold tracking-wider"
           >
-            {loading ? 'Saving Listing...' : isEditMode ? 'Save Listing Changes' : 'Publish Product to Catalog'}
+            {loading ? 'Submitting...' : isEditMode ? 'Save Listing Changes' : 'Publish Product to Catalog'}
           </Button>
         </div>
 

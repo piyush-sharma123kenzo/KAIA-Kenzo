@@ -206,17 +206,46 @@ function App() {
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Route>
 
-                  {/* BRAND SELLER APP FLOW */}
-                  <Route path="/brand" element={<ProtectedRoute allowedRoles={['BRAND']}><BrandLayout /></ProtectedRoute>}>
+                  {/* BRAND / VENDOR SELLER APP FLOW */}
+                  <Route path="/brand" element={<ProtectedRoute allowedRoles={['BRAND', 'VENDOR']}><BrandLayout /></ProtectedRoute>}>
                     <Route index element={<Navigate to="/brand/dashboard" replace />} />
                     <Route path="dashboard" element={<SellerDashboard />} />
                     <Route path="products" element={<SellerProducts />} />
                     <Route path="products/new" element={<SellerAddProduct />} />
+                    <Route path="products/add" element={<SellerAddProduct />} />
                     <Route path="products/edit/:id" element={<SellerAddProduct />} />
                     <Route path="orders" element={<SellerOrders />} />
                     <Route path="orders/:id" element={<SellerOrderDetails />} />
+                    <Route path="sellers" element={<SellerOrders />} />
                     <Route path="fulfillment" element={<SellerFulfillment />} />
                     <Route path="shipments" element={<SellerShipments />} />
+                    <Route path="shipping" element={<SellerShipments />} />
+                    <Route path="inventory" element={<SellerInventory />} />
+                    <Route path="invoices" element={<SellerInvoices />} />
+                    <Route path="returns" element={<SellerReturns />} />
+                    <Route path="sales" element={<SellerEarnings />} />
+                    <Route path="earnings" element={<SellerEarnings />} />
+                    <Route path="settlements" element={<SellerSettlements />} />
+                    <Route path="analytics" element={<SellerAnalytics />} />
+                    <Route path="notifications" element={<SellerNotifications />} />
+                    <Route path="profile" element={<SellerBrandProfile />} />
+                    <Route path="settings" element={<SellerSettings />} />
+                  </Route>
+
+                  {/* VENDOR ALIAS FLOW */}
+                  <Route path="/vendor" element={<ProtectedRoute allowedRoles={['BRAND', 'VENDOR']}><BrandLayout /></ProtectedRoute>}>
+                    <Route index element={<Navigate to="/vendor/dashboard" replace />} />
+                    <Route path="dashboard" element={<SellerDashboard />} />
+                    <Route path="products" element={<SellerProducts />} />
+                    <Route path="products/new" element={<SellerAddProduct />} />
+                    <Route path="products/add" element={<SellerAddProduct />} />
+                    <Route path="products/edit/:id" element={<SellerAddProduct />} />
+                    <Route path="orders" element={<SellerOrders />} />
+                    <Route path="orders/:id" element={<SellerOrderDetails />} />
+                    <Route path="sellers" element={<SellerOrders />} />
+                    <Route path="fulfillment" element={<SellerFulfillment />} />
+                    <Route path="shipments" element={<SellerShipments />} />
+                    <Route path="shipping" element={<SellerShipments />} />
                     <Route path="inventory" element={<SellerInventory />} />
                     <Route path="invoices" element={<SellerInvoices />} />
                     <Route path="returns" element={<SellerReturns />} />

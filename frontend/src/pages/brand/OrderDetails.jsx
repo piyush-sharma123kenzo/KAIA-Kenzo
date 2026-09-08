@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, ShoppingBag, MapPin, Truck, CheckCircle2, ShieldCheck, 
   Clock, AlertTriangle, QrCode, FileText, Package, Check, ShieldAlert
@@ -13,6 +13,8 @@ import Button from '../../components/ui/Button';
 const OrderDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/vendor') ? '/vendor' : '/brand';
 
   const [order, setOrder] = useState(null);
   const [availableSerials, setAvailableSerials] = useState([]);
@@ -123,7 +125,7 @@ const OrderDetails = () => {
         <ShieldAlert className="w-12 h-12 text-red-500 mx-auto" />
         <h3 className="text-base font-black text-brand-gray-900 uppercase">Order Access Restricted</h3>
         <p className="text-xs text-brand-gray-500">{error || 'This order does not belong to your authorized brand.'}</p>
-        <Link to="/brand/orders">
+        <Link to={`${basePath}/orders`}>
           <Button variant="primary" size="sm" className="text-xs uppercase font-bold">
             Back to Orders
           </Button>
@@ -140,7 +142,7 @@ const OrderDetails = () => {
       
       {/* 1. Header with Breadcrumb */}
       <div className="flex items-center space-x-3 border-b border-brand-gray-200 pb-4">
-        <Link to="/brand/orders" className="p-2 border border-brand-gray-200 rounded hover:bg-brand-gray-100 text-brand-gray-600 transition-colors">
+        <Link to={`${basePath}/orders`} className="p-2 border border-brand-gray-200 rounded hover:bg-brand-gray-100 text-brand-gray-600 transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div className="flex-1 flex justify-between items-center">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { 
   Plus, Edit3, Trash2, ShieldCheck, Clock, ShieldX, Search, Filter, 
   ChevronLeft, ChevronRight, Eye, Archive, Package, ArrowUpDown, AlertTriangle
@@ -11,6 +11,8 @@ import Button from '../../components/ui/Button';
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/vendor') ? '/vendor' : '/brand';
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -107,7 +109,7 @@ const Products = () => {
             Manage your hardware inventory, dynamic specifications, and platform listings.
           </p>
         </div>
-        <Link to="/brand/products/new">
+        <Link to={`${basePath}/products/new`}>
           <Button variant="primary" size="sm" className="text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 shadow-sm">
             <Plus className="w-4 h-4" />
             <span>Add New Product</span>
@@ -185,7 +187,7 @@ const Products = () => {
           <p className="text-xs text-brand-gray-500 max-w-sm mx-auto">
             {search || status !== 'all' ? 'No products match your current search and filter parameters.' : 'Publish your first high-performance technology listing to start receiving customer orders.'}
           </p>
-          <Link to="/brand/products/new">
+          <Link to={`${basePath}/products/new`}>
             <Button variant="primary" size="sm" className="text-xs font-bold uppercase tracking-wider">
               Add Your First Product
             </Button>
@@ -289,7 +291,7 @@ const Products = () => {
                           <Eye className="w-3.5 h-3.5" />
                         </Link>
                         <Link
-                          to={`/brand/products/edit/${p._id}`}
+                          to={`${basePath}/products/edit/${p._id}`}
                           title="Edit Listing"
                           className="inline-block p-1.5 border border-brand-gray-200 rounded hover:bg-brand-gray-100 text-brand-gray-600 hover:text-brand-accent transition-colors"
                         >

@@ -8,6 +8,9 @@ import SellerOrder from '../models/SellerOrder.js';
 import AuditLog from '../models/AuditLog.js';
 import Category from '../models/Category.js';
 import Review from '../models/Review.js';
+import ReturnRequest from '../models/ReturnRequest.js';
+import Settlement from '../models/Settlement.js';
+import SellerLedger from '../models/SellerLedger.js';
 import { deriveMasterOrderStatus } from './orderController.js';
 
 // Helper to log audit actions
@@ -31,34 +34,44 @@ const logAudit = async (userId, brandId, action, entity, entityId, changes = {},
 };
 
 // ==========================================
-// 1. BRAND DASHBOARD OVERVIEW
+// 1. BRAND / VENDOR DASHBOARD OVERVIEW
 // ==========================================
-// @desc    Get metrics, sales overview, and recent orders for authenticated brand
-// @route   GET /api/brand/dashboard
-// @access  Private (Role: BRAND, Approved)
+// @desc    Get metrics, sales overview, and recent orders for authenticated brand/vendor
+// @route   GET /api/brand/dashboard, GET /api/vendor/dashboard
+// @access  Private (Role: BRAND / VENDOR, Approved)
 export const getBrandDashboard = async (req, res) => {
   try {
     const brandId = req.brand._id;
 
-    // 1. Products counts
-    const totalProducts = await Product.countDocuments({ brand: brandId, isActive: true });
-    const publishedProducts = await Product.countDocuments({ brand: brandId, isActive: true, status: 'Approved' });
-    const draftProducts = await Product.countDocuments({ brand: brandId, isActive: true, status: 'Draft' });
-    const pendingProducts = await Product.countDocuments({ brand: brandId, isActive: true, status: 'Pending Approval' });
+    // 1. Products metrics from MongoDB
+    const totalProducts = await Product.countDocuments({ brand: brandId, isActive: true, isDeleted: false });
+    const activeProducts = await Product.countDocuments({ brand: brandId, isActive: true, isDeleted: false, status: { $in: ['Approved', 'published'] } });
+    const draftProducts = await Product.countDocuments({ brand: brandId, isDeleted: false, status: 'Draft' });
+    const pendingProducts = await Product.countDocuments({ brand: brandId, isDeleted: false, status: 'Pending Approval' });
+    const outOfStockProducts = await Product.countDocuments({
+      brand: brandId,
+      isActive: true,
+      isDeleted: false,
+      $or: [
+        { 'stock.quantity': { $lte: 0 } },
+        { 'stock.availableQuantity': { $lte: 0 } },
+      ],
+    });
 
-    // Low stock count (quantity <= lowStockThreshold or reorderThreshold)
+    // Low stock count (available quantity <= reorderThreshold and > 0)
     const lowStockProducts = await Product.countDocuments({
       brand: brandId,
       isActive: true,
+      isDeleted: false,
       $expr: {
-        $lte: [
-          { $subtract: ['$stock.quantity', '$stock.reservedQuantity'] },
-          '$stock.reorderThreshold',
+        $and: [
+          { $gt: [{ $subtract: ['$stock.quantity', { $ifNull: ['$stock.reservedQuantity', 0] }] }, 0] },
+          { $lte: [{ $subtract: ['$stock.quantity', { $ifNull: ['$stock.reservedQuantity', 0] }] }, { $ifNull: ['$stock.reorderThreshold', 4] }] },
         ],
       },
     });
 
-    // 2. Orders metrics for this brand
+    // 2. Orders metrics for this brand/vendor
     const sellerOrders = await SellerOrder.find({ seller: brandId })
       .populate('parentOrder', 'orderId orderStatus paymentStatus createdAt shippingAddress')
       .sort({ createdAt: -1 });
@@ -67,39 +80,61 @@ export const getBrandDashboard = async (req, res) => {
     const pendingOrders = sellerOrders.filter(
       (o) => o.fulfillmentStatus === 'Processing' || o.fulfillmentStatus === 'Pending'
     ).length;
+    const processingOrders = sellerOrders.filter((o) => o.fulfillmentStatus === 'Processing').length;
     const packedOrders = sellerOrders.filter((o) => o.fulfillmentStatus === 'Packed').length;
-    const shippedOrders = sellerOrders.filter((o) => o.fulfillmentStatus === 'Shipped').length;
+    const shippedOrders = sellerOrders.filter((o) => o.fulfillmentStatus === 'Shipped' || o.fulfillmentStatus === 'Out for Delivery').length;
     const deliveredOrders = sellerOrders.filter((o) => o.fulfillmentStatus === 'Delivered').length;
     const cancelledOrders = sellerOrders.filter((o) => o.fulfillmentStatus === 'Cancelled').length;
 
-    // 3. Sales Calculations across timeframes
+    // Returns metrics
+    const returnedOrders = await ReturnRequest.countDocuments({ brand: brandId });
+
+    // 3. Sales & Financial Calculations across timeframes
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    let totalSales = 0;
+    let totalRevenue = 0;
     let todaySales = 0;
     let weekSales = 0;
     let monthSales = 0;
     let totalUnitsSold = 0;
+    let pendingSettlement = 0;
+    let totalSettled = 0;
 
     sellerOrders.forEach((so) => {
       const isPaidOrValid = so.fulfillmentStatus !== 'Cancelled';
       if (isPaidOrValid) {
-        const amt = so.finalAmount || 0;
+        const amt = so.finalAmount || so.subtotal || 0;
+        const payable = so.sellerPayableAmount || Math.round(amt * 0.95);
         const createdAt = new Date(so.createdAt);
 
-        totalSales += amt;
+        totalRevenue += amt;
         if (createdAt >= startOfToday) todaySales += amt;
         if (createdAt >= startOfWeek) weekSales += amt;
         if (createdAt >= startOfMonth) monthSales += amt;
 
+        if (so.settlementStatus === 'unsettled' || so.settlementStatus === 'eligible' || !so.settlementStatus) {
+          pendingSettlement += payable;
+        } else if (so.settlementStatus === 'settled') {
+          totalSettled += payable;
+        }
+
         (so.items || []).forEach((item) => {
-          totalUnitsSold += item.qty || 1;
+          totalUnitsSold += item.qty || item.quantity || 1;
         });
       }
     });
+
+    // Check completed settlements and ledger records
+    const settlements = await Settlement.find({ brandId });
+    const paidSettlementsTotal = settlements
+      .filter((s) => s.status === 'paid')
+      .reduce((sum, s) => sum + (s.netPayable || 0), 0);
+
+    const availableBalance = Math.max(0, pendingSettlement);
 
     // 4. Monthly Chart Data
     const monthlyMap = {};
@@ -115,20 +150,20 @@ export const getBrandDashboard = async (req, res) => {
     });
     const salesChart = Object.values(monthlyMap);
 
-    // 5. Recent Orders snippet (Sanitized - no sensitive payment secrets or passwords)
+    // 5. Recent Orders snippet
     const recentOrders = sellerOrders.slice(0, 6).map((so) => ({
       _id: so._id,
       orderId: so.orderId || so.parentOrder?.orderId || 'ORD-000',
       parentOrderId: so.parentOrder?._id,
-      customerCity: so.parentOrder?.shippingAddress?.city || 'India',
-      itemsCount: (so.items || []).reduce((sum, it) => sum + (it.qty || 1), 0),
+      customerCity: so.parentOrder?.shippingAddress?.city || so.shippingAddress?.city || 'India',
+      itemsCount: (so.items || []).reduce((sum, it) => sum + (it.qty || it.quantity || 1), 0),
       items: (so.items || []).map((it) => ({
         name: it.name,
         price: it.price,
-        qty: it.qty,
+        qty: it.qty || it.quantity || 1,
       })),
       amount: so.finalAmount,
-      paymentStatus: so.parentOrder?.paymentStatus || 'Paid',
+      paymentStatus: so.parentOrder?.paymentStatus || so.paymentStatus || 'Paid',
       fulfillmentStatus: so.fulfillmentStatus,
       createdAt: so.createdAt,
     }));
@@ -143,23 +178,31 @@ export const getBrandDashboard = async (req, res) => {
         status: req.brand.status,
       },
       metrics: {
+        // 14 Core Dashboard Cards as required by specification:
         totalProducts,
-        publishedProducts,
+        activeProducts,
+        publishedProducts: activeProducts, // Alias for backward compatibility
         draftProducts,
-        pendingProducts,
+        outOfStockProducts,
         lowStockProducts,
         totalOrders,
         pendingOrders,
+        processingOrders,
         packedOrders,
         shippedOrders,
         deliveredOrders,
+        returnedOrders,
         cancelledOrders,
-        totalSales,
+        totalRevenue,
+        totalSales: totalRevenue, // Alias
+        pendingSettlement,
+        availableBalance,
+        paidSettlements: paidSettlementsTotal || totalSettled,
         todaySales,
         weekSales,
         monthSales,
         totalUnitsSold,
-        averageOrderValue: totalOrders > 0 ? Math.round(totalSales / totalOrders) : 0,
+        averageOrderValue: totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
       },
       salesChart,
       recentOrders,

@@ -15,41 +15,47 @@ const BrandLayout = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const isVendorPath = location.pathname.startsWith('/vendor');
+  const basePath = isVendorPath ? '/vendor' : '/brand';
+
   const isActive = (path) => {
-    if (path === '/brand/dashboard' && (location.pathname === '/brand' || location.pathname === '/brand/dashboard')) {
+    const fullPath = path.startsWith('/') ? path : `${basePath}/${path}`;
+    const dashPath = `${basePath}/dashboard`;
+    if ((path === '/dashboard' || path === dashPath) && (location.pathname === basePath || location.pathname === `${basePath}/` || location.pathname === dashPath)) {
       return true;
     }
-    return location.pathname === path || (path !== '/brand/dashboard' && location.pathname.startsWith(path));
+    return location.pathname === fullPath || (path !== '/dashboard' && location.pathname.startsWith(fullPath));
   };
 
   const menuItems = [
-    { name: 'Overview', path: '/brand/dashboard', icon: LayoutDashboard },
-    { name: 'Products', path: '/brand/products', icon: Package },
-    { name: 'Add Product', path: '/brand/products/new', icon: PlusCircle },
-    { name: 'Warehouse Inventory', path: '/brand/inventory', icon: ClipboardList },
-    { name: 'Fulfillment & Packing', path: '/brand/fulfillment', icon: Barcode },
-    { name: 'Seller Orders', path: '/brand/orders', icon: ShoppingBag },
-    { name: 'Shipments & Logistics', path: '/brand/shipments', icon: Truck },
-    { name: 'Invoices & GST', path: '/brand/invoices', icon: FileText },
-    { name: 'Returns & RMA', path: '/brand/returns', icon: RotateCcw },
-    { name: 'Earnings & Ledger', path: '/brand/earnings', icon: DollarSign },
-    { name: 'Settlements', path: '/brand/settlements', icon: Landmark },
-    { name: 'Brand Profile', path: '/brand/profile', icon: Building2 },
-    { name: 'Settings', path: '/brand/settings', icon: Settings },
+    { name: 'Overview', path: `${basePath}/dashboard`, icon: LayoutDashboard },
+    { name: 'Products', path: `${basePath}/products`, icon: Package },
+    { name: 'Add Product', path: `${basePath}/products/new`, icon: PlusCircle },
+    { name: 'Warehouse Inventory', path: `${basePath}/inventory`, icon: ClipboardList },
+    { name: 'Fulfillment & Packing', path: `${basePath}/fulfillment`, icon: Barcode },
+    { name: 'Seller Orders', path: `${basePath}/orders`, icon: ShoppingBag },
+    { name: 'Shipments & Logistics', path: `${basePath}/shipments`, icon: Truck },
+    { name: 'Invoices & GST', path: `${basePath}/invoices`, icon: FileText },
+    { name: 'Returns & RMA', path: `${basePath}/returns`, icon: RotateCcw },
+    { name: 'Earnings & Ledger', path: `${basePath}/earnings`, icon: DollarSign },
+    { name: 'Settlements', path: `${basePath}/settlements`, icon: Landmark },
+    { name: 'Brand Profile', path: `${basePath}/profile`, icon: Building2 },
+    { name: 'Settings', path: `${basePath}/settings`, icon: Settings },
   ];
 
-  if (!user || user.role !== 'BRAND') {
+  const role = (user?.role || '').toUpperCase();
+  if (!user || (role !== 'BRAND' && role !== 'VENDOR' && role !== 'ADMIN')) {
     return (
       <div className="min-h-screen bg-brand-light flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-200 text-center space-y-4">
           <ShieldAlert className="w-12 h-12 text-brand-accent mx-auto" />
           <h2 className="text-xl font-black text-brand-gray-900 uppercase tracking-tight">Partner Access Denied</h2>
           <p className="text-xs text-brand-gray-600 leading-relaxed">
-            Only authorized KAIA brand seller accounts can view this dashboard. Please sign in with authorized brand partner credentials.
+            Only authorized KAIA brand and vendor partner accounts can view this dashboard. Please sign in with authorized partner credentials.
           </p>
           <div className="space-y-2 pt-2">
             <Link to="/login" className="block w-full bg-brand-dark text-white py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-brand-gray-800 transition-colors">
-              Sign In to Brand Hub
+              Sign In to Partner Hub
             </Link>
             <Link to="/" className="block text-xs text-brand-accent font-bold hover:underline">
               Back to Marketplace Home
@@ -170,7 +176,9 @@ const BrandLayout = () => {
           {/* Footer actions */}
           <div className="p-4 border-t border-brand-gray-850 space-y-1.5">
             <Link
-              to="/"
+              to={brand?.slug ? `/brand/${brand.slug}` : '/products'}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center space-x-3 px-3.5 py-2 rounded-sm text-[11px] font-bold hover:bg-brand-gray-850 text-brand-gray-400 hover:text-white uppercase tracking-wider"
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -209,7 +217,7 @@ const BrandLayout = () => {
           <div className="flex items-center space-x-3 sm:space-x-4">
             {/* Direct Link to Add Product CTA */}
             <Link
-              to="/brand/products/new"
+              to={`${basePath}/products/new`}
               className="hidden sm:inline-flex items-center space-x-1.5 bg-brand-dark hover:bg-brand-gray-800 text-white px-3.5 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider transition-colors"
             >
               <PlusCircle className="w-3.5 h-3.5 text-brand-accent" />
@@ -218,7 +226,7 @@ const BrandLayout = () => {
 
             {/* Brand Notifications */}
             <Link
-              to="/brand/notifications"
+              to={`${basePath}/notifications`}
               className="p-2 rounded-sm hover:bg-brand-gray-100 text-brand-gray-600 hover:text-brand-gray-900 transition-colors relative"
               title="Brand Notifications"
               aria-label={`Brand Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}

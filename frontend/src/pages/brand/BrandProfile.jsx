@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { 
   Building2, CheckCircle2, ShieldCheck, Globe, Mail, Phone, 
-  MapPin, Landmark, AlertCircle, Save, ExternalLink
+  MapPin, Landmark, AlertCircle, Save, ExternalLink, Upload, Loader2, Image as ImageIcon
 } from 'lucide-react';
 import brandSellerService from '../../services/brandSellerService';
 import { AuthContext } from '../../context/AuthContext';
+import axiosInstance from '../../api/axiosInstance';
 import { Skeleton } from '../../components/feedback/Skeleton';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -14,6 +15,8 @@ const BrandProfile = () => {
   const [brand, setBrand] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -29,6 +32,13 @@ const BrandProfile = () => {
       gstin: '',
       pan: '',
       address: '',
+    },
+    warehouseAddress: {
+      addressLine1: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: 'India',
     },
     bankDetails: {
       accountNumber: '',
@@ -58,6 +68,13 @@ const BrandProfile = () => {
             pan: b.businessDetails?.pan || '',
             address: b.businessDetails?.address || '',
           },
+          warehouseAddress: {
+            addressLine1: b.warehouseAddress?.addressLine1 || '',
+            city: b.warehouseAddress?.city || '',
+            state: b.warehouseAddress?.state || '',
+            postalCode: b.warehouseAddress?.postalCode || '',
+            country: b.warehouseAddress?.country || 'India',
+          },
           bankDetails: {
             accountNumber: b.bankDetails?.accountNumber || '',
             ifsc: b.bankDetails?.ifsc || '',
@@ -76,6 +93,56 @@ const BrandProfile = () => {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    setErrorMsg('');
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('folder', 'kaia/brands');
+      const res = await axiosInstance.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data?.success && res.data.url) {
+        setForm((prev) => ({ ...prev, logo: res.data.url }));
+      }
+    } catch (err) {
+      console.error('Logo upload error:', err);
+      setErrorMsg(err.response?.data?.message || 'Error uploading logo image.');
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingBanner(true);
+    setErrorMsg('');
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('folder', 'kaia/brands/banners');
+      const res = await axiosInstance.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data?.success && res.data.url) {
+        setForm((prev) => ({ ...prev, banner: res.data.url }));
+      }
+    } catch (err) {
+      console.error('Banner upload error:', err);
+      setErrorMsg(err.response?.data?.message || 'Error uploading banner image.');
+    } finally {
+      setUploadingBanner(false);
+      e.target.value = '';
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -113,7 +180,7 @@ const BrandProfile = () => {
       {/* Header */}
       <div className="border-b border-brand-gray-200 pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h2 className="text-xl font-black text-brand-gray-900 uppercase tracking-tight">Authorized Brand Profile</h2>
+          <h2 className="text-xl font-black text-brand-gray-900 uppercase tracking-tight">Authorized Partner Profile</h2>
           <p className="text-xs text-brand-gray-500 mt-0.5">
             Manage your public storefront branding, official contact channels, and GST/banking compliance.
           </p>
@@ -152,7 +219,7 @@ const BrandProfile = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Brand Name *</label>
+              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Company / Brand Name *</label>
               <input
                 type="text"
                 required
@@ -185,34 +252,50 @@ const BrandProfile = () => {
               />
             </div>
 
-            <div className="space-y-1.5 col-span-2 sm:col-span-1">
-              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Logo Image URL</label>
+            {/* Logo upload */}
+            <div className="space-y-2 col-span-2 sm:col-span-1 p-3 bg-brand-gray-50/60 border border-brand-gray-200 rounded-sm">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Brand Logo</label>
+                <label className="cursor-pointer text-[10px] font-bold uppercase bg-brand-dark text-white px-2.5 py-1 rounded flex items-center space-x-1 hover:bg-brand-gray-800 transition-colors">
+                  <Upload className="w-3 h-3 text-brand-accent" />
+                  <span>{uploadingLogo ? 'Uploading...' : 'Upload Logo'}</span>
+                  <input type="file" accept="image/*" disabled={uploadingLogo} onChange={handleLogoUpload} className="hidden" />
+                </label>
+              </div>
               <input
                 type="url"
-                placeholder="https://..."
+                placeholder="https://res.cloudinary.com/... or direct URL"
                 value={form.logo}
                 onChange={(e) => setForm({ ...form, logo: e.target.value })}
-                className="w-full bg-brand-light border border-brand-gray-250 p-2.5 rounded-sm text-xs font-mono focus:border-brand-accent focus:ring-0"
+                className="w-full bg-white border border-brand-gray-250 p-2 rounded-sm text-xs font-mono focus:border-brand-accent focus:ring-0"
               />
               {form.logo && (
-                <div className="mt-2 w-12 h-12 rounded border bg-brand-light p-1 overflow-hidden">
-                  <img src={form.logo} alt="" className="object-cover h-full w-full" />
+                <div className="w-14 h-14 rounded border bg-white p-1 overflow-hidden shadow-xs">
+                  <img src={form.logo} alt="Logo" className="object-contain h-full w-full" />
                 </div>
               )}
             </div>
 
-            <div className="space-y-1.5 col-span-2 sm:col-span-1">
-              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Storefront Banner URL</label>
+            {/* Banner upload */}
+            <div className="space-y-2 col-span-2 sm:col-span-1 p-3 bg-brand-gray-50/60 border border-brand-gray-200 rounded-sm">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Storefront Banner</label>
+                <label className="cursor-pointer text-[10px] font-bold uppercase bg-brand-dark text-white px-2.5 py-1 rounded flex items-center space-x-1 hover:bg-brand-gray-800 transition-colors">
+                  <Upload className="w-3 h-3 text-brand-accent" />
+                  <span>{uploadingBanner ? 'Uploading...' : 'Upload Banner'}</span>
+                  <input type="file" accept="image/*" disabled={uploadingBanner} onChange={handleBannerUpload} className="hidden" />
+                </label>
+              </div>
               <input
                 type="url"
-                placeholder="https://..."
+                placeholder="https://res.cloudinary.com/... or direct URL"
                 value={form.banner}
                 onChange={(e) => setForm({ ...form, banner: e.target.value })}
-                className="w-full bg-brand-light border border-brand-gray-250 p-2.5 rounded-sm text-xs font-mono focus:border-brand-accent focus:ring-0"
+                className="w-full bg-white border border-brand-gray-250 p-2 rounded-sm text-xs font-mono focus:border-brand-accent focus:ring-0"
               />
               {form.banner && (
-                <div className="mt-2 h-12 w-full rounded border bg-brand-light overflow-hidden">
-                  <img src={form.banner} alt="" className="object-cover h-full w-full" />
+                <div className="h-14 w-full rounded border bg-white overflow-hidden shadow-xs">
+                  <img src={form.banner} alt="Banner" className="object-cover h-full w-full" />
                 </div>
               )}
             </div>
@@ -227,7 +310,7 @@ const BrandProfile = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Business Email *</label>
+              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Support Email *</label>
               <input
                 type="email"
                 required
@@ -238,7 +321,7 @@ const BrandProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Contact Phone *</label>
+              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Support Phone *</label>
               <input
                 type="tel"
                 required
@@ -249,7 +332,7 @@ const BrandProfile = () => {
             </div>
 
             <div className="space-y-1.5 col-span-2">
-              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Fulfillment Depot / Physical Address</label>
+              <label className="text-xs font-bold text-brand-gray-700 uppercase tracking-wider">Registered Business Address</label>
               <input
                 type="text"
                 placeholder="Technology Logistics Park, Electronic City, Bengaluru, KA, 560100"
@@ -323,9 +406,9 @@ const BrandProfile = () => {
 
         {/* Read-Only Platform Governance Notice */}
         <div className="p-4 bg-brand-light border border-brand-gray-200 rounded-sm text-xs text-brand-gray-600 space-y-1">
-          <p className="font-bold text-brand-gray-800">Platform Governance & Commission Terms:</p>
+          <p className="font-bold text-brand-gray-800">Platform Governance & Settlement Terms:</p>
           <p className="text-[11px] leading-relaxed">
-            KAIA applies a standard 5.0% commission on electronic hardware transactions. Changes to commission terms or seller approval status are regulated by central platform administration.
+            KAIA applies a standard marketplace commission on hardware transactions. Payouts and settlements are processed weekly to the registered bank account above.
           </p>
         </div>
 
