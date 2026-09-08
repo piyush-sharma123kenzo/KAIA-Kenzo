@@ -25,6 +25,7 @@ const loginLimiter = rateLimit({
   max: 50,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { success: false, message: 'Too many login attempts. Please wait 15 minutes before trying again.' },
   skipSuccessfulRequests: true,
 });
@@ -35,6 +36,7 @@ const registerLimiter = rateLimit({
   max: 50,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { success: false, message: 'Too many registration attempts. Please try again in an hour.' },
 });
 
@@ -44,6 +46,7 @@ const forgotPasswordLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { success: false, message: 'Too many password reset requests. Please wait 15 minutes.' },
 });
 
@@ -53,6 +56,7 @@ const otpVerifyLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { success: false, message: 'Too many OTP verification attempts. Please wait 15 minutes.' },
 });
 
@@ -62,6 +66,7 @@ const otpResendLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { success: false, message: 'Too many resend requests. Please wait before requesting a new code.' },
 });
 
@@ -71,6 +76,7 @@ const resetPasswordLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { success: false, message: 'Too many password reset attempts. Please wait 15 minutes.' },
 });
 

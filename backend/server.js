@@ -51,6 +51,9 @@ connectDB();
 
 const app = express();
 
+// Trust reverse proxy headers (Render, Vercel, Cloudflare, NGINX)
+app.set('trust proxy', 1);
+
 // Security Middlewares
 app.use(helmet({
   crossOriginResourcePolicy: false, // Allow local images to load in frontend

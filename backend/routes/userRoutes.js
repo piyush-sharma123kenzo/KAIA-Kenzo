@@ -34,6 +34,7 @@ const uploadRateLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     message: 'Too many image upload attempts. Please try again in a few minutes.',
@@ -46,6 +47,7 @@ const passwordChangeLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     message: 'Too many password change attempts. Please try again later.',

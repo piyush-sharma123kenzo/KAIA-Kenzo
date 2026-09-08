@@ -41,6 +41,7 @@ const createOrderLimiter = rateLimit({
   message: { message: 'Too many payment requests from this IP. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 // Limit verification: 20 per IP per 10 minutes
@@ -50,6 +51,7 @@ const verifyLimiter = rateLimit({
   message: { message: 'Too many verification attempts. Please wait before retrying.' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 // Limit retry: 5 per IP per 15 minutes
@@ -59,6 +61,7 @@ const retryLimiter = rateLimit({
   message: { message: 'Too many retry attempts. Please wait before trying again.' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 // ---------------------------------------------------------------------------
