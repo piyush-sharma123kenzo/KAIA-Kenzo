@@ -6,7 +6,8 @@ import {
   RotateCcw, TrendingUp, DollarSign, CreditCard, Tag, Sparkles, 
   Activity, Radio, BarChart3, Menu, X, ExternalLink, QrCode,
   Search, ChevronRight, PlusCircle, Bell, ChevronLeft, Store,
-  Zap, ArrowUpRight, Cpu, Headphones, MessageSquare, MapPin
+  Zap, ArrowUpRight, Cpu, Headphones, MessageSquare, MapPin,
+  Sliders, SlidersHorizontal
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
