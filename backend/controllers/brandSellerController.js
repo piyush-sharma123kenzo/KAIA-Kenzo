@@ -370,15 +370,15 @@ export const createBrandProduct = async (req, res) => {
     // Check unique SKU
     const productSku = (SKU || `${req.brand.slug.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`).trim().toUpperCase();
     const existingSku = await Product.findOne({ SKU: productSku });
-    if (existingSku) {
-      return res.status(400).json({ message: `SKU '${productSku}' already exists in catalog. Please use a unique SKU.` });
+    if (existingSku && existingSku.brand.toString() !== brandId.toString()) {
+      return res.status(400).json({ message: `SKU '${productSku}' is already registered by another brand. Please use a distinct SKU.` });
     }
 
     // Generate unique slug
     const baseSlug = `${req.brand.slug}-${name}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     let slug = baseSlug;
     const existingSlug = await Product.findOne({ slug });
-    if (existingSlug) {
+    if (existingSlug && (!existingSku || existingSlug._id.toString() !== existingSku._id.toString())) {
       slug = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
     }
 
@@ -443,52 +443,84 @@ export const createBrandProduct = async (req, res) => {
       resolvedCategoryId = defaultCat._id;
     }
 
-    const newProduct = await Product.create({
-      brand: brandId,
-      category: resolvedCategoryId,
-      name: name.trim(),
-      slug,
-      modelNumber: modelNumber || `MOD-${Date.now().toString().slice(-4)}`,
-      SKU: productSku,
-      description: description || '',
-      shortDescription: shortDescription || description?.substring(0, 120) || '',
-      mrp: effectiveMrp,
-      sellingPrice: effectiveSellingPrice,
-      gstRate: 18.0,
-      images: formattedImages,
-      stock: {
+    let newProduct = null;
+    if (existingSku && existingSku.brand.toString() === brandId.toString()) {
+      // Re-use / update existing product draft for this brand
+      existingSku.name = name.trim();
+      existingSku.category = resolvedCategoryId;
+      existingSku.modelNumber = modelNumber || existingSku.modelNumber;
+      existingSku.description = description || '';
+      existingSku.shortDescription = shortDescription || description?.substring(0, 120) || '';
+      existingSku.mrp = effectiveMrp;
+      existingSku.sellingPrice = effectiveSellingPrice;
+      existingSku.images = formattedImages;
+      existingSku.stock = {
         quantity: stockQty,
-        reservedQuantity: 0,
+        reservedQuantity: existingSku.stock?.reservedQuantity || 0,
         availableQuantity: stockQty,
         reorderThreshold: reorderThresh,
-      },
-      specifications: specifications || {},
-      highlights: Array.isArray(highlights) ? highlights : [],
-      warranty: warranty || '1 Year Brand Manufacturer Warranty',
-      status: status === 'Approved' ? 'Pending Approval' : status, // Sellers cannot directly auto-approve
-      isActive: true,
-    });
+      };
+      existingSku.specifications = specifications || {};
+      existingSku.highlights = Array.isArray(highlights) ? highlights : [];
+      existingSku.warranty = warranty || '1 Year Brand Manufacturer Warranty';
+      existingSku.status = status === 'Approved' ? 'Pending Approval' : status;
+      existingSku.isActive = true;
+      newProduct = await existingSku.save();
+    } else {
+      newProduct = await Product.create({
+        brand: brandId,
+        category: resolvedCategoryId,
+        name: name.trim(),
+        slug,
+        modelNumber: modelNumber || `MOD-${Date.now().toString().slice(-4)}`,
+        SKU: productSku,
+        description: description || '',
+        shortDescription: shortDescription || description?.substring(0, 120) || '',
+        mrp: effectiveMrp,
+        sellingPrice: effectiveSellingPrice,
+        gstRate: 18.0,
+        images: formattedImages,
+        stock: {
+          quantity: stockQty,
+          reservedQuantity: 0,
+          availableQuantity: stockQty,
+          reorderThreshold: reorderThresh,
+        },
+        specifications: specifications || {},
+        highlights: Array.isArray(highlights) ? highlights : [],
+        warranty: warranty || '1 Year Brand Manufacturer Warranty',
+        status: status === 'Approved' ? 'Pending Approval' : status, // Sellers cannot directly auto-approve
+        isActive: true,
+      });
+    }
 
-    // Create corresponding Inventory record
-    await Inventory.create({
-      productId: newProduct._id,
-      product: newProduct._id,
-      brandId: brandId,
-      brand: brandId,
-      sku: newProduct.SKU,
-      totalQuantity: stockQty,
-      availableQuantity: stockQty,
-      reservedQuantity: 0,
-      soldQuantity: 0,
-      damagedQuantity: 0,
-      returnedQuantity: 0,
-      lowStockThreshold: reorderThresh,
-      warehouse: {
-        name: `${req.brand.name} Logistics Center`,
-        location: 'Authorized Depot',
-        bin: 'DEFAULT-01',
+    // Create or update corresponding Inventory record
+    await Inventory.findOneAndUpdate(
+      { $or: [{ productId: newProduct._id }, { product: newProduct._id }], brandId },
+      {
+        $set: {
+          productId: newProduct._id,
+          product: newProduct._id,
+          brandId: brandId,
+          brand: brandId,
+          sku: newProduct.SKU,
+          totalQuantity: stockQty,
+          quantity: stockQty,
+          availableQuantity: stockQty,
+          reservedQuantity: 0,
+          soldQuantity: 0,
+          damagedQuantity: 0,
+          returnedQuantity: 0,
+          lowStockThreshold: reorderThresh,
+          warehouse: {
+            name: `${req.brand.name} Logistics Center`,
+            location: 'Authorized Depot',
+            bin: 'DEFAULT-01',
+          },
+        },
       },
-    });
+      { upsert: true, new: true }
+    );
 
     // Audit log
     await logAudit(req.user._id, brandId, 'CREATE_PRODUCT', 'Product', newProduct._id, { name: newProduct.name, sku: newProduct.SKU }, req);
