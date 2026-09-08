@@ -15,28 +15,40 @@ class StorageService {
    * Check if Cloudinary is configured via environment variables (CLOUDINARY_URL or keys)
    */
   isCloudinaryConfigured() {
-    return Boolean(
-      process.env.CLOUDINARY_URL ||
-      (process.env.CLOUDINARY_CLOUD_NAME &&
-       process.env.CLOUDINARY_API_KEY &&
-       process.env.CLOUDINARY_API_SECRET)
+    const url = process.env.CLOUDINARY_URL;
+    const hasValidUrl = url && !url.includes('<your_') && !url.includes('your_api_key');
+    const hasKeys = Boolean(
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
     );
+    return Boolean(hasValidUrl || hasKeys);
   }
 
   /**
    * Configure Cloudinary client
    */
   initCloudinary() {
-    if (process.env.CLOUDINARY_URL) {
+    let rawUrl = (process.env.CLOUDINARY_URL || '').trim();
+    // Clean up duplicate CLOUDINARY_URL= prefix if accidentally pasted
+    if (rawUrl.startsWith('CLOUDINARY_URL=')) {
+      rawUrl = rawUrl.replace('CLOUDINARY_URL=', '').trim();
+    }
+
+    if (rawUrl && !rawUrl.includes('<') && !rawUrl.includes('your_api_key')) {
       cloudinary.config({
-        cloudinary_url: process.env.CLOUDINARY_URL.trim(),
+        cloudinary_url: rawUrl,
         secure: true,
       });
-    } else {
+    } else if (
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
+    ) {
       cloudinary.config({
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET,
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME.trim(),
+        api_key: process.env.CLOUDINARY_API_KEY.trim(),
+        api_secret: process.env.CLOUDINARY_API_SECRET.trim(),
         secure: true,
       });
     }
