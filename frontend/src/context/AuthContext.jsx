@@ -47,6 +47,9 @@ export const AuthProvider = ({ children }) => {
 
       if (syncedClerkIdRef.current !== clerkId && email) {
         syncedClerkIdRef.current = clerkId;
+        const storedRole = sessionStorage.getItem('kaia_auth_intent_role') || 'USER';
+        sessionStorage.removeItem('kaia_auth_intent_role');
+
         authApi.clerkAuth({
           clerkId,
           email,
@@ -54,12 +57,17 @@ export const AuthProvider = ({ children }) => {
           avatar: clerkUser.imageUrl,
           firstName: clerkUser.firstName,
           lastName: clerkUser.lastName,
-        }).then((res) => {
+          role: storedRole,
+        }).then(async (res) => {
           if (res?.success && res?.user) {
             if (res.token) {
               localStorage.setItem('kaia_token', res.token);
             }
             setUser(res.user);
+            const meRes = await authApi.getCurrentUser().catch(() => ({}));
+            if (meRes.success) {
+              setBrand(meRes.brand);
+            }
           }
         }).catch((err) => {
           console.warn('[Clerk Auth Sync Error]:', err.message);

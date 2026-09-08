@@ -263,7 +263,7 @@ export const updateProfile = async (req, res) => {
  */
 export const googleLogin = async (req, res) => {
   try {
-    const { credential, accessToken, email, name, picture, googleId } = req.body;
+    const { credential, accessToken, email, name, picture, googleId, role } = req.body;
 
     let userEmail = email;
     let userName = name;
@@ -314,6 +314,7 @@ export const googleLogin = async (req, res) => {
     }
 
     const normalizedEmail = String(userEmail).toLowerCase().trim();
+    const targetRole = (role === 'VENDOR' || role === 'BRAND') ? 'BRAND' : 'CUSTOMER';
     let user = await User.findOne({ email: normalizedEmail });
 
     if (user) {
@@ -330,6 +331,9 @@ export const googleLogin = async (req, res) => {
       if (!user.avatar && userAvatar) {
         user.avatar = userAvatar;
       }
+      if ((role === 'VENDOR' || role === 'BRAND') && (user.role === 'CUSTOMER' || user.role === 'USER')) {
+        user.role = 'BRAND';
+      }
       user.emailVerified = true;
       user.lastLogin = new Date();
       await user.save();
@@ -337,7 +341,7 @@ export const googleLogin = async (req, res) => {
       // Dispatch Auth Notification (idempotent)
       createNotification({
         user: user._id,
-        role: user.role || 'CUSTOMER',
+        role: user.role || targetRole,
         type: 'AUTH',
         title: 'Google Sign-In Successful',
         message: `Welcome back, ${user.name}! You signed in via Google.`,
@@ -352,12 +356,12 @@ export const googleLogin = async (req, res) => {
 
     // Register new user via Google
     const newUser = await User.create({
-      name: userName || 'Customer',
+      name: userName || (targetRole === 'BRAND' ? 'Vendor Partner' : 'Customer'),
       email: normalizedEmail,
       avatar: userAvatar || '',
       googleId: userGoogleId || `google_${Date.now()}`,
       authProvider: 'google',
-      role: 'CUSTOMER',
+      role: targetRole,
       emailVerified: true,
       status: 'Active',
       lastLogin: new Date(),
@@ -366,7 +370,7 @@ export const googleLogin = async (req, res) => {
     // Welcome Notification
     createNotification({
       user: newUser._id,
-      role: 'CUSTOMER',
+      role: targetRole,
       type: 'AUTH',
       title: 'Welcome to KAIA Technologies!',
       message: `Your account has been created via Google Sign-In. Start exploring premium technology products.`,
@@ -393,7 +397,7 @@ export const googleLogin = async (req, res) => {
  */
 export const clerkLogin = async (req, res) => {
   try {
-    const { clerkId, email, name, avatar, firstName, lastName } = req.body;
+    const { clerkId, email, name, avatar, firstName, lastName, role } = req.body;
 
     if (!email) {
       return res.status(400).json({
@@ -403,6 +407,7 @@ export const clerkLogin = async (req, res) => {
     }
 
     const normalizedEmail = String(email).toLowerCase().trim();
+    const targetRole = (role === 'VENDOR' || role === 'BRAND') ? 'BRAND' : 'CUSTOMER';
     let user = await User.findOne({
       $or: [
         { clerkId: clerkId || 'none' },
@@ -426,13 +431,16 @@ export const clerkLogin = async (req, res) => {
       if (!user.avatar && avatar) {
         user.avatar = avatar;
       }
+      if ((role === 'VENDOR' || role === 'BRAND') && (user.role === 'CUSTOMER' || user.role === 'USER')) {
+        user.role = 'BRAND';
+      }
       user.emailVerified = true;
       user.lastLogin = new Date();
       await user.save();
 
       createNotification({
         user: user._id,
-        role: user.role || 'CUSTOMER',
+        role: user.role || targetRole,
         type: 'AUTH',
         title: 'Clerk Sign-In Successful',
         message: `Welcome back, ${user.name}! You signed in via Clerk.`,
@@ -454,7 +462,7 @@ export const clerkLogin = async (req, res) => {
       avatar: avatar || '',
       clerkId: clerkId || `clerk_${Date.now()}`,
       authProvider: 'clerk',
-      role: 'CUSTOMER',
+      role: targetRole,
       emailVerified: true,
       status: 'Active',
       lastLogin: new Date(),
@@ -462,7 +470,7 @@ export const clerkLogin = async (req, res) => {
 
     createNotification({
       user: newUser._id,
-      role: 'CUSTOMER',
+      role: targetRole,
       type: 'AUTH',
       title: 'Welcome to KAIA Technologies!',
       message: `Your account has been created via Clerk. Start exploring premium technology products.`,

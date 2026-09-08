@@ -116,11 +116,18 @@ const Login = () => {
           </div>
         )}
 
-        {/* Social / SSO Auth Options (for normal customer logins) */}
-        {selectedRole === 'USER' && (
+        {/* Social / SSO Auth Options (for Customer & Vendor logins) */}
+        {selectedRole !== 'ADMIN' && (
           <div className="space-y-3">
-            <ClerkAuthButton mode="signIn" text="Sign in with Clerk" />
-            <GoogleAuthButton text="Continue with Google" mode="login" />
+            <ClerkAuthButton
+              mode="signIn"
+              role={selectedRole}
+              text={selectedRole === 'VENDOR' ? 'Sign in with Clerk as Vendor' : 'Sign in with Clerk'}
+            />
+            <GoogleAuthButton
+              text={selectedRole === 'VENDOR' ? 'Continue with Google as Vendor' : 'Continue with Google'}
+              mode="login"
+            />
 
             <div className="relative flex py-1 items-center">
               <div className="flex-grow border-t border-slate-200" />

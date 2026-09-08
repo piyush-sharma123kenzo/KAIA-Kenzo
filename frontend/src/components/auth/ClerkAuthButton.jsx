@@ -8,15 +8,23 @@ const ClerkLogoIcon = () => (
   </svg>
 );
 
-const ClerkAuthButton = ({ mode = 'signIn', text, className = '' }) => {
+const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' }) => {
   const isPublishableKeySet = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
   if (!isPublishableKeySet) {
     return null;
   }
 
-  const defaultText = mode === 'signUp' ? 'Sign up with Clerk' : 'Sign in with Clerk';
+  const defaultText = mode === 'signUp'
+    ? (role === 'VENDOR' ? 'Sign up with Clerk as Vendor' : 'Sign up with Clerk')
+    : (role === 'VENDOR' ? 'Sign in with Clerk as Vendor' : 'Sign in with Clerk');
   const label = text || defaultText;
+
+  const handleClerkClick = () => {
+    try {
+      sessionStorage.setItem('kaia_auth_intent_role', role);
+    } catch (e) {}
+  };
 
   return (
     <div className={`w-full ${className}`}>
@@ -25,6 +33,7 @@ const ClerkAuthButton = ({ mode = 'signIn', text, className = '' }) => {
           <SignUpButton mode="modal">
             <button
               type="button"
+              onClick={handleClerkClick}
               className="w-full flex items-center justify-center space-x-2.5 px-4 py-2.5 bg-[#6C47FF] hover:bg-[#5835ea] active:bg-[#4927d8] text-white font-bold text-xs md:text-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-150 cursor-pointer"
             >
               <ClerkLogoIcon />
@@ -36,6 +45,7 @@ const ClerkAuthButton = ({ mode = 'signIn', text, className = '' }) => {
           <SignInButton mode="modal">
             <button
               type="button"
+              onClick={handleClerkClick}
               className="w-full flex items-center justify-center space-x-2.5 px-4 py-2.5 bg-[#6C47FF] hover:bg-[#5835ea] active:bg-[#4927d8] text-white font-bold text-xs md:text-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-150 cursor-pointer"
             >
               <ClerkLogoIcon />

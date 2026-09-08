@@ -256,80 +256,85 @@ const Register = () => {
           </div>
         )}
 
-        {/* Social / SSO Auth Options (Only for standard User / Customer) */}
-        {selectedRole === 'USER' && (
-          <div className="space-y-3">
-            <ClerkAuthButton mode="signUp" text="Sign up with Clerk" />
-            <GoogleAuthButton text="Sign up with Google" mode="register" />
+        {/* Primary Role Selector Tabs */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+            Registering As:
+          </label>
+          <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl border border-slate-250">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedRole('USER');
+                if (error) clearError();
+                if (validationError) setValidationError('');
+              }}
+              className={`flex items-center justify-center space-x-2 py-3 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedRole === 'USER'
+                  ? 'bg-slate-950 text-white shadow-md font-extrabold'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
+              }`}
+            >
+              <User className="w-4 h-4" />
+              <div className="text-left">
+                <div>Customer / User</div>
+                <div className={`text-[9px] font-mono tracking-wider ${selectedRole === 'USER' ? 'text-amber-400' : 'text-slate-400'}`}>
+                  BUYER
+                </div>
+              </div>
+            </button>
 
-            <div className="relative flex py-1 items-center">
-              <div className="flex-grow border-t border-slate-200" />
-              <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Or with email & password
-              </span>
-              <div className="flex-grow border-t border-slate-200" />
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedRole('VENDOR');
+                if (error) clearError();
+                if (validationError) setValidationError('');
+              }}
+              className={`flex items-center justify-center space-x-2 py-3 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedRole === 'VENDOR'
+                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
+              }`}
+            >
+              <Store className="w-4 h-4" />
+              <div className="text-left">
+                <div>Vendor / Brand</div>
+                <div className={`text-[9px] font-mono tracking-wider ${selectedRole === 'VENDOR' ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
+                  SELLER
+                </div>
+              </div>
+            </button>
           </div>
-        )}
+          <p className="text-[11px] text-slate-500 font-medium px-1">
+            {selectedRole === 'USER'
+              ? '📦 Customer account: Shop items, track orders, manage addresses.'
+              : '🏢 Vendor account: Manage catalog, inventory, sales, and payouts.'}
+          </p>
+        </div>
+
+        {/* Social / SSO Auth Options with Selected Role */}
+        <div className="space-y-3">
+          <ClerkAuthButton
+            mode="signUp"
+            role={selectedRole}
+            text={selectedRole === 'VENDOR' ? 'Sign up with Clerk as Vendor' : 'Sign up with Clerk'}
+          />
+          <GoogleAuthButton
+            text={selectedRole === 'VENDOR' ? 'Sign up with Google as Vendor' : 'Sign up with Google'}
+            mode="register"
+          />
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-slate-200" />
+            <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Or with email & password
+            </span>
+            <div className="flex-grow border-t border-slate-200" />
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-
-          {/* Primary Role Selector Tabs */}
-          <div className="space-y-1.5 pb-2">
-            <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
-              Registering As:
-            </label>
-            <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl border border-slate-250">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole('USER');
-                  if (error) clearError();
-                  if (validationError) setValidationError('');
-                }}
-                className={`flex items-center justify-center space-x-2 py-3 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  selectedRole === 'USER'
-                    ? 'bg-slate-950 text-white shadow-md font-extrabold'
-                    : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
-                }`}
-              >
-                <User className="w-4 h-4" />
-                <div className="text-left">
-                  <div>Customer / User</div>
-                  <div className={`text-[9px] font-mono tracking-wider ${selectedRole === 'USER' ? 'text-amber-400' : 'text-slate-400'}`}>
-                    BUYER
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole('VENDOR');
-                  if (error) clearError();
-                  if (validationError) setValidationError('');
-                }}
-                className={`flex items-center justify-center space-x-2 py-3 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  selectedRole === 'VENDOR'
-                    ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                    : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
-                }`}
-              >
-                <Store className="w-4 h-4" />
-                <div className="text-left">
-                  <div>Vendor / Brand</div>
-                  <div className={`text-[9px] font-mono tracking-wider ${selectedRole === 'VENDOR' ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
-                    SELLER
-                  </div>
-                </div>
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-500 font-medium px-1">
-              {selectedRole === 'USER'
-                ? '📦 Customer account: Shop items, track orders, manage addresses.'
-                : '🏢 Vendor account: Manage catalog, inventory, sales, and payouts.'}
-            </p>
-          </div>
 
           {/* Full Name */}
           <div className="space-y-1.5">
