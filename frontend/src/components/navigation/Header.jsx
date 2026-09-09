@@ -426,29 +426,67 @@ const Header = () => {
                   {/* If user not signed in */}
                   {!user ? (
                     <div className="p-5 space-y-4">
-                      <div className="text-center space-y-2">
-                        <h4 className="font-black text-sm text-slate-900 tracking-tight">
-                          Welcome to KAIA Technologies
+                      <div className="text-center space-y-1.5">
+                        <div className="inline-flex p-2 bg-amber-500/10 text-amber-600 rounded-full mb-1">
+                          <User className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-extrabold text-sm text-slate-900 tracking-tight">
+                          Welcome to KAIA
                         </h4>
-                        <p className="text-xs text-slate-500">
-                          Sign in to manage technology orders, compare hardware, and access verified invoices.
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Sign in for order tracking, express checkout, and verified warranties.
                         </p>
                       </div>
 
-                      <div className="space-y-2">
-                        <ClerkAuthButton mode="signIn" text="Instant Sign In with Clerk" />
-                        <Link to="/login" className="block w-full">
-                          <button className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-2.5 px-4 rounded-xl shadow-xs transition-colors text-xs flex items-center justify-center space-x-1.5">
-                            <span>Email / Password Sign In</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
+                      <div className="space-y-2 pt-1">
+                        <Link 
+                          to="/login" 
+                          onClick={() => setAccountDropdown(false)}
+                          className="block w-full"
+                        >
+                          <button className="w-full bg-[#F5B400] hover:bg-[#e0a400] text-slate-950 font-black py-2.5 px-4 rounded-xl shadow-xs hover:shadow-md transition-all text-xs flex items-center justify-center space-x-2 cursor-pointer">
+                            <span>Sign In</span>
+                            <ChevronRight className="w-4 h-4" />
                           </button>
+                        </Link>
+
+                        <ClerkAuthButton mode="signIn" text="Continue with Clerk" />
+                      </div>
+
+                      <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
+                        New customer?{' '}
+                        <Link 
+                          to="/register" 
+                          onClick={() => setAccountDropdown(false)}
+                          className="text-amber-600 font-bold hover:text-amber-700 hover:underline"
+                        >
+                          Create account
                         </Link>
                       </div>
 
-                      <div className="text-center text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-                        New to KAIA?{' '}
-                        <Link to="/register" className="text-amber-700 font-bold hover:underline">
-                          Create an Account
+                      {/* Quick Links for Visitors */}
+                      <div className="pt-2 border-t border-slate-100 space-y-1 text-xs">
+                        <Link
+                          to="/orders"
+                          onClick={() => setAccountDropdown(false)}
+                          className="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all font-medium"
+                        >
+                          <div className="flex items-center space-x-2.5">
+                            <ShoppingBag className="w-4 h-4 text-slate-400" />
+                            <span>Track Orders</span>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                        </Link>
+                        <Link
+                          to="/brand/register"
+                          onClick={() => setAccountDropdown(false)}
+                          className="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all font-medium"
+                        >
+                          <div className="flex items-center space-x-2.5">
+                            <Building2 className="w-4 h-4 text-slate-400" />
+                            <span>Sell on KAIA</span>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                         </Link>
                       </div>
                     </div>

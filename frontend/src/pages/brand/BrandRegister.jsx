@@ -69,34 +69,38 @@ const BrandRegister = () => {
   // Safe checks: If user is not logged in, ask them to sign in
   if (!user) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 border border-brand-gray-250 rounded-sm shadow-premium text-center space-y-6 text-left">
-          <Building2 className="w-12 h-12 text-brand-accent mx-auto" />
-          <div className="space-y-2">
-            <h2 className="text-xl font-extrabold text-brand-gray-900 tracking-tight">Become a Brand Partner</h2>
-            <p className="text-sm text-brand-gray-500 max-w-xs mx-auto">
-              Please sign in or create an account to start your brand registration and submit compliance verification.
+      <div className="min-h-[75vh] flex items-center justify-center p-4 bg-slate-50/60">
+        <div className="max-w-md w-full bg-white p-8 sm:p-9 border border-slate-200/90 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] text-center space-y-6 text-left">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 mx-auto flex items-center justify-center">
+            <Building2 className="w-6 h-6" />
+          </div>
+          <div className="space-y-2 text-center">
+            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Become a Brand Partner</h2>
+            <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+              Sign in or create an account to start your brand onboarding and product listings.
             </p>
           </div>
 
-          <div className="space-y-3 pt-2">
+          <div className="space-y-2.5 pt-1">
+            <Link
+              to="/login?role=VENDOR"
+              className="block w-full bg-[#F5B400] hover:bg-[#e0a400] text-slate-950 font-extrabold py-3 rounded-xl text-sm transition-all shadow-xs text-center cursor-pointer"
+            >
+              Sign In to Continue
+            </Link>
             <ClerkAuthButton
               mode="signIn"
               role="VENDOR"
-              text="Sign in with Clerk as Vendor"
+              text="Continue with Clerk"
             />
-            <Link
-              to="/login?role=VENDOR"
-              className="block w-full bg-brand-dark hover:bg-brand-gray-850 text-white font-semibold py-3 rounded-sm text-sm"
-            >
-              Sign In with Email
-            </Link>
-            <Link
-              to="/register"
-              className="block text-xs font-semibold text-brand-accent hover:underline"
-            >
-              Create Account First
-            </Link>
+            <div className="text-center pt-2">
+              <Link
+                to="/register"
+                className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline"
+              >
+                Create an Account
+              </Link>
+            </div>
           </div>
         </div>
       </div>

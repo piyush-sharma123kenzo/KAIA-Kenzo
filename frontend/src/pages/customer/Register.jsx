@@ -171,27 +171,27 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-left space-y-8">
+    <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50/60">
+      <div className="max-w-md w-full bg-white p-8 sm:p-9 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-slate-200/90 text-left space-y-7">
 
         {/* Header */}
-        <div className="text-center space-y-3 flex flex-col items-center">
+        <div className="text-center space-y-2.5 flex flex-col items-center">
           <KaiaLogo to="/" variant="full" theme="light" size="lg" />
-          <h1 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight pt-1">
             {selectedRole === 'VENDOR'
-              ? 'Create Vendor / Brand Account'
-              : 'Create Customer Account'}
+              ? 'Partner Registration'
+              : 'Create Your Account'}
           </h1>
-          <p className="text-xs text-brand-gray-500">
+          <p className="text-xs text-slate-500">
             {selectedRole === 'VENDOR'
-              ? 'Join as an authorized brand partner to sell and manage hardware.'
-              : 'A 6-digit verification code will be sent to your email.'}
+              ? 'Join as an authorized brand partner to showcase and sell hardware.'
+              : 'Enjoy express checkout, order tracking, and verified warranties.'}
           </p>
         </div>
 
         {/* 1. Unverified Account Conflict Banner with Action Buttons */}
         {conflictState?.type === 'unverified' && (
-          <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-sm space-y-3 shadow-xs">
+          <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-xl space-y-3 shadow-xs">
             <div className="flex items-start space-x-2">
               <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
@@ -203,7 +203,7 @@ const Register = () => {
             </div>
 
             {resendSuccess && (
-              <div className="p-2 bg-emerald-100/80 border border-emerald-300 text-emerald-800 text-[11px] font-bold rounded flex items-center space-x-1.5">
+              <div className="p-2 bg-emerald-100/80 border border-emerald-300 text-emerald-800 text-[11px] font-bold rounded-lg flex items-center space-x-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                 <span>{resendSuccess}</span>
               </div>
@@ -213,7 +213,7 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => navigate('/verify-otp', { state: { email: conflictState.email, purpose: 'SIGNUP_VERIFICATION' } })}
-                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded text-xs transition-all shadow-xs cursor-pointer text-center"
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-all shadow-xs cursor-pointer text-center"
               >
                 Verify Email →
               </button>
@@ -221,7 +221,7 @@ const Register = () => {
                 type="button"
                 onClick={handleResendUnverifiedOtp}
                 disabled={resending}
-                className="py-2 px-3 border border-amber-300 bg-white hover:bg-amber-100 text-amber-800 font-bold rounded text-xs transition-all flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                className="py-2 px-3 border border-amber-300 bg-white hover:bg-amber-100 text-amber-800 font-bold rounded-lg text-xs transition-all flex items-center space-x-1 cursor-pointer disabled:opacity-50"
               >
                 <RotateCcw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
                 <span>{resending ? 'Sending...' : 'Resend Code'}</span>
@@ -232,7 +232,7 @@ const Register = () => {
 
         {/* 2. Verified Account Conflict Banner with Login Button */}
         {conflictState?.type === 'verified' && (
-          <div className="p-4 bg-rose-50 border border-rose-200 text-rose-900 text-xs rounded-sm space-y-3 shadow-xs">
+          <div className="p-4 bg-rose-50 border border-rose-200 text-rose-900 text-xs rounded-xl space-y-3 shadow-xs">
             <div className="flex items-start space-x-2">
               <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <div>
@@ -245,7 +245,7 @@ const Register = () => {
 
             <Link
               to={`/login?email=${encodeURIComponent(conflictState.email)}`}
-              className="block w-full bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 font-bold py-2 px-4 rounded text-xs transition-all shadow-xs text-center cursor-pointer"
+              className="block w-full bg-slate-900 hover:bg-[#F5B400] text-white hover:text-slate-950 font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-xs text-center cursor-pointer"
             >
               Sign In to Your Account →
             </Link>
@@ -254,7 +254,7 @@ const Register = () => {
 
         {/* 3. Validation / Network Error Banner */}
         {!conflictState && (error || validationError) && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-sm flex items-start space-x-2">
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start space-x-2">
             <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
             <span className="font-semibold">{error || validationError}</span>
           </div>
@@ -262,10 +262,10 @@ const Register = () => {
 
         {/* Primary Role Selector Tabs */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
-            Registering As:
+          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+            Account Type
           </label>
-          <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl border border-slate-250">
+          <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100/80 rounded-xl border border-slate-200">
             <button
               type="button"
               onClick={() => {
@@ -275,15 +275,17 @@ const Register = () => {
               }}
               className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 selectedRole === 'USER'
-                  ? 'bg-slate-950 text-white shadow-md font-extrabold'
-                  : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
+                  ? 'bg-slate-900 text-white shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <User className="w-4 h-4 mb-0.5" />
-              <div className="text-xs font-bold">Customer</div>
-              <div className={`text-[9px] font-mono tracking-wider ${selectedRole === 'USER' ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
-                BUYER ACCOUNT
+              <div className="flex items-center space-x-1.5">
+                <User className="w-4 h-4" />
+                <span className="text-xs font-bold">Customer</span>
               </div>
+              <span className={`text-[10px] mt-0.5 ${selectedRole === 'USER' ? 'text-amber-400 font-medium' : 'text-slate-400 font-normal'}`}>
+                Shop & Track Orders
+              </span>
             </button>
 
             <button
@@ -295,44 +297,37 @@ const Register = () => {
               }}
               className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 selectedRole === 'VENDOR'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                  : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
+                  ? 'bg-slate-900 text-white shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <Store className="w-4 h-4 mb-0.5" />
-              <div className="text-xs font-bold">Vendor / Brand</div>
-              <div className={`text-[9px] font-mono tracking-wider ${selectedRole === 'VENDOR' ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
-                SELLER PARTNER
+              <div className="flex items-center space-x-1.5">
+                <Store className="w-4 h-4" />
+                <span className="text-xs font-bold">Brand Partner</span>
               </div>
+              <span className={`text-[10px] mt-0.5 ${selectedRole === 'VENDOR' ? 'text-amber-400 font-medium' : 'text-slate-400 font-normal'}`}>
+                Seller Portal
+              </span>
             </button>
           </div>
-          <p className="text-[11px] text-slate-500 font-medium px-1">
-            {selectedRole === 'USER'
-              ? '📦 Customer account: Shop premium electronics, track orders, and register warranties.'
-              : '🏢 Vendor account: Manage hardware listings, logistics, warehouse inventory, and payouts.'}
-          </p>
         </div>
 
-        {/* Social / SSO Auth Options with Selected Role */}
-        <div className="space-y-3">
+        {/* Social Auth Options */}
+        <div className="space-y-2.5">
+          <GoogleAuthButton
+            text="Continue with Google"
+            mode="register"
+          />
           <ClerkAuthButton
             mode="signUp"
             role={selectedRole}
-            text={
-              selectedRole === 'VENDOR'
-                ? 'Sign up with Clerk as Vendor'
-                : 'Sign up with Clerk'
-            }
-          />
-          <GoogleAuthButton
-            text={selectedRole === 'VENDOR' ? 'Sign up with Google as Vendor' : 'Sign up with Google'}
-            mode="register"
+            text="Continue with Clerk"
           />
 
           <div className="relative flex py-1 items-center">
             <div className="flex-grow border-t border-slate-200" />
-            <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Or with email & password
+            <span className="flex-shrink mx-3 text-[11px] font-semibold text-slate-400 lowercase">
+              or register with email
             </span>
             <div className="flex-grow border-t border-slate-200" />
           </div>
@@ -342,8 +337,8 @@ const Register = () => {
 
           {/* Full Name */}
           <div className="space-y-1.5">
-            <label htmlFor="reg-name" className="text-xs font-semibold text-brand-gray-655">
-              {selectedRole === 'VENDOR' ? 'Vendor Representative Name:' : 'Full Name:'}
+            <label htmlFor="reg-name" className="text-xs font-semibold text-slate-700">
+              {selectedRole === 'VENDOR' ? 'Representative Name' : 'Full Name'}
             </label>
             <div className="relative">
               <input
@@ -351,18 +346,17 @@ const Register = () => {
                 type="text"
                 required
                 autoComplete="name"
-                placeholder={selectedRole === 'VENDOR' ? 'e.g. John Doe (Brand Manager)' : 'Your Full Name'}
+                placeholder={selectedRole === 'VENDOR' ? 'e.g. Rahul Sharma' : 'e.g. Rahul Sharma'}
                 value={name}
                 onChange={handleInputChange(setName)}
-                className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
+                className="w-full bg-slate-50 border border-slate-200 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B400] focus:border-[#F5B400] transition-all text-slate-900"
               />
-              <User className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+              <User className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
             </div>
           </div>
-
           {/* Email */}
           <div className="space-y-1.5">
-            <label htmlFor="reg-email" className="text-xs font-semibold text-brand-gray-655">Email Address:</label>
+            <label htmlFor="reg-email" className="text-xs font-semibold text-slate-700">Email Address</label>
             <div className="relative">
               <input
                 id="reg-email"
@@ -372,15 +366,15 @@ const Register = () => {
                 placeholder="name@company.com or name@gmail.com"
                 value={email}
                 onChange={handleInputChange(setEmail)}
-                className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
+                className="w-full bg-slate-50 border border-slate-200 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B400] focus:border-[#F5B400] transition-all text-slate-900"
               />
-              <Mail className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+              <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
             </div>
           </div>
 
           {/* Phone */}
           <div className="space-y-1.5">
-            <label htmlFor="reg-phone" className="text-xs font-semibold text-brand-gray-655">Mobile Number (Optional):</label>
+            <label htmlFor="reg-phone" className="text-xs font-semibold text-slate-700">Mobile Number (Optional)</label>
             <div className="relative">
               <input
                 id="reg-phone"
@@ -389,15 +383,15 @@ const Register = () => {
                 placeholder="9876543210"
                 value={phone}
                 onChange={handleInputChange(setPhone)}
-                className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
+                className="w-full bg-slate-50 border border-slate-200 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B400] focus:border-[#F5B400] transition-all text-slate-900"
               />
-              <Phone className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+              <Phone className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
             </div>
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label htmlFor="reg-password" className="text-xs font-semibold text-brand-gray-655">Password:</label>
+            <label htmlFor="reg-password" className="text-xs font-semibold text-slate-700">Password</label>
             <div className="relative">
               <input
                 id="reg-password"
@@ -407,14 +401,14 @@ const Register = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={handleInputChange(setPassword)}
-                className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-14 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
+                className="w-full bg-slate-50 border border-slate-200 pl-10 pr-12 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B400] focus:border-[#F5B400] transition-all text-slate-900"
               />
-              <Lock className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+              <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute right-3 top-2.5 text-brand-gray-400 hover:text-brand-gray-700 focus:outline-none"
+                className="absolute right-3.5 top-2.5 text-slate-400 hover:text-slate-700 focus:outline-none cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -424,7 +418,7 @@ const Register = () => {
 
           {/* Confirm Password */}
           <div className="space-y-1.5">
-            <label htmlFor="reg-confirm" className="text-xs font-semibold text-brand-gray-655">Confirm Password:</label>
+            <label htmlFor="reg-confirm" className="text-xs font-semibold text-slate-700">Confirm Password</label>
             <div className="relative">
               <input
                 id="reg-confirm"
@@ -434,23 +428,23 @@ const Register = () => {
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={handleInputChange(setConfirmPassword)}
-                className={`w-full bg-brand-light border pl-10 pr-14 py-2.5 rounded-sm text-sm focus:outline-none ${
-                  confirmPasswordError ? 'border-red-400 focus:border-red-500' : 'border-brand-gray-250 focus:border-brand-accent'
+                className={`w-full bg-slate-50 border pl-10 pr-12 py-2.5 rounded-xl text-sm focus:outline-none transition-all text-slate-900 ${
+                  confirmPasswordError ? 'border-red-400 focus:ring-2 focus:ring-red-400' : 'border-slate-200 focus:ring-2 focus:ring-[#F5B400] focus:border-[#F5B400]'
                 }`}
               />
-              <Lock className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+              <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                className="absolute right-3 top-2.5 text-brand-gray-400 hover:text-brand-gray-700 focus:outline-none"
+                className="absolute right-3.5 top-2.5 text-slate-400 hover:text-slate-700 focus:outline-none cursor-pointer"
               >
                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {confirmPasswordError && (
-              <p className="text-[10px] text-red-500 font-bold flex items-center space-x-1">
-                <XCircle className="w-3 h-3 text-red-500 shrink-0" />
+              <p className="text-[11px] text-red-500 font-bold flex items-center space-x-1">
+                <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
                 <span>{confirmPasswordError}</span>
               </p>
             )}
@@ -464,13 +458,13 @@ const Register = () => {
               required
               checked={acceptTerms}
               onChange={(e) => setAcceptTerms(e.target.checked)}
-              className="h-3.5 w-3.5 text-brand-accent focus:ring-brand-accent border-brand-gray-300 rounded-2xs"
+              className="h-4 w-4 text-[#F5B400] focus:ring-[#F5B400] border-slate-300 rounded cursor-pointer"
             />
-            <label htmlFor="terms" className="text-2xs text-brand-gray-500 select-none">
+            <label htmlFor="terms" className="text-xs text-slate-500 select-none cursor-pointer">
               I agree to the{' '}
-              <Link to="/terms" className="text-brand-accent hover:underline font-semibold">Terms & Conditions</Link>
+              <Link to="/terms" className="text-amber-600 hover:text-amber-700 hover:underline font-semibold">Terms & Conditions</Link>
               {' '}and{' '}
-              <Link to="/privacy" className="text-brand-accent hover:underline font-semibold">Privacy Policy</Link>.
+              <Link to="/privacy" className="text-amber-600 hover:text-amber-700 hover:underline font-semibold">Privacy Policy</Link>.
             </label>
           </div>
 
@@ -478,24 +472,24 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-slate-950 hover:bg-amber-500 text-white hover:text-slate-950 font-black py-3.5 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all duration-200 disabled:opacity-50 cursor-pointer shadow-md active:scale-[0.98]"
+            className="w-full bg-[#F5B400] hover:bg-[#e0a400] text-slate-950 font-extrabold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 transition-all duration-150 disabled:opacity-50 cursor-pointer shadow-xs hover:shadow-md active:scale-[0.99]"
           >
             {loading ? (
               <span>Creating Account...</span>
             ) : (
               <>
                 <span>Create Account</span>
-                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
         </form>
 
         {/* Footer Link */}
-        <div className="text-center border-t border-brand-gray-200 pt-4">
-          <p className="text-xs text-brand-gray-500">
+        <div className="text-center border-t border-slate-100 pt-4">
+          <p className="text-xs text-slate-500">
             Already have an account?{' '}
-            <Link to="/login" className="font-extrabold text-brand-accent hover:underline">
+            <Link to="/login" className="font-extrabold text-amber-600 hover:text-amber-700 hover:underline">
               Sign In
             </Link>
           </p>
