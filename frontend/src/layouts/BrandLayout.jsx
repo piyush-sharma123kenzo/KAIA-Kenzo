@@ -15,6 +15,7 @@ const BrandLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const isVendorPath = location.pathname.startsWith('/vendor');
   const basePath = isVendorPath ? '/vendor' : '/brand';
