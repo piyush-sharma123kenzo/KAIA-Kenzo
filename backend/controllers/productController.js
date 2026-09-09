@@ -433,7 +433,7 @@ export const getBestSellers = async (req, res) => {
     })
       .populate('brand', 'name slug logo')
       .populate('category', 'name slug')
-      .sort({ 'ratings.count': -1, isBestSeller: -1, createdAt: -1 })
+      .sort({ isBestSeller: -1, salesCount: -1, 'ratings.count': -1, createdAt: -1 })
       .limit(limit);
 
     res.status(200).json({ success: true, products });
@@ -451,7 +451,7 @@ export const getNewArrivals = async (req, res) => {
     })
       .populate('brand', 'name slug logo')
       .populate('category', 'name slug')
-      .sort({ createdAt: -1 })
+      .sort({ isNewArrival: -1, createdAt: -1 })
       .limit(limit);
 
     res.status(200).json({ success: true, products });
@@ -463,15 +463,18 @@ export const getNewArrivals = async (req, res) => {
 export const getDeals = async (req, res) => {
   try {
     const limit = Math.min(24, parseInt(req.query.limit, 10) || 8);
-    // Return products where mrp > sellingPrice
+    // Return products marked as isBestDeal or where mrp > sellingPrice
     const products = await Product.find({
       isActive: true,
       status: { $in: ['Approved', 'published'] },
-      $expr: { $gt: ['$mrp', '$sellingPrice'] },
+      $or: [
+        { isBestDeal: true },
+        { $expr: { $gt: ['$mrp', '$sellingPrice'] } },
+      ],
     })
       .populate('brand', 'name slug logo')
       .populate('category', 'name slug')
-      .sort({ mrp: -1 })
+      .sort({ isBestDeal: -1, mrp: -1, createdAt: -1 })
       .limit(limit);
 
     res.status(200).json({ success: true, products });

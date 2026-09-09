@@ -1,8 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, Package, PlusCircle, ShoppingBag, Barcode, Truck, ClipboardList, TrendingUp, Building2, Settings, Bell, LogOut, ShieldAlert, Menu, X, CheckCircle, ExternalLink, FileText, RotateCcw, Landmark, DollarSign,
-  ChevronDown, ChevronRight, User, ShieldCheck
+  LayoutDashboard, Package, PlusCircle, ShoppingBag, Barcode, Truck, ClipboardList, TrendingUp, Building2, Settings, Bell, LogOut, ShieldAlert, Menu, X, CheckCircle, ExternalLink, FileText, RotateCcw, Landmark, DollarSign
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -15,7 +14,6 @@ const BrandLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const isVendorPath = location.pathname.startsWith('/vendor');
   const basePath = isVendorPath ? '/vendor' : '/brand';
@@ -241,134 +239,21 @@ const BrandLayout = () => {
               )}
             </Link>
 
-            {/* Operator details with Interactive Account Dropdown */}
-            <div 
-              className="relative border-l border-brand-gray-200 pl-3 sm:pl-4"
-              onMouseEnter={() => setUserMenuOpen(true)}
-              onMouseLeave={() => setUserMenuOpen(false)}
-            >
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center space-x-3 text-left focus:outline-none group p-1 rounded-sm hover:bg-brand-gray-50 transition-colors cursor-pointer"
-              >
-                <ProfileAvatar 
-                  user={user} 
-                  size="sm" 
-                  shape="circle" 
-                  ring={true}
-                  ringColor="ring-amber-500/40"
-                  allowPreview={false}
-                  showRoleBadge={false}
-                />
-                <div className="text-left hidden md:block">
-                  <div className="flex items-center space-x-1.5">
-                    <p className="text-xs font-bold text-brand-gray-900 leading-none group-hover:text-amber-600 transition-colors">
-                      {brand?.name || user.name}
-                    </p>
-                    <ChevronDown className="w-3 h-3 text-brand-gray-400 group-hover:text-brand-gray-700 transition-transform" />
-                  </div>
-                  <p className="text-[10px] text-emerald-600 font-bold uppercase mt-1">Authorized Seller</p>
-                </div>
-              </button>
-
-              {/* Account Options Dropdown */}
-              {userMenuOpen && (
-                <div className="absolute right-0 top-full pt-2 w-72 z-50 animate-in fade-in slide-in-from-top-1 duration-150 text-left">
-                  <div className="bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] border border-slate-200 overflow-hidden ring-1 ring-black/5">
-                    
-                    {/* Header Details */}
-                    <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center space-x-3">
-                      <ProfileAvatar 
-                        user={user} 
-                        size="md" 
-                        shape="circle" 
-                        ring={true}
-                        ringColor="ring-amber-500"
-                        allowPreview={true}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-black text-slate-900 truncate">{brand?.name || user.name}</p>
-                        <p className="text-[11px] text-slate-500 font-mono truncate">{user.email}</p>
-                        <span className="inline-block mt-1 text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {brand?.status || 'Authorized Seller'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Nav Action Links */}
-                    <div className="p-2 space-y-0.5 text-xs">
-                      <Link
-                        to={`${basePath}/profile`}
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold transition-colors"
-                      >
-                        <Building2 className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span className="flex-1">Brand Store Profile</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                      </Link>
-
-                      <Link
-                        to={`${basePath}/inventory`}
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold transition-colors"
-                      >
-                        <ClipboardList className="w-4 h-4 text-slate-600 shrink-0" />
-                        <span className="flex-1">Warehouse Inventory</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                      </Link>
-
-                      <Link
-                        to={`${basePath}/settlements`}
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold transition-colors"
-                      >
-                        <Landmark className="w-4 h-4 text-slate-600 shrink-0" />
-                        <span className="flex-1">Earnings & Payouts</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                      </Link>
-
-                      <Link
-                        to={`${basePath}/settings`}
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold transition-colors"
-                      >
-                        <Settings className="w-4 h-4 text-slate-600 shrink-0" />
-                        <span className="flex-1">Partner Settings</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                      </Link>
-
-                      <Link
-                        to={brand?.slug ? `/brand/${brand.slug}` : '/products'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center space-x-3 px-3 py-2 rounded-lg text-amber-800 hover:text-amber-950 hover:bg-amber-50 font-semibold transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span className="flex-1">Customer Storefront</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
-                      </Link>
-                    </div>
-
-                    {/* Sign Out Footer */}
-                    <div className="p-2 border-t border-slate-100 bg-slate-50">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          logout();
-                        }}
-                        className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors font-bold"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>Sign Out Partner Account</span>
-                      </button>
-                    </div>
-
-                  </div>
-                </div>
-              )}
+            {/* Operator details */}
+            <div className="flex items-center space-x-3 border-l border-brand-gray-200 pl-3 sm:pl-4">
+              <ProfileAvatar 
+                user={user} 
+                size="sm" 
+                shape="circle" 
+                ring={true}
+                ringColor="ring-brand-accent/30"
+                allowPreview={Boolean(user?.profileImage?.url || user?.avatar)}
+                showRoleBadge={false}
+              />
+              <div className="text-left hidden md:block">
+                <p className="text-xs font-bold text-brand-gray-900 leading-none">{brand?.name || user.name}</p>
+                <p className="text-[10px] text-emerald-600 font-bold uppercase mt-1">Authorized Seller</p>
+              </div>
             </div>
 
           </div>

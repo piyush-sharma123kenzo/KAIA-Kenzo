@@ -80,6 +80,33 @@ export const adminService = {
     }
   },
 
+  approveProduct: async (id) => {
+    try {
+      const res = await axiosInstance.patch(`/admin/products/${id}/status`, {
+        status: 'Approved',
+        isActive: true,
+      });
+      return res.data;
+    } catch (err) {
+      console.error('Error approving product:', err);
+      throw err;
+    }
+  },
+
+  rejectProduct: async (id, reason = '') => {
+    try {
+      const res = await axiosInstance.patch(`/admin/products/${id}/status`, {
+        status: 'Rejected',
+        isActive: false,
+        rejectionReason: reason,
+      });
+      return res.data;
+    } catch (err) {
+      console.error('Error rejecting product:', err);
+      throw err;
+    }
+  },
+
   addProductImages: async (id, images) => {
     try {
       const payload = Array.isArray(images) ? { images } : { url: images };

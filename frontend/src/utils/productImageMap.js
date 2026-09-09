@@ -107,6 +107,27 @@ function getHashIndex(str, max) {
 export const getAccurateProductImage = (product) => {
   if (!product) return categoryImagePools.laptops[0];
 
+  // 1. PRIMARY: If vendor/admin provided real uploaded images, ALWAYS use them!
+  const rawImg =
+    (Array.isArray(product.images) && product.images.length > 0
+      ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url)
+      : null) ||
+    product.imageUrl ||
+    product.image;
+
+  if (
+    rawImg &&
+    typeof rawImg === 'string' &&
+    rawImg.trim() !== '' &&
+    !rawImg.includes('undefined') &&
+    !rawImg.includes('null') &&
+    !rawImg.includes('photo-1550745165-9bc0b252726f') &&
+    !rawImg.includes('photo-1518770660439-4636190af475')
+  ) {
+    return rawImg.trim();
+  }
+
+  // 2. FALLBACK: Match semantic category pools only if no custom product image is present
   const name = (product.name || '').toLowerCase();
   const desc = (product.description || '').toLowerCase();
   const cat = (typeof product.category === 'string' ? product.category : product.category?.name || product.category?.slug || '').toLowerCase();
@@ -201,12 +222,6 @@ export const getAccurateProductImage = (product) => {
   if (fullText.includes('laptop') || fullText.includes('macbook') || fullText.includes('notebook') || fullText.includes('thinkpad') || fullText.includes('zenbook') || fullText.includes('workstation')) {
     const pool = categoryImagePools.laptops;
     return pool[getHashIndex(seed, pool.length)];
-  }
-
-  // If first image in product.images exists and is valid and not bad stock photo
-  const rawImg = product.images?.[0]?.url || (typeof product.images?.[0] === 'string' ? product.images[0] : null) || product.image;
-  if (rawImg && typeof rawImg === 'string' && !rawImg.includes('photo-1550745165-9bc0b252726f') && !rawImg.includes('photo-1518770660439-4636190af475')) {
-    return rawImg;
   }
 
   const defaultPool = categoryImagePools.laptops;

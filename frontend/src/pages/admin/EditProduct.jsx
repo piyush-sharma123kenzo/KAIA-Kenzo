@@ -31,6 +31,7 @@ const EditProduct = () => {
     isFeatured: false,
     isBestSeller: false,
     isNewArrival: false,
+    isBestDeal: false,
   });
 
   const [images, setImages] = useState([]);
@@ -81,6 +82,7 @@ const EditProduct = () => {
             isFeatured: Boolean(p.isFeatured),
             isBestSeller: Boolean(p.isBestSeller),
             isNewArrival: Boolean(p.isNewArrival),
+            isBestDeal: Boolean(p.isBestDeal),
           });
 
           // Images
@@ -212,7 +214,12 @@ const EditProduct = () => {
         isPrimary: idx === 0,
       })),
       specifications: specsMap,
-      status: formData.isActive ? 'Approved' : 'Inactive',
+      status: formData.status,
+      isActive: formData.status === 'Approved' ? true : Boolean(formData.isActive),
+      isBestDeal: Boolean(formData.isBestDeal),
+      isFeatured: Boolean(formData.isFeatured),
+      isBestSeller: Boolean(formData.isBestSeller),
+      isNewArrival: Boolean(formData.isNewArrival),
     };
 
     setSaving(true);
@@ -603,13 +610,49 @@ const EditProduct = () => {
           </div>
         </div>
 
-        {/* Section 5: Merchandising Flags */}
+        {/* Section 5: Merchandising Flags & Status */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-5">
-          <h2 className="text-base font-extrabold text-slate-900 border-b border-slate-100 pb-3">
-            5. Storefront Badges & Visibility
-          </h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900">
+                5. Approval Status & Merchandising Badges
+              </h2>
+              <p className="text-xs text-slate-500">Manage storefront publication, approval status, and promotional badges.</p>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {/* Approval Status Selector */}
+            <div className="flex items-center space-x-2">
+              <label className="text-xs font-bold text-slate-700">Approval Status:</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={(e) => {
+                  const newStat = e.target.value;
+                  setFormData((prev) => ({
+                    ...prev,
+                    status: newStat,
+                    isActive: newStat === 'Approved' ? true : prev.isActive,
+                  }));
+                }}
+                className={`border text-xs font-extrabold px-3 py-2 rounded-xl focus:outline-none ${
+                  formData.status === 'Approved'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : formData.status === 'Pending Approval'
+                    ? 'bg-amber-50 text-amber-800 border-amber-300'
+                    : formData.status === 'Rejected'
+                    ? 'bg-red-50 text-red-800 border-red-300'
+                    : 'bg-slate-50 text-slate-700 border-slate-300'
+                }`}
+              >
+                <option value="Approved">✅ Approved (Live on Storefront)</option>
+                <option value="Pending Approval">⏳ Pending Approval</option>
+                <option value="Draft">📝 Draft / Inactive</option>
+                <option value="Rejected">❌ Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
             <label className="flex items-center space-x-3 p-4 rounded-xl border border-slate-200 bg-[#F8FAFC] cursor-pointer hover:border-amber-400 transition-colors">
               <input
                 type="checkbox"
@@ -663,6 +706,20 @@ const EditProduct = () => {
               <div>
                 <span className="text-xs font-bold text-slate-900 block">New Arrival</span>
                 <span className="text-[10px] text-slate-500">Fresh stock badge</span>
+              </div>
+            </label>
+
+            <label className="flex items-center space-x-3 p-4 rounded-xl border border-slate-200 bg-[#F8FAFC] cursor-pointer hover:border-amber-400 transition-colors">
+              <input
+                type="checkbox"
+                name="isBestDeal"
+                checked={formData.isBestDeal}
+                onChange={handleChange}
+                className="w-4 h-4 rounded text-amber-500 focus:ring-0"
+              />
+              <div>
+                <span className="text-xs font-bold text-slate-900 block">Hot Deal</span>
+                <span className="text-[10px] text-slate-500">Deals section</span>
               </div>
             </label>
           </div>

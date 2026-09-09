@@ -60,13 +60,17 @@ export const getAdminProducts = async (req, res) => {
 
     // Status filter
     if (status && status !== 'all') {
-      if (status === 'Active' || status === 'Approved') {
+      if (status === 'Active' || status === 'Approved' || status === 'Live') {
         query.status = { $in: ['Approved', 'published'] };
         query.isActive = true;
+      } else if (status === 'Pending' || status === 'Pending Approval') {
+        query.status = 'Pending Approval';
+      } else if (status === 'Draft') {
+        query.status = 'Draft';
+      } else if (status === 'Rejected') {
+        query.status = 'Rejected';
       } else if (status === 'Inactive') {
         query.$or = [{ status: 'Inactive' }, { isActive: false }];
-      } else if (status === 'Pending') {
-        query.status = 'Pending Approval';
       }
     }
 
@@ -491,6 +495,7 @@ export const updateAdminProduct = async (req, res) => {
     if (isFeatured !== undefined) product.isFeatured = Boolean(isFeatured);
     if (isBestSeller !== undefined) product.isBestSeller = Boolean(isBestSeller);
     if (isNewArrival !== undefined) product.isNewArrival = Boolean(isNewArrival);
+    if (isBestDeal !== undefined) product.isBestDeal = Boolean(isBestDeal);
     if (warrantySummary !== undefined) product.warrantySummary = warrantySummary;
 
     await product.save();
@@ -586,40 +591,72 @@ export const updateAdminProductStock = async (req, res) => {
   }
 };
 
-// @desc    Toggle product active / inactive status
+// @desc    Toggle product active / inactive status or update flags
 // @route   PATCH /api/admin/products/:id/status
 // @route   PATCH /api/products/:id/status
 // @access  Private (ADMIN / Brand)
 export const toggleAdminProductStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { isActive, status } = req.body;
+    const { isActive, status, isFeatured, isBestSeller, isNewArrival, isBestDeal } = req.body;
 
     const product = await Product.findById(id);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
 
+    // Handle Status
+    if (status !== undefined) {
+      product.status = status;
+      if (status === 'Approved' || status === 'published') {
+        product.isActive = true;
+      } else if (['Draft', 'Pending Approval', 'Rejected', 'Inactive'].includes(status)) {
+        product.isActive = false;
+      }
+    }
+
+    // Handle Active flag explicitly if provided
     if (isActive !== undefined) {
       product.isActive = Boolean(isActive);
-      product.status = Boolean(isActive) ? 'Approved' : 'Inactive';
-    } else if (status !== undefined) {
-      product.status = status;
-      product.isActive = status === 'Approved' || status === 'published';
-    } else {
+      if (product.isActive && (!product.status || product.status === 'Inactive' || product.status === 'Draft')) {
+        product.status = 'Approved';
+      } else if (!product.isActive && product.status === 'Approved') {
+        product.status = 'Inactive';
+      }
+    }
+
+    // Handle Merchandising Flags
+    if (isFeatured !== undefined) product.isFeatured = Boolean(isFeatured);
+    if (isBestSeller !== undefined) product.isBestSeller = Boolean(isBestSeller);
+    if (isNewArrival !== undefined) product.isNewArrival = Boolean(isNewArrival);
+    if (isBestDeal !== undefined) product.isBestDeal = Boolean(isBestDeal);
+
+    // If nothing provided at all, simple toggle
+    if (
+      status === undefined &&
+      isActive === undefined &&
+      isFeatured === undefined &&
+      isBestSeller === undefined &&
+      isNewArrival === undefined &&
+      isBestDeal === undefined
+    ) {
       product.isActive = !product.isActive;
       product.status = product.isActive ? 'Approved' : 'Inactive';
     }
 
     await product.save();
 
+    const populated = await Product.findById(product._id)
+      .populate('brand', 'name slug logo')
+      .populate('category', 'name slug');
+
     res.status(200).json({
       success: true,
-      message: `Product is now ${product.isActive ? 'Active and published' : 'Inactive and hidden'}.`,
-      product,
+      message: `Product '${product.name}' status/flags updated successfully.`,
+      product: populated || product,
     });
   } catch (error) {
-    console.error('Error toggling product status:', error);
+    console.error('Error updating product status/flags:', error);
     res.status(500).json({ success: false, message: 'Server error updating product status.' });
   }
 };

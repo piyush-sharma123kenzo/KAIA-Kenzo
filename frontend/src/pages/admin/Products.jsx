@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Edit3, Trash2, ExternalLink, Filter, 
   CheckCircle2, XCircle, AlertCircle, Sparkles, Trophy, 
-  Zap, ArrowUpDown, RefreshCw, Layers, Tag
+  Zap, ArrowUpDown, RefreshCw, Layers, Tag, Flame,
+  Clock, Check, X, Eye, HelpCircle, CheckCheck
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import { categoryService } from '../../services/categoryService';
 import { brandService } from '../../services/brandService';
+import { getAccurateProductImage } from '../../utils/productImageMap';
 import Button from '../../components/ui/Button';
 
 const AdminProducts = () => {
@@ -26,6 +28,15 @@ const AdminProducts = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [deletingId, setDeletingId] = useState(null);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showFeedback = (msg, type = 'success') => {
+    setToastMessage({ text: msg, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+  };
 
   const fetchCatalog = async () => {
     setLoading(true);
@@ -71,6 +82,108 @@ const AdminProducts = () => {
     fetchCatalog();
   }, [search, selectedBrand, selectedCategory, selectedStatus, page]);
 
+  // Handle Approve Product
+  const handleApprove = async (product) => {
+    setActionLoadingId(product._id);
+    try {
+      const res = await adminService.approveProduct(product._id);
+      if (res.success) {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p._id === product._id
+              ? { ...p, status: 'Approved', isActive: true }
+              : p
+          )
+        );
+        showFeedback(`✓ "${product.name}" approved! It is now live on the website storefront.`, 'success');
+      }
+    } catch (err) {
+      showFeedback(err.response?.data?.message || 'Failed to approve product.', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handle Reject Product
+  const handleReject = async (product) => {
+    const reason = window.prompt(`Please provide a rejection reason for "${product.name}":`, 'Details or pricing need revision.');
+    if (reason === null) return; // User cancelled prompt
+
+    setActionLoadingId(product._id);
+    try {
+      const res = await adminService.rejectProduct(product._id, reason);
+      if (res.success) {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p._id === product._id
+              ? { ...p, status: 'Rejected', isActive: false }
+              : p
+          )
+        );
+        showFeedback(`Product "${product.name}" was marked as Rejected.`, 'info');
+      }
+    } catch (err) {
+      showFeedback(err.response?.data?.message || 'Failed to reject product.', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handle Status Change Dropdown
+  const handleStatusChange = async (productId, newStatus) => {
+    setActionLoadingId(productId);
+    try {
+      const res = await adminService.toggleProductStatus(productId, { status: newStatus });
+      if (res.success) {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p._id === productId
+              ? { ...p, status: newStatus, isActive: newStatus === 'Approved' || newStatus === 'published' }
+              : p
+          )
+        );
+        showFeedback(`Product status changed to ${newStatus}.`, 'success');
+      }
+    } catch (err) {
+      showFeedback(err.response?.data?.message || 'Failed to change status.', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handle Merchandising Flag Toggle (Featured, Best Seller, New Arrival, Deal)
+  const handleToggleFlag = async (productId, flagName, currentValue) => {
+    const nextValue = !currentValue;
+    // Optimistic UI update
+    setProducts((prev) =>
+      prev.map((p) => (p._id === productId ? { ...p, [flagName]: nextValue } : p))
+    );
+
+    try {
+      const res = await adminService.toggleProductStatus(productId, {
+        [flagName]: nextValue,
+      });
+      if (res.success) {
+        const flagLabels = {
+          isFeatured: 'Featured',
+          isBestSeller: 'Best Seller',
+          isNewArrival: 'New Arrival',
+          isBestDeal: 'Best Deal',
+        };
+        showFeedback(
+          `${flagLabels[flagName] || flagName} set to ${nextValue ? 'ON ⭐' : 'OFF'} for this product.`,
+          'success'
+        );
+      }
+    } catch (err) {
+      // Revert optimistic update
+      setProducts((prev) =>
+        prev.map((p) => (p._id === productId ? { ...p, [flagName]: currentValue } : p))
+      );
+      showFeedback(err.response?.data?.message || 'Failed to update flag.', 'error');
+    }
+  };
+
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Are you sure you want to permanently delete "${name}"? This will remove it from the live store.`)) {
       return;
@@ -82,28 +195,47 @@ const AdminProducts = () => {
       if (res.success) {
         setProducts((prev) => prev.filter((p) => p._id !== id));
         setTotal((prev) => Math.max(0, prev - 1));
+        showFeedback(`Product "${name}" deleted.`, 'info');
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete product.');
+      showFeedback(err.response?.data?.message || 'Failed to delete product.', 'error');
     } finally {
       setDeletingId(null);
     }
   };
 
+  const pendingCount = products.filter((p) => p.status === 'Pending Approval').length;
+
   return (
     <div className="space-y-6 text-left font-sans">
       
-      {/* 1. Header with Add Action */}
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className={`p-4 rounded-xl text-xs font-bold shadow-md flex items-center justify-between border transition-all ${
+          toastMessage.type === 'success' 
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+            : toastMessage.type === 'error'
+            ? 'bg-red-50 text-red-800 border-red-200'
+            : 'bg-amber-50 text-amber-800 border-amber-200'
+        }`}>
+          <span>{toastMessage.text}</span>
+          <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-slate-700">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* 1. Header with Add Action & Pending Alert */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center space-x-2.5">
             <Layers className="w-6 h-6 text-amber-600" />
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              Product Management
+              Product Catalog & Approval Management
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Create, update pricing & stock, upload multi-angle photos, and publish hardware live to the KAIA storefront.
+            Review vendor submissions, approve products to publish live to the storefront, and configure Best Seller & New Arrival flags.
           </p>
         </div>
 
@@ -114,6 +246,34 @@ const AdminProducts = () => {
           </button>
         </Link>
       </div>
+
+      {/* Pending Approval Alert Banner if pending items exist */}
+      {pendingCount > 0 && selectedStatus !== 'Pending Approval' && (
+        <div className="bg-amber-500/10 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs">
+              {pendingCount}
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-900">
+                {pendingCount} Vendor Product{pendingCount > 1 ? 's' : ''} Awaiting Approval on this page!
+              </p>
+              <p className="text-[11px] text-amber-800">
+                Click "Approve & Publish" to instantly verify vendor listings and display them live on the KAIA website.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setSelectedStatus('Pending Approval');
+              setPage(1);
+            }}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-xs shrink-0"
+          >
+            Filter Pending Products →
+          </button>
+        </div>
+      )}
 
       {/* 2. Search & Filter Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center gap-3">
@@ -141,7 +301,7 @@ const AdminProducts = () => {
           }}
           className="bg-[#F8FAFC] border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-amber-500"
         >
-          <option value="">All Brands</option>
+          <option value="">All Brands / Stores</option>
           {brandsList.map((b) => (
             <option key={b._id || b.slug} value={b.slug || b.name}>
               {b.name}
@@ -173,11 +333,13 @@ const AdminProducts = () => {
             setSelectedStatus(e.target.value);
             setPage(1);
           }}
-          className="bg-[#F8FAFC] border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-amber-500"
+          className="bg-[#F8FAFC] border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500"
         >
           <option value="all">All Statuses</option>
-          <option value="Active">Active / Live</option>
-          <option value="Inactive">Inactive / Draft</option>
+          <option value="Pending Approval">⏳ Pending Approval</option>
+          <option value="Active">✅ Approved / Live</option>
+          <option value="Draft">📝 Draft / Inactive</option>
+          <option value="Rejected">❌ Rejected</option>
         </select>
 
         {/* Reset */}
@@ -209,7 +371,9 @@ const AdminProducts = () => {
             <Layers className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="text-lg font-bold text-slate-800">No products found</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Your store catalog is currently empty. Click "Add New Product" to upload and publish your first product!
+              {selectedStatus === 'Pending Approval'
+                ? 'No vendor products are currently awaiting approval.'
+                : 'Your store catalog is currently empty. Click "Add New Product" to create one.'}
             </p>
             <Link to="/admin/products/add">
               <Button size="sm" className="bg-amber-500 text-slate-950 font-bold text-xs uppercase">
@@ -223,27 +387,36 @@ const AdminProducts = () => {
               <thead className="bg-[#F8FAFC] text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="px-5 py-3.5">Product</th>
-                  <th className="px-4 py-3.5">Brand</th>
+                  <th className="px-4 py-3.5">Brand / Store</th>
                   <th className="px-4 py-3.5">Category</th>
                   <th className="px-4 py-3.5">Price & MRP</th>
                   <th className="px-4 py-3.5">Stock</th>
-                  <th className="px-4 py-3.5">Flags</th>
-                  <th className="px-4 py-3.5">Status</th>
+                  <th className="px-4 py-3.5 min-w-[200px]">Merchandising Flags (Click to Toggle)</th>
+                  <th className="px-4 py-3.5">Status & Approval</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                 {products.map((product) => {
-                  const displayImg = product.imageUrl || (product.images?.[0]?.url || product.images?.[0] || '');
-                  const isLive = product.status === 'Approved' || product.status === 'published';
+                  const displayImg = getAccurateProductImage(product);
+                  const isPending = product.status === 'Pending Approval';
+                  const isApproved = product.status === 'Approved' || product.status === 'published';
+                  const isRejected = product.status === 'Rejected';
+                  const isDraft = product.status === 'Draft' || product.status === 'Inactive';
+                  const isBusy = actionLoadingId === product._id;
 
                   return (
-                    <tr key={product._id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr 
+                      key={product._id} 
+                      className={`hover:bg-slate-50/70 transition-colors ${
+                        isPending ? 'bg-amber-500/5' : ''
+                      }`}
+                    >
                       {/* Image & Title */}
                       <td className="px-5 py-4">
                         <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 rounded-xl bg-[#F8FAFC] border border-slate-200/80 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="w-13 h-13 rounded-xl bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
                             {displayImg ? (
                               <img
                                 src={displayImg}
@@ -258,7 +431,7 @@ const AdminProducts = () => {
                               <Layers className="w-5 h-5 text-slate-300" />
                             )}
                           </div>
-                          <div className="max-w-[240px]">
+                          <div className="max-w-[220px]">
                             <span className="font-extrabold text-slate-900 truncate block text-xs" title={product.name}>
                               {product.name}
                             </span>
@@ -269,7 +442,7 @@ const AdminProducts = () => {
                         </div>
                       </td>
 
-                      {/* Brand */}
+                      {/* Brand / Store */}
                       <td className="px-4 py-4">
                         <span className="inline-block font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md text-[11px]">
                           {product.brand?.name || 'Unassigned'}
@@ -310,76 +483,178 @@ const AdminProducts = () => {
                         </span>
                       </td>
 
-                      {/* Badges / Flags */}
+                      {/* Interactive Merchandising Flags */}
                       <td className="px-4 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {product.isFeatured && (
-                            <span className="inline-flex items-center text-[9px] font-extrabold bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-200">
-                              <Sparkles className="w-2.5 h-2.5 mr-0.5" /> Featured
-                            </span>
-                          )}
-                          {product.isBestSeller && (
-                            <span className="inline-flex items-center text-[9px] font-extrabold bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200">
-                              <Trophy className="w-2.5 h-2.5 mr-0.5" /> Best Seller
-                            </span>
-                          )}
-                          {product.isNewArrival && (
-                            <span className="inline-flex items-center text-[9px] font-extrabold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">
-                              <Zap className="w-2.5 h-2.5 mr-0.5" /> New
-                            </span>
-                          )}
-                          {!product.isFeatured && !product.isBestSeller && !product.isNewArrival && (
-                            <span className="text-slate-400 text-[10px]">Standard</span>
-                          )}
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          {/* Featured Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleFlag(product._id, 'isFeatured', product.isFeatured)}
+                            title="Toggle Homepage Featured Showcase"
+                            className={`inline-flex items-center text-[10px] font-extrabold px-2 py-1 rounded-lg border transition-all ${
+                              product.isFeatured
+                                ? 'bg-purple-600 text-white border-purple-700 shadow-2xs'
+                                : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-purple-50 hover:text-purple-700'
+                            }`}
+                          >
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Featured
+                          </button>
+
+                          {/* Best Seller Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleFlag(product._id, 'isBestSeller', product.isBestSeller)}
+                            title="Toggle Best Seller Ribbon & Collection"
+                            className={`inline-flex items-center text-[10px] font-extrabold px-2 py-1 rounded-lg border transition-all ${
+                              product.isBestSeller
+                                ? 'bg-amber-500 text-slate-950 border-amber-600 font-black shadow-2xs'
+                                : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-amber-50 hover:text-amber-800'
+                            }`}
+                          >
+                            <Trophy className="w-3 h-3 mr-1" />
+                            Best Seller
+                          </button>
+
+                          {/* New Arrival Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleFlag(product._id, 'isNewArrival', product.isNewArrival)}
+                            title="Toggle New Arrival Badge & Collection"
+                            className={`inline-flex items-center text-[10px] font-extrabold px-2 py-1 rounded-lg border transition-all ${
+                              product.isNewArrival
+                                ? 'bg-blue-600 text-white border-blue-700 shadow-2xs'
+                                : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-blue-50 hover:text-blue-700'
+                            }`}
+                          >
+                            <Zap className="w-3 h-3 mr-1" />
+                            New Arrival
+                          </button>
+
+                          {/* Best Deal Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleFlag(product._id, 'isBestDeal', product.isBestDeal)}
+                            title="Toggle Hot Deal Collection"
+                            className={`inline-flex items-center text-[10px] font-extrabold px-2 py-1 rounded-lg border transition-all ${
+                              product.isBestDeal
+                                ? 'bg-rose-600 text-white border-rose-700 shadow-2xs'
+                                : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-rose-50 hover:text-rose-700'
+                            }`}
+                          >
+                            <Flame className="w-3 h-3 mr-1" />
+                            Deal
+                          </button>
                         </div>
                       </td>
 
-                      {/* Status */}
+                      {/* Status & One-Click Approval Workflow */}
                       <td className="px-4 py-4">
-                        <span
-                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                            isLive && product.isActive !== false
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}
-                        >
-                          {isLive && product.isActive !== false ? (
-                            <>
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>Live</span>
-                            </>
+                        <div className="space-y-2">
+                          {/* Current Status Badge */}
+                          <div className="flex items-center space-x-1.5">
+                            <span
+                              className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                isApproved && product.isActive !== false
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                  : isPending
+                                  ? 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse'
+                                  : isRejected
+                                  ? 'bg-red-50 text-red-700 border-red-200'
+                                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              {isApproved && product.isActive !== false ? (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>Approved & Live</span>
+                                </>
+                              ) : isPending ? (
+                                <>
+                                  <Clock className="w-3 h-3 text-amber-700" />
+                                  <span>Pending Approval</span>
+                                </>
+                              ) : isRejected ? (
+                                <>
+                                  <XCircle className="w-3 h-3 text-red-500" />
+                                  <span>Rejected</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle className="w-3 h-3 text-slate-400" />
+                                  <span>Draft</span>
+                                </>
+                              )}
+                            </span>
+                          </div>
+
+                          {/* Instant Approval Buttons */}
+                          {!isApproved ? (
+                            <div className="flex items-center space-x-1.5">
+                              <button
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => handleApprove(product)}
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase px-3 py-1.5 rounded-lg shadow-sm hover:shadow-emerald-500/20 transition-all flex items-center space-x-1 disabled:opacity-50"
+                                title="Approve this product to publish live to the storefront immediately"
+                              >
+                                <CheckCheck className="w-3.5 h-3.5" />
+                                <span>{isBusy ? 'Saving...' : 'Approve & Publish'}</span>
+                              </button>
+
+                              {!isRejected && (
+                                <button
+                                  type="button"
+                                  disabled={isBusy}
+                                  onClick={() => handleReject(product)}
+                                  className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-[10px] px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                                  title="Reject this submission"
+                                >
+                                  Reject
+                                </button>
+                              )}
+                            </div>
                           ) : (
-                            <>
-                              <XCircle className="w-3 h-3 text-slate-400" />
-                              <span>Draft</span>
-                            </>
+                            <div className="flex items-center space-x-1">
+                              <select
+                                value={product.status || 'Approved'}
+                                onChange={(e) => handleStatusChange(product._id, e.target.value)}
+                                disabled={isBusy}
+                                className="bg-[#F8FAFC] border border-slate-200 text-[10px] font-bold rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-amber-500"
+                              >
+                                <option value="Approved">Live (Approved)</option>
+                                <option value="Draft">Draft / Hide</option>
+                                <option value="Pending Approval">Mark Pending</option>
+                                <option value="Rejected">Reject</option>
+                              </select>
+                            </div>
                           )}
-                        </span>
+                        </div>
                       </td>
 
                       {/* Actions */}
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end space-x-1.5">
-                          {/* Live View */}
+                          {/* Live Storefront View */}
                           <Link
                             to={`/product/${product.slug}`}
                             target="_blank"
-                            title="View on Storefront"
+                            title="View Live on Storefront"
                             className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                           >
                             <ExternalLink className="w-4 h-4" />
                           </Link>
 
-                          {/* Edit */}
+                          {/* Edit Full Product */}
                           <Link
                             to={`/admin/products/edit/${product._id}`}
-                            title="Edit Product"
+                            title="Edit Full Product Details"
                             className="p-1.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded-lg transition-colors"
                           >
                             <Edit3 className="w-4 h-4" />
                           </Link>
 
-                          {/* Delete */}
+                          {/* Delete Product */}
                           <button
                             onClick={() => handleDelete(product._id, product.name)}
                             disabled={deletingId === product._id}
