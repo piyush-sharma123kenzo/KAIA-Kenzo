@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import User from '../models/User.js';
+import { ensureRealCategories } from '../controllers/categoryController.js';
 
 const autoBootstrapAdmin = async () => {
   const adminEmail = (process.env.BOOTSTRAP_ADMIN_EMAIL || process.env.ADMIN_EMAIL)?.trim()?.toLowerCase();
@@ -41,6 +42,7 @@ const connectDB = async () => {
     const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/kaia-tech');
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     await autoBootstrapAdmin();
+    await ensureRealCategories();
   } catch (error) {
     console.error(`MongoDB Connection Error: ${error.message}`);
     process.exit(1);
