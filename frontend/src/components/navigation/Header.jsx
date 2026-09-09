@@ -77,6 +77,7 @@ const Header = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountDropdown, setAccountDropdown] = useState(false);
