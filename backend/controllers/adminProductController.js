@@ -172,6 +172,7 @@ export const createAdminProduct = async (req, res) => {
       isFeatured = false,
       isBestSeller = false,
       isNewArrival = false,
+      isBestDeal = false,
       gstRate = 18.0,
       warrantySummary,
     } = req.body;
@@ -318,6 +319,7 @@ export const createAdminProduct = async (req, res) => {
       isFeatured: Boolean(isFeatured),
       isBestSeller: Boolean(isBestSeller),
       isNewArrival: Boolean(isNewArrival),
+      isBestDeal: Boolean(isBestDeal),
       warrantySummary: warrantySummary || '1 Year Manufacturer Limited Warranty',
     });
 
@@ -361,6 +363,7 @@ export const updateAdminProduct = async (req, res) => {
       isFeatured,
       isBestSeller,
       isNewArrival,
+      isBestDeal,
       gstRate,
       warrantySummary,
     } = req.body;
