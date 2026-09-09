@@ -21,15 +21,17 @@ export const getPopulatedWishlist = async (userId) => {
   });
 
   if (!wishlist) {
-    wishlist = await Wishlist.create({ user: userId, products: [] });
-    wishlist = await Wishlist.findOne({ user: userId }).populate({
-      path: 'products.product',
-      select: 'name slug brand category mrp sellingPrice price images stock stockQuantity status isActive isDeleted gstRate SKU modelNumber description',
-      populate: [
-        { path: 'brand', select: 'name slug logo' },
-        { path: 'category', select: 'name slug' },
-      ],
-    });
+    return {
+      _id: null,
+      user: userId,
+      count: 0,
+      items: [],
+      products: [],
+      createdAt: null,
+      updatedAt: null,
+      createdAtIST: '',
+      updatedAtIST: '',
+    };
   }
 
   // Filter out products that have been hard-deleted or belong to prohibited brands
@@ -206,7 +208,11 @@ export const removeFromWishlist = async (req, res) => {
       (it) => it.product.toString() !== targetProductId.toString()
     );
 
-    await wishlist.save();
+    if (wishlist.products.length === 0) {
+      await Wishlist.findByIdAndDelete(wishlist._id);
+    } else {
+      await wishlist.save();
+    }
     const populated = await getPopulatedWishlist(req.user._id);
 
     res.status(200).json({
@@ -248,7 +254,7 @@ export const toggleWishlist = async (req, res) => {
 
     let wishlist = await Wishlist.findOne({ user: req.user._id });
     if (!wishlist) {
-      wishlist = await Wishlist.create({ user: req.user._id, products: [] });
+      wishlist = new Wishlist({ user: req.user._id, products: [] });
     }
 
     const existingIndex = wishlist.products.findIndex(
@@ -272,7 +278,13 @@ export const toggleWishlist = async (req, res) => {
       message = 'Added to your wishlist.';
     }
 
-    await wishlist.save();
+    if (wishlist.products.length === 0) {
+      if (wishlist._id) {
+        await Wishlist.findByIdAndDelete(wishlist._id);
+      }
+    } else {
+      await wishlist.save();
+    }
     const populated = await getPopulatedWishlist(req.user._id);
 
     res.status(200).json({
@@ -295,11 +307,7 @@ export const toggleWishlist = async (req, res) => {
 // @access  Private (Authenticated User)
 export const clearWishlist = async (req, res) => {
   try {
-    const wishlist = await Wishlist.findOne({ user: req.user._id });
-    if (wishlist) {
-      wishlist.products = [];
-      await wishlist.save();
-    }
+    await Wishlist.findOneAndDelete({ user: req.user._id });
 
     res.status(200).json({
       success: true,

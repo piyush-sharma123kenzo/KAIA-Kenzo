@@ -50,12 +50,22 @@ export const getPopulatedCart = async (userId) => {
   });
 
   if (!cart) {
-    cart = await Cart.create({ user: userId, items: [] });
-    cart = await Cart.findOne({ user: userId }).populate({
-      path: 'items.product',
-      select: 'name slug brand mrp sellingPrice price images stock stockQuantity status isActive isDeleted gstRate SKU modelNumber description',
-      populate: { path: 'brand', select: 'name slug logo' },
-    });
+    return {
+      _id: null,
+      user: userId,
+      items: [],
+      totals: {
+        subtotal: 0,
+        tax: 0,
+        shipping: 0,
+        total: 0,
+        quantityCount: 0,
+      },
+      createdAt: null,
+      updatedAt: null,
+      createdAtIST: '',
+      updatedAtIST: '',
+    };
   }
 
   // Filter out products that have been hard-deleted or fail purchasability rules
@@ -350,7 +360,11 @@ export const removeCartItem = async (req, res) => {
         )
     );
 
-    await cart.save();
+    if (cart.items.length === 0) {
+      await Cart.findByIdAndDelete(cart._id);
+    } else {
+      await cart.save();
+    }
     const populated = await getPopulatedCart(req.user._id);
 
     res.status(200).json({
@@ -369,11 +383,7 @@ export const removeCartItem = async (req, res) => {
 // @access  Private
 export const clearCart = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user._id });
-    if (cart) {
-      cart.items = [];
-      await cart.save();
-    }
+    await Cart.findOneAndDelete({ user: req.user._id });
 
     const populated = await getPopulatedCart(req.user._id);
     res.status(200).json({
