@@ -13,44 +13,46 @@ import authApi from '../services/authApi';
 
 export const AuthContext = createContext();
 
+const HAS_CLERK_KEY = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+
+/**
+ * Isolated bridge component that interacts with @clerk/clerk-react hooks
+ * Only rendered when ClerkProvider is active and VITE_CLERK_PUBLISHABLE_KEY is configured
+ */
+const ClerkSyncBridge = () => {
+  const { user: clerkUser, isLoaded, isSignedIn } = useClerkUser();
+  const { syncClerkSession } = useContext(AuthContext);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn && clerkUser && syncClerkSession) {
+      syncClerkSession(clerkUser);
+    }
+  }, [isLoaded, isSignedIn, clerkUser, syncClerkSession]);
+
+  return null;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [brand, setBrand] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Safely access Clerk hooks if ClerkProvider is present
-  let clerkUser = null;
-  let clerkIsLoaded = true;
-  let clerkIsSignedIn = false;
-  let clerk = null;
-
-  try {
-    const clerkUserHook = useClerkUser();
-    clerkUser = clerkUserHook?.user;
-    clerkIsLoaded = clerkUserHook?.isLoaded ?? true;
-    clerkIsSignedIn = clerkUserHook?.isSignedIn ?? false;
-    clerk = useClerk();
-  } catch (e) {
-    // ClerkProvider might not be active if key is not configured
-  }
-
   const syncedClerkIdRef = useRef(null);
 
   // Synchronize Clerk user state with KAIA backend session
-  useEffect(() => {
-    if (!clerkIsLoaded) return;
+  const syncClerkSession = useCallback(async (clerkUser) => {
+    if (!clerkUser) return;
+    const email = clerkUser.primaryEmailAddress?.emailAddress;
+    const clerkId = clerkUser.id;
 
-    if (clerkIsSignedIn && clerkUser) {
-      const email = clerkUser.primaryEmailAddress?.emailAddress;
-      const clerkId = clerkUser.id;
+    if (syncedClerkIdRef.current !== clerkId && email) {
+      syncedClerkIdRef.current = clerkId;
+      const storedRole = sessionStorage.getItem('kaia_auth_intent_role') || 'USER';
+      sessionStorage.removeItem('kaia_auth_intent_role');
 
-      if (syncedClerkIdRef.current !== clerkId && email) {
-        syncedClerkIdRef.current = clerkId;
-        const storedRole = sessionStorage.getItem('kaia_auth_intent_role') || 'USER';
-        sessionStorage.removeItem('kaia_auth_intent_role');
-
-        authApi.clerkAuth({
+      try {
+        const res = await authApi.clerkAuth({
           clerkId,
           email,
           name: clerkUser.fullName || `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || email.split('@')[0],
@@ -58,25 +60,23 @@ export const AuthProvider = ({ children }) => {
           firstName: clerkUser.firstName,
           lastName: clerkUser.lastName,
           role: storedRole,
-        }).then(async (res) => {
-          if (res?.success && res?.user) {
-            if (res.token) {
-              localStorage.setItem('kaia_token', res.token);
-            }
-            setUser(res.user);
-            const meRes = await authApi.getCurrentUser().catch(() => ({}));
-            if (meRes.success) {
-              setBrand(meRes.brand);
-            }
-          }
-        }).catch((err) => {
-          console.warn('[Clerk Auth Sync Error]:', err.message);
         });
+
+        if (res?.success && res?.user) {
+          if (res.token) {
+            localStorage.setItem('kaia_token', res.token);
+          }
+          setUser(res.user);
+          const meRes = await authApi.getCurrentUser().catch(() => ({}));
+          if (meRes?.success) {
+            setBrand(meRes.brand);
+          }
+        }
+      } catch (err) {
+        console.warn('[Clerk Auth Sync Error]:', err.message);
       }
-    } else if (!clerkIsSignedIn && syncedClerkIdRef.current) {
-      syncedClerkIdRef.current = null;
     }
-  }, [clerkIsLoaded, clerkIsSignedIn, clerkUser]);
+  }, []);
 
   // Restore authenticated session on application mount
   const loadUser = useCallback(async () => {
@@ -333,6 +333,7 @@ export const AuthProvider = ({ children }) => {
         googleSignIn,
         register,
         logout,
+        syncClerkSession,
         updateProfile,
         updateUserAvatar,
         verifyOtp,
@@ -343,6 +344,7 @@ export const AuthProvider = ({ children }) => {
         reloadSession: loadUser,
       }}
     >
+      {HAS_CLERK_KEY && <ClerkSyncBridge />}
       {children}
     </AuthContext.Provider>
   );
