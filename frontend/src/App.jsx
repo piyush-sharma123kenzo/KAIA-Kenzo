@@ -145,10 +145,10 @@ function App() {
                     <Route path="order-success" element={<OrderSuccess />} />
                     <Route path="payment-pending" element={<PaymentPending />} />
                     <Route path="payment-failed" element={<PaymentFailed />} />
-                    <Route path="account" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Account /></ProtectedRoute>} />
-                    <Route path="dashboard" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Account /></ProtectedRoute>} />
-                    <Route path="profile" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Navigate to="/account?tab=profile" replace /></ProtectedRoute>} />
-                    <Route path="addresses" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Navigate to="/account?tab=addresses" replace /></ProtectedRoute>} />
+                    <Route path="account" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Account /></ProtectedRoute>} />
+                    <Route path="dashboard" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Account /></ProtectedRoute>} />
+                    <Route path="profile" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Navigate to="/account?tab=profile" replace /></ProtectedRoute>} />
+                    <Route path="addresses" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Navigate to="/account?tab=addresses" replace /></ProtectedRoute>} />
                     <Route path="my-orders" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><CustomerOrders /></ProtectedRoute>} />
                     <Route path="account/orders" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><CustomerOrders /></ProtectedRoute>} />
                     <Route path="account/wishlist" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Wishlist /></ProtectedRoute>} />

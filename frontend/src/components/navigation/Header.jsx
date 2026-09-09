@@ -4,7 +4,8 @@ import {
   Search, ShoppingCart, MapPin, Menu, X, ChevronDown, 
   User, ShieldCheck, Heart, Building2, Package, ExternalLink,
   Navigation, Check, ArrowLeftRight, LogOut, Award, ShoppingBag, ChevronRight, Camera,
-  Sparkles, Flame, Tag, Eye, Bell
+  Sparkles, Flame, Tag, Eye, Bell, LayoutDashboard, PlusCircle, ClipboardList, DollarSign,
+  Landmark, Settings, Users, TrendingUp, FileText
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
@@ -34,9 +35,25 @@ const Header = () => {
   const { compareCount = 0 } = useCompare() || {};
   const toast = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
-
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const userRole = (user?.role || '').toUpperCase();
+  const isVendor = userRole === 'VENDOR' || userRole === 'BRAND';
+  const isAdmin = userRole === 'ADMIN';
+
+  const primaryAccountPath = isVendor
+    ? '/brand/dashboard'
+    : isAdmin
+    ? '/admin/dashboard'
+    : '/account';
+
+  const accountDisplayLabel = isVendor
+    ? (user?.name?.split(' ')[0] ? `${user.name.split(' ')[0]} (Vendor)` : 'Vendor Hub')
+    : isAdmin
+    ? 'Admin Console'
+    : user
+    ? user?.name?.split(' ')[0]
+    : 'Sign In / Register';
 
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -368,238 +385,380 @@ const Header = () => {
               onMouseEnter={() => setAccountDropdown(true)}
               onMouseLeave={() => setAccountDropdown(false)}
             >
-              <Link to={user ? '/account' : '/login'} className="flex items-center space-x-2 hover:text-[#F5B400] transition-colors py-1">
-                {user ? (
-                  <ProfileAvatar
-                    user={user}
-                    size="xs"
-                    shape="circle"
-                    ring={true}
-                    ringColor="ring-[#F5B400]/80"
-                  />
-                ) : (
-                  <User className="w-5 h-5 text-white" />
-                )}
-                <span className="font-bold hidden sm:inline">
-                  {user ? user.name?.split(' ')[0] : 'Sign In / Register'}
-                </span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
-              </Link>
+                  <Link to={user ? primaryAccountPath : '/login'} className="flex items-center space-x-2 hover:text-[#F5B400] transition-colors py-1">
+                    {user ? (
+                      <ProfileAvatar
+                        user={user}
+                        size="xs"
+                        shape="circle"
+                        ring={true}
+                        ringColor={isVendor ? 'ring-amber-500' : isAdmin ? 'ring-indigo-500' : 'ring-[#F5B400]/80'}
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-white" />
+                    )}
+                    <span className="font-bold hidden sm:inline">
+                      {accountDisplayLabel}
+                    </span>
+                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                  </Link>
 
-            {/* Hover Account Dropdown Menu */}
-            {accountDropdown && (
-              <div className="absolute right-0 top-full pt-2 w-80 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                <div className="bg-white text-slate-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.22)] border border-slate-200/90 overflow-hidden ring-1 ring-black/5 text-left">
-                  
-                  {/* If user not signed in */}
-                  {!user ? (
-                    <div className="p-5 space-y-4">
-                      <div className="text-center space-y-2">
-                        <h4 className="font-black text-sm text-slate-900 tracking-tight">
-                          Welcome to KAIA Technologies
-                        </h4>
-                        <p className="text-xs text-slate-500">
-                          Sign in to manage technology orders, compare hardware, and access verified invoices.
-                        </p>
-                      </div>
+                  {/* Hover Account Dropdown Menu */}
+                  {accountDropdown && (
+                    <div className="absolute right-0 top-full pt-2 w-80 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <div className="bg-white text-slate-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.22)] border border-slate-200/90 overflow-hidden ring-1 ring-black/5 text-left">
+                        
+                        {/* If user not signed in */}
+                        {!user ? (
+                          <div className="p-5 space-y-4">
+                            <div className="text-center space-y-2">
+                              <h4 className="font-black text-sm text-slate-900 tracking-tight">
+                                Welcome to KAIA Technologies
+                              </h4>
+                              <p className="text-xs text-slate-500">
+                                Sign in to manage technology orders, compare hardware, and access verified invoices.
+                              </p>
+                            </div>
 
-                      <div className="space-y-2">
-                        <ClerkAuthButton mode="signIn" text="Instant Sign In with Clerk" />
-                        <Link to="/login" className="block w-full">
-                          <button className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-2.5 px-4 rounded-xl shadow-xs transition-colors text-xs flex items-center justify-center space-x-1.5">
-                            <span>Email / Password Sign In</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
-                        </Link>
-                      </div>
+                            <div className="space-y-2">
+                              <ClerkAuthButton mode="signIn" text="Instant Sign In with Clerk" />
+                              <Link to="/login" className="block w-full">
+                                <button className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-2.5 px-4 rounded-xl shadow-xs transition-colors text-xs flex items-center justify-center space-x-1.5">
+                                  <span>Email / Password Sign In</span>
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                              </Link>
+                            </div>
 
-                      <div className="text-center text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-                        New to KAIA?{' '}
-                        <Link to="/register" className="text-amber-700 font-bold hover:underline">
-                          Create an Account
-                        </Link>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Clean User Profile Header */}
-                      <div className="p-4 border-b border-slate-100 bg-slate-50/90 rounded-t-2xl">
-                        <div className="flex items-center space-x-3.5">
-                          {/* Profile Picture with Change Photo Trigger */}
-                          <div className="relative group/avatar shrink-0">
-                            <ProfileAvatar
-                              user={user}
-                              size="md"
-                              shape="circle"
-                              ring={true}
-                              ringColor="ring-amber-400/40"
-                              className="shadow-sm"
-                            />
-                            
-                            {/* Camera overlay on hover */}
-                            <label
-                              htmlFor="header-avatar-upload"
-                              className="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center text-white opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer text-[9px] font-bold"
-                              title="Click to change profile picture"
-                            >
-                              <Camera className="w-3.5 h-3.5 text-[#F5B400]" />
-                            </label>
-                            <input
-                              id="header-avatar-upload"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleAvatarUpload}
-                              className="hidden"
-                              disabled={uploadingAvatar}
-                            />
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <h4 className="font-extrabold text-sm text-slate-900 truncate">
-                              {user.name || 'Piyush Kumar Sharma'}
-                            </h4>
-                            <p className="text-[11px] text-slate-500 truncate font-mono">
-                              {user.email}
-                            </p>
-                            <div className="flex items-center space-x-2.5 mt-1">
-                              <label
-                                htmlFor="header-avatar-upload"
-                                className="inline-flex items-center space-x-1 text-[11px] text-amber-700 hover:text-amber-800 font-bold cursor-pointer"
-                              >
-                                <Camera className="w-3 h-3 text-amber-600" />
-                                <span>{uploadingAvatar ? 'Uploading...' : 'Change Photo'}</span>
-                              </label>
-
-                              {(user.profileImage?.url || user.avatar) && (
-                                <>
-                                  <span className="text-slate-300 text-[10px]">|</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setAccountDropdown(false);
-                                      setPreviewModalOpen(true);
-                                    }}
-                                    className="inline-flex items-center space-x-1 text-[11px] text-slate-600 hover:text-slate-900 font-bold cursor-pointer"
-                                  >
-                                    <Eye className="w-3 h-3 text-slate-500" />
-                                    <span>View Photo</span>
-                                  </button>
-                                </>
-                              )}
+                            <div className="text-center text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                              New to KAIA?{' '}
+                              <Link to="/register" className="text-amber-700 font-bold hover:underline">
+                                Create an Account
+                              </Link>
                             </div>
                           </div>
-                        </div>
-                      </div>
+                        ) : (
+                          <>
+                            {/* Clean User Profile Header */}
+                            <div className="p-4 border-b border-slate-100 bg-slate-50/90 rounded-t-2xl">
+                              <div className="flex items-center space-x-3.5">
+                                <div className="relative group/avatar shrink-0">
+                                  <ProfileAvatar
+                                    user={user}
+                                    size="md"
+                                    shape="circle"
+                                    ring={true}
+                                    ringColor={isVendor ? 'ring-amber-500' : isAdmin ? 'ring-indigo-500' : 'ring-[#F5B400]'}
+                                    allowPreview={Boolean(user.profileImage?.url || user.avatar)}
+                                  />
+                                  <label
+                                    htmlFor="header-avatar-upload"
+                                    className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer text-white"
+                                    title="Upload Profile Picture"
+                                  >
+                                    <Camera className="w-4 h-4" />
+                                  </label>
+                                  <input
+                                    id="header-avatar-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleAvatarUpload}
+                                    className="hidden"
+                                    disabled={uploadingAvatar}
+                                  />
+                                </div>
 
-                      {/* Primary Navigation Links */}
-                      <div className="p-2 space-y-1 text-xs">
-                        <div className="px-3 pt-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                          Your Account & Tech Hub
-                        </div>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="font-extrabold text-sm text-slate-900 truncate">
+                                    {user.name || 'Piyush Kumar Sharma'}
+                                  </h4>
+                                  <p className="text-[11px] text-slate-500 truncate font-mono">
+                                    {user.email}
+                                  </p>
+                                  <div className="flex items-center space-x-2.5 mt-1">
+                                    <label
+                                      htmlFor="header-avatar-upload"
+                                      className="inline-flex items-center space-x-1 text-[11px] text-amber-700 hover:text-amber-800 font-bold cursor-pointer"
+                                    >
+                                      <Camera className="w-3 h-3 text-amber-600" />
+                                      <span>{uploadingAvatar ? 'Uploading...' : 'Change Photo'}</span>
+                                    </label>
 
-                        <Link
-                          to="/account"
-                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
-                            <User className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
-                          </div>
-                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Account Overview</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
-                        </Link>
+                                    {(user.profileImage?.url || user.avatar) && (
+                                      <>
+                                        <span className="text-slate-300 text-[10px]">|</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setAccountDropdown(false);
+                                            setPreviewModalOpen(true);
+                                          }}
+                                          className="inline-flex items-center space-x-1 text-[11px] text-slate-600 hover:text-slate-950 font-bold cursor-pointer"
+                                        >
+                                          <Eye className="w-3 h-3 text-slate-500" />
+                                          <span>View Photo</span>
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
 
-                        <Link
-                          to="/orders"
-                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
-                            <ShoppingBag className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
-                          </div>
-                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Your Orders & Invoices</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
-                        </Link>
+                            {/* Dynamic Navigation Links based on Role */}
+                            {isVendor ? (
+                              <div className="p-2 space-y-1 text-xs">
+                                <div className="px-3 pt-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-amber-600">
+                                  Vendor Operations Hub
+                                </div>
 
-                        <Link
-                          to="/account/wishlist"
-                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-rose-600 group-hover:border-rose-600 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
-                            <Heart className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
-                          </div>
-                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Saved Wishlist</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
-                        </Link>
+                                <Link
+                                  to="/brand/dashboard"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-amber-50/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-500 group-hover:border-amber-500 group-hover:text-slate-950 text-amber-700 transition-all duration-200 shadow-2xs shrink-0">
+                                    <LayoutDashboard className="w-4 h-4 text-amber-600 group-hover:text-slate-950 transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Vendor Dashboard</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
 
-                        <Link
-                          to="/compare"
-                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
-                            <ArrowLeftRight className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
-                          </div>
-                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Compare Hardware</span>
-                          {compareCount > 0 ? (
-                            <span className="bg-[#F5B400] text-slate-950 font-black text-[10px] px-1.5 py-0.5 rounded-full">
-                              {compareCount}
-                            </span>
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
-                          )}
-                        </Link>
+                                <Link
+                                  to="/brand/products"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <Package className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Products & Catalog</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
 
-                        <Link
-                          to="/account?tab=warranties"
-                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
-                            <Award className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
-                          </div>
-                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Hardware Warranties</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
-                        </Link>
+                                <Link
+                                  to="/brand/products/new"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <PlusCircle className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Add New Listing</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
 
-                        <Link
-                          to="/account?tab=addresses"
-                          className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
-                        >
-                          <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
-                            <MapPin className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
-                          </div>
-                          <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Saved Delivery Addresses</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
-                        </Link>
-                      </div>
+                                <Link
+                                  to="/brand/orders"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <ShoppingBag className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Seller Orders & RMA</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
 
-                      {/* Management Consoles (Role-based) */}
-                      {(user?.role === 'ADMIN' || user?.role === 'BRAND' || user?.role === 'VENDOR') && (
-                        <div className="p-2.5 pt-0 space-y-1 border-t border-slate-100">
-                          <div className="px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                            Management Consoles
-                          </div>
+                                <Link
+                                  to="/brand/inventory"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <ClipboardList className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Warehouse Inventory</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
 
-                          {user?.role === 'ADMIN' && (
-                            <Link
-                              to="/admin/dashboard"
-                              className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-indigo-700 hover:text-indigo-950 bg-indigo-50/70 hover:bg-indigo-100/70 transition-colors group font-bold text-xs"
-                            >
-                              <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                              <span className="flex-1">Admin Central Console</span>
-                              <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />
-                            </Link>
-                          )}
+                                <Link
+                                  to="/brand/settlements"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <Landmark className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Earnings & Payouts</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
 
-                          {(user?.role === 'BRAND' || user?.role === 'VENDOR') && (
-                            <Link
-                              to="/brand/dashboard"
-                              className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100/70 transition-colors group font-bold text-xs"
-                            >
-                              <Building2 className="w-4 h-4 text-amber-700" />
-                              <span className="flex-1">Vendor / Brand Seller Portal</span>
-                              <ChevronRight className="w-3.5 h-3.5 text-amber-500" />
-                            </Link>
-                          )}
-                        </div>
-                      )}
+                                <Link
+                                  to="/brand/profile"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <Building2 className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Brand Store Profile</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+
+                                <Link
+                                  to="/brand/settings"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <Settings className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Partner Settings</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+                              </div>
+                            ) : isAdmin ? (
+                              <div className="p-2 space-y-1 text-xs">
+                                <div className="px-3 pt-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-indigo-600">
+                                  Admin Command Center
+                                </div>
+
+                                <Link
+                                  to="/admin/dashboard"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-indigo-50/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-600 group-hover:border-indigo-600 group-hover:text-white text-indigo-700 transition-all duration-200 shadow-2xs shrink-0">
+                                    <ShieldCheck className="w-4 h-4 text-indigo-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Central Dashboard</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+
+                                <Link
+                                  to="/admin/users"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <Users className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">User Management</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+
+                                <Link
+                                  to="/admin/products"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <Package className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Platform Products</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+
+                                <Link
+                                  to="/admin/orders"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <ShoppingBag className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">All Orders</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+
+                                <Link
+                                  to="/admin/delivery-locations"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <MapPin className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Delivery Hubs</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+                              </div>
+                            ) : (
+                              <div className="p-2 space-y-1 text-xs">
+                                <div className="px-3 pt-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                  Your Account & Tech Hub
+                                </div>
+
+                                <Link
+                                  to="/account"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <User className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Account Overview</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+
+                                <Link
+                                  to="/orders"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <ShoppingBag className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Your Orders & Invoices</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+
+                                <Link
+                                  to="/account/wishlist"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-rose-600 group-hover:border-rose-600 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <Heart className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Saved Wishlist</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+
+                                <Link
+                                  to="/compare"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <ArrowLeftRight className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Compare Hardware</span>
+                                  {compareCount > 0 ? (
+                                    <span className="bg-[#F5B400] text-slate-950 font-black text-[10px] px-1.5 py-0.5 rounded-full">
+                                      {compareCount}
+                                    </span>
+                                  ) : (
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                  )}
+                                </Link>
+
+                                <Link
+                                  to="/account?tab=warranties"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <Award className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Hardware Warranties</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+
+                                <Link
+                                  to="/account?tab=addresses"
+                                  onClick={() => setAccountDropdown(false)}
+                                  className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
+                                >
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
+                                    <MapPin className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                                  </div>
+                                  <span className="flex-1 font-bold text-[13px] text-slate-800 group-hover:text-slate-950">Saved Delivery Addresses</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
+                                </Link>
+                              </div>
+                            )}
 
                       {/* Sign Out Action */}
                       <div className="p-3 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
@@ -739,11 +898,23 @@ const Header = () => {
             </div>
 
             <div className="py-2 space-y-2">
-              <h4 className="font-black text-xs uppercase tracking-wider text-amz-secText">Help & Settings</h4>
-              <Link to="/account" onClick={() => setMobileOpen(false)} className="block py-1 hover:text-amz-orange">Your Account</Link>
-              <Link to="/orders" onClick={() => setMobileOpen(false)} className="block py-1 hover:text-amz-orange">Your Orders</Link>
+              <h4 className="font-black text-xs uppercase tracking-wider text-amz-secText">
+                {isVendor ? 'Vendor Partner Controls' : isAdmin ? 'Admin Controls' : 'Help & Settings'}
+              </h4>
+              <Link 
+                to={primaryAccountPath} 
+                onClick={() => setMobileOpen(false)} 
+                className="block py-1 hover:text-amber-400 font-bold"
+              >
+                {isVendor ? 'Vendor Operations Hub' : isAdmin ? 'Admin Central Console' : 'Your Account'}
+              </Link>
+              {isVendor ? (
+                <Link to="/brand/products" onClick={() => setMobileOpen(false)} className="block py-1 hover:text-amber-400">Products & Catalog</Link>
+              ) : (
+                <Link to="/orders" onClick={() => setMobileOpen(false)} className="block py-1 hover:text-amber-400">Your Orders</Link>
+              )}
               {user && (
-                <button onClick={() => { logout(); setMobileOpen(false); }} className="block py-1 text-red-600 font-bold">
+                <button onClick={() => { logout(); setMobileOpen(false); }} className="block py-1 text-red-500 font-bold">
                   Sign Out
                 </button>
               )}

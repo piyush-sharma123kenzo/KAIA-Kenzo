@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Grid, ArrowLeftRight, User, ShoppingCart } from 'lucide-react';
+import { Home, Grid, ArrowLeftRight, User, ShoppingCart, Building2, ShieldCheck } from 'lucide-react';
 import { CartContext } from '../../context/CartContext';
 import { AuthContext } from '../../context/AuthContext';
 import { useCompare } from '../../context/CompareContext';
@@ -23,11 +23,19 @@ const MobileBottomNav = () => {
     return null;
   }
 
+  const userRole = (user?.role || '').toUpperCase();
+  const isVendor = userRole === 'VENDOR' || userRole === 'BRAND';
+  const isAdmin = userRole === 'ADMIN';
+
+  const accountNavTarget = isVendor ? '/brand/dashboard' : isAdmin ? '/admin/dashboard' : user ? '/account' : '/login';
+  const accountNavLabel = isVendor ? 'Vendor' : isAdmin ? 'Admin' : user ? 'Account' : 'Sign In';
+  const AccountNavIcon = isVendor ? Building2 : isAdmin ? ShieldCheck : User;
+
   const navItems = [
     { label: 'Home', to: '/', icon: Home, exact: true },
     { label: 'Categories', to: '/categories', icon: Grid },
     { label: 'Compare', to: '/compare', icon: ArrowLeftRight, badge: compareCount },
-    { label: user ? 'Account' : 'Sign In', to: user ? '/account' : '/login', icon: User },
+    { label: accountNavLabel, to: accountNavTarget, icon: AccountNavIcon },
     { label: 'Cart', to: '/cart', icon: ShoppingCart, badge: cartItemCount },
   ];
 
