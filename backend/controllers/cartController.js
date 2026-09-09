@@ -286,10 +286,29 @@ export const updateCartItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Item not found in cart.' });
     }
 
-    // If quantity is 0 or negative, remove the item
+    // If quantity is 0 or negative, remove the item atomically
     if (requestedQty <= 0) {
-      cart.items.splice(itemIndex, 1);
-      await cart.save();
+      const objId = new mongoose.Types.ObjectId(targetProductId);
+      await Cart.updateOne(
+        { user: req.user._id },
+        {
+          $pull: {
+            items: {
+              $or: [
+                { product: objId },
+                { product: targetProductId.toString() },
+                { _id: objId },
+              ],
+            },
+          },
+        }
+      );
+
+      const checkCart = await Cart.findOne({ user: req.user._id });
+      if (checkCart && checkCart.items.length === 0) {
+        await Cart.findByIdAndDelete(checkCart._id);
+      }
+
       const populated = await getPopulatedCart(req.user._id);
       return res.status(200).json({
         success: true,
@@ -301,8 +320,25 @@ export const updateCartItem = async (req, res) => {
     // Check available stock from live database
     const product = await Product.findById(targetProductId).populate('brand', 'name');
     if (!product || !isPurchasableProduct(product)) {
-      cart.items.splice(itemIndex, 1);
-      await cart.save();
+      const objId = new mongoose.Types.ObjectId(targetProductId);
+      await Cart.updateOne(
+        { user: req.user._id },
+        {
+          $pull: {
+            items: {
+              $or: [
+                { product: objId },
+                { product: targetProductId.toString() },
+                { _id: objId },
+              ],
+            },
+          },
+        }
+      );
+      const checkCart = await Cart.findOne({ user: req.user._id });
+      if (checkCart && checkCart.items.length === 0) {
+        await Cart.findByIdAndDelete(checkCart._id);
+      }
       const populated = await getPopulatedCart(req.user._id);
       return res.status(400).json({
         success: false,
@@ -320,6 +356,7 @@ export const updateCartItem = async (req, res) => {
     }
 
     cart.items[itemIndex].quantity = requestedQty;
+    cart.markModified('items');
     await cart.save();
 
     const populated = await getPopulatedCart(req.user._id);
@@ -335,36 +372,41 @@ export const updateCartItem = async (req, res) => {
 };
 
 // @desc    Remove item from cart
-// @route   DELETE /api/cart/item/:productId, DELETE /api/cart/remove, POST /api/cart/remove
+// @route   DELETE /api/cart/item/:productId, DELETE /api/cart/remove, POST /api/cart/remove, DELETE /api/cart/:productId
 // @access  Private
 export const removeCartItem = async (req, res) => {
-  const targetProductId = req.params.productId || req.body.productId || req.body.product;
-  const { selectedSpecs } = req.body || {};
+  const rawTargetId = req.params.productId || req.body.productId || req.body.product || req.body.id || req.body._id;
 
   try {
-    if (!targetProductId || !mongoose.Types.ObjectId.isValid(targetProductId)) {
+    if (!rawTargetId || !mongoose.Types.ObjectId.isValid(rawTargetId)) {
       return res.status(400).json({ success: false, message: 'A valid Product ID is required.' });
     }
 
-    const cart = await Cart.findOne({ user: req.user._id });
-    if (!cart) {
-      return res.status(404).json({ success: false, message: 'Cart not found.' });
-    }
+    const targetIdStr = String(rawTargetId).trim();
+    const objId = new mongoose.Types.ObjectId(targetIdStr);
 
-    cart.items = cart.items.filter(
-      (item) =>
-        !(
-          item.product.toString() === targetProductId.toString() &&
-          (selectedSpecs === undefined ||
-            JSON.stringify(item.selectedSpecs || {}) === JSON.stringify(selectedSpecs || {}))
-        )
+    // Atomic MongoDB removal targeting product ObjectId, product string, or subdocument _id
+    await Cart.updateOne(
+      { user: req.user._id },
+      {
+        $pull: {
+          items: {
+            $or: [
+              { product: objId },
+              { product: targetIdStr },
+              { _id: objId },
+            ],
+          },
+        },
+      }
     );
 
-    if (cart.items.length === 0) {
-      await Cart.findByIdAndDelete(cart._id);
-    } else {
-      await cart.save();
+    // Clean up empty cart document from MongoDB
+    const checkCart = await Cart.findOne({ user: req.user._id });
+    if (checkCart && checkCart.items.length === 0) {
+      await Cart.findByIdAndDelete(checkCart._id);
     }
+
     const populated = await getPopulatedCart(req.user._id);
 
     res.status(200).json({
