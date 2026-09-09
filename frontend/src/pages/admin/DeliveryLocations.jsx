@@ -7,100 +7,6 @@ import {
 import deliveryService from '../../services/deliveryService';
 import { useToast } from '../../context/ToastContext';
 
-// Quick Presets for fast onboarding of multi-city hubs
-const CITY_PRESETS = [
-  {
-    name: 'Delhi - Mayur Vihar Phase 1 Hub',
-    city: 'Delhi',
-    state: 'Delhi',
-    pincode: '110091',
-    latitude: 28.6056,
-    longitude: 77.2917,
-    radius: 10,
-    address: 'KAIA Technologies Pvt. Ltd., Mayur Vihar Phase 1, Near Unna Enclave, Delhi',
-  },
-  {
-    name: 'Delhi - Connaught Place Hub',
-    city: 'Delhi',
-    state: 'Delhi',
-    pincode: '110001',
-    latitude: 28.6315,
-    longitude: 77.2167,
-    radius: 10,
-    address: 'Barakhamba Road, Connaught Place, Central Delhi',
-  },
-  {
-    name: 'Delhi - Karol Bagh Hub',
-    city: 'Delhi',
-    state: 'Delhi',
-    pincode: '110005',
-    latitude: 28.6517,
-    longitude: 77.1906,
-    radius: 10,
-    address: 'Pusa Road, Karol Bagh, New Delhi',
-  },
-  {
-    name: 'Noida - Sector 62 Tech Hub',
-    city: 'Noida',
-    state: 'Uttar Pradesh',
-    pincode: '201309',
-    latitude: 28.6280,
-    longitude: 77.3649,
-    radius: 10,
-    address: 'Electronic City, Sector 62, Noida, Uttar Pradesh',
-  },
-  {
-    name: 'Gurgaon - Cyber City Hub',
-    city: 'Gurgaon',
-    state: 'Haryana',
-    pincode: '122002',
-    latitude: 28.4950,
-    longitude: 77.0895,
-    radius: 10,
-    address: 'DLF Cyber City, Phase 2, Gurugram, Haryana',
-  },
-  {
-    name: 'Bangalore - Indiranagar Hub',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    pincode: '560038',
-    latitude: 12.9784,
-    longitude: 77.6408,
-    radius: 10,
-    address: '100 Feet Road, Indiranagar, Bengaluru, Karnataka',
-  },
-  {
-    name: 'Bangalore - Electronic City Hub',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    pincode: '560100',
-    latitude: 12.8399,
-    longitude: 77.6770,
-    radius: 10,
-    address: 'Phase 1, Hosur Road, Electronic City, Bengaluru, Karnataka',
-  },
-  {
-    name: 'Mumbai - BKC Business Hub',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    pincode: '400051',
-    latitude: 19.0657,
-    longitude: 72.8687,
-    radius: 10,
-    address: 'Bandra Kurla Complex, Bandra East, Mumbai, Maharashtra',
-  },
-  {
-    name: 'Hyderabad - HITEC City Hub',
-    city: 'Hyderabad',
-    state: 'Telangana',
-    pincode: '500081',
-    latitude: 17.4435,
-    longitude: 78.3772,
-    radius: 10,
-    address: 'Madhapur Main Road, HITEC City, Hyderabad, Telangana',
-  },
-];
-
 // High-speed PIN code to coordinate & city lookup dictionary
 const PINCODE_LOOKUP = {
   '110091': { city: 'Delhi', state: 'Delhi', lat: 28.6056, lng: 77.2917, area: 'Mayur Vihar Phase 1' },
@@ -240,21 +146,6 @@ const DeliveryLocations = () => {
       notes: loc.notes || '',
     });
     setModalOpen(true);
-  };
-
-  const handleSelectPreset = (preset) => {
-    if (!preset) return;
-    setForm((prev) => ({
-      ...prev,
-      locationName: preset.name,
-      address: preset.address || prev.address,
-      city: preset.city,
-      state: preset.state,
-      pincode: preset.pincode,
-      latitude: preset.latitude,
-      longitude: preset.longitude,
-      deliveryRadius: preset.radius || 10,
-    }));
   };
 
   // Handle PIN code typing with automatic coordinates & city resolution
@@ -695,29 +586,6 @@ const DeliveryLocations = () => {
             {formError && (
               <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold p-3 rounded-xl">
                 {formError}
-              </div>
-            )}
-
-            {/* Quick City Presets Dropdown */}
-            {!editingId && (
-              <div className="p-3 bg-amber-50/60 border border-amber-200/70 rounded-2xl space-y-1.5 text-xs">
-                <div className="flex items-center space-x-1.5 text-amber-900 font-bold">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Quick Autofill from Major City Presets:</span>
-                </div>
-                <select
-                  defaultValue=""
-                  onChange={(e) => {
-                    const preset = CITY_PRESETS.find((p) => p.name === e.target.value);
-                    if (preset) handleSelectPreset(preset);
-                  }}
-                  className="w-full bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:border-amber-500 cursor-pointer text-slate-800"
-                >
-                  <option value="">-- Choose a city preset to autofill or type manually --</option>
-                  {CITY_PRESETS.map((p) => (
-                    <option key={p.name} value={p.name}>{p.name} ({p.pincode})</option>
-                  ))}
-                </select>
               </div>
             )}
 
