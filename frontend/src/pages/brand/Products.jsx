@@ -8,6 +8,7 @@ import brandSellerService from '../../services/brandSellerService';
 import { Skeleton } from '../../components/feedback/Skeleton';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
+import { getAccurateProductImage } from '../../utils/productImageMap';
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -212,17 +213,17 @@ const Products = () => {
               
               <tbody className="bg-white divide-y divide-brand-gray-200 text-brand-gray-800">
                 {products.map((p) => {
-                  const primaryImg = p.images?.[0]?.url || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=200';
+                  const primaryImg = getAccurateProductImage(p);
                   const isLowStock = (p.stock.quantity - (p.stock.reservedQuantity || 0)) <= (p.stock.reorderThreshold || 4);
 
                   return (
                     <tr key={p._id} className="hover:bg-brand-gray-50/70 transition-colors">
                       {/* Product image & name */}
-                      <td className="px-5 py-3.5 flex items-center space-x-3 max-w-[240px]">
-                        <div className="w-11 h-11 rounded border bg-brand-light p-1 flex items-center justify-center shrink-0 overflow-hidden">
-                          <img src={primaryImg} alt="" className="object-cover h-full w-full rounded-sm" />
+                      <td className="px-5 py-3.5 flex items-center space-x-3 max-w-[260px]">
+                        <div className="w-12 h-12 min-w-[48px] min-h-[48px] max-w-[48px] max-h-[48px] rounded-lg border bg-brand-light p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                          <img src={primaryImg} alt={p.name} className="object-contain h-full w-full max-h-full max-w-full rounded-sm block" />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <span className="font-bold text-brand-gray-900 truncate block text-xs" title={p.name}>
                             {p.name}
                           </span>

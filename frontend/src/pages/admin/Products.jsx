@@ -414,24 +414,24 @@ const AdminProducts = () => {
                       }`}
                     >
                       {/* Image & Title */}
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 min-w-[260px] max-w-[320px]">
                         <div className="flex items-center space-x-3">
-                          <div className="w-13 h-13 rounded-xl bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                          <div className="w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] rounded-xl bg-[#F8FAFC] border border-slate-200/90 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
                             {displayImg ? (
                               <img
                                 src={displayImg}
                                 alt={product.name}
-                                className="max-h-full max-w-full object-contain"
+                                className="w-full h-full max-w-full max-h-full object-contain block"
                                 onError={(e) => {
                                   e.target.onerror = null;
                                   e.target.src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300';
                                 }}
                               />
                             ) : (
-                              <Layers className="w-5 h-5 text-slate-300" />
+                              <Layers className="w-6 h-6 text-slate-300" />
                             )}
                           </div>
-                          <div className="max-w-[220px]">
+                          <div className="min-w-0 flex-1">
                             <span className="font-extrabold text-slate-900 truncate block text-xs" title={product.name}>
                               {product.name}
                             </span>
