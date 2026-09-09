@@ -9,10 +9,10 @@ const ClerkLogoIcon = () => (
   </svg>
 );
 
-const ClerkSignedInCard = ({ role, onAuthIntent }) => {
+const ClerkSignedInCard = ({ role, mode = 'signIn', onAuthIntent }) => {
   const { user: clerkUser } = useUser();
   const { syncClerkSession } = useContext(AuthContext) || {};
-  const { openSignIn } = useClerk() || {};
+  const { openSignIn, openSignUp } = useClerk() || {};
   const [loggingIn, setLoggingIn] = useState(false);
 
   const displayName = clerkUser?.fullName || clerkUser?.firstName || clerkUser?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User';
@@ -31,10 +31,14 @@ const ClerkSignedInCard = ({ role, onAuthIntent }) => {
 
   const handleSwitchAccount = (e) => {
     e.stopPropagation();
-    if (openSignIn) {
+    if (mode === 'signUp' && openSignUp) {
+      openSignUp();
+    } else if (openSignIn) {
       openSignIn();
     }
   };
+
+  const isSignUp = mode === 'signUp';
 
   return (
     <div className="w-full space-y-2">
@@ -58,7 +62,7 @@ const ClerkSignedInCard = ({ role, onAuthIntent }) => {
           )}
           <div className="min-w-0">
             <p className="text-xs font-bold text-slate-900 truncate">
-              Continue as {displayName}
+              {isSignUp ? `Register as ${displayName}` : `Continue as ${displayName}`}
             </p>
             <p className="text-[10px] text-purple-700 truncate">
               {clerkUser?.primaryEmailAddress?.emailAddress}
@@ -70,7 +74,9 @@ const ClerkSignedInCard = ({ role, onAuthIntent }) => {
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <>
-              <span className="text-xs font-bold hidden sm:inline">Sign In</span>
+              <span className="text-xs font-bold hidden sm:inline">
+                {isSignUp ? 'Create Account' : 'Sign In'}
+              </span>
               <ArrowRight className="w-3.5 h-3.5" />
             </>
           )}
@@ -78,13 +84,15 @@ const ClerkSignedInCard = ({ role, onAuthIntent }) => {
       </button>
 
       <div className="flex justify-between items-center px-1 text-[11px]">
-        <span className="text-slate-400">Signed in via Clerk</span>
+        <span className="text-slate-400">
+          {isSignUp ? 'Active Clerk Session' : 'Signed in via Clerk'}
+        </span>
         <button
           type="button"
           onClick={handleSwitchAccount}
           className="text-purple-700 hover:text-purple-900 font-bold hover:underline cursor-pointer"
         >
-          Switch account
+          {isSignUp ? 'Sign up with another Clerk account' : 'Switch account'}
         </button>
       </div>
     </div>
@@ -147,7 +155,7 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
       </SignedOut>
 
       <SignedIn>
-        <ClerkSignedInCard role={normalizedRole} onAuthIntent={handleClerkClick} />
+        <ClerkSignedInCard mode={mode} role={normalizedRole} onAuthIntent={handleClerkClick} />
       </SignedIn>
     </div>
   );
