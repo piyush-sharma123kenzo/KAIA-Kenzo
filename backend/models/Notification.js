@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { formatIST } from '../utils/dateFormat.js';
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -62,11 +63,30 @@ const notificationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    createdAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
+    updatedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+notificationSchema.pre('save', function (next) {
+  const now = new Date();
+  this.updatedAtIST = formatIST(now);
+  if (!this.createdAtIST) {
+    this.createdAtIST = formatIST(this.createdAt || now);
+  }
+  next();
+});
 
 // Compound indexes for optimal retrieval
 notificationSchema.index({ user: 1, read: 1, createdAt: -1 });

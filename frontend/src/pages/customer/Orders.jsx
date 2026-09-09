@@ -11,6 +11,7 @@ import Container from '../../components/ui/Container';
 import Badge from '../../components/ui/Badge';
 import StatusBadge from '../../components/ui/StatusBadge';
 import Button from '../../components/ui/Button';
+import { formatDateIST } from '../../utils/dateFormatter';
 
 const Orders = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -195,7 +196,7 @@ const Orders = () => {
                     <div>
                       <span className="text-[10px] font-bold text-brand-gray-400 uppercase block">Order Date</span>
                       <span className="font-bold text-brand-gray-800">
-                        {new Date(order.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {order.createdAtIST || formatDateIST(order.createdAt)}
                       </span>
                     </div>
                     <div>

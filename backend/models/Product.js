@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { formatIST } from '../utils/dateFormat.js';
 
 const productSchema = new mongoose.Schema(
   {
@@ -165,6 +166,14 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    createdAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
+    updatedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   {
     timestamps: true,
@@ -205,8 +214,13 @@ productSchema.virtual('discount').get(function () {
   return 0;
 });
 
-// Pre-save hook to calculate available stock: availableQuantity = quantity - reservedQuantity
+// Pre-save hook to calculate available stock and IST timestamps
 productSchema.pre('save', function (next) {
+  const now = new Date();
+  this.updatedAtIST = formatIST(now);
+  if (!this.createdAtIST) {
+    this.createdAtIST = formatIST(this.createdAt || now);
+  }
   if (this.stock) {
     const qty = Number(this.stock.quantity ?? 0);
     const reserved = Number(this.stock.reservedQuantity ?? 0);

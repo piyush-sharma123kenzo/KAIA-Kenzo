@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { formatIST } from '../utils/dateFormat.js';
 
 const brandSchema = new mongoose.Schema(
   {
@@ -93,11 +94,30 @@ const brandSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    createdAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
+    updatedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+brandSchema.pre('save', function (next) {
+  const now = new Date();
+  this.updatedAtIST = formatIST(now);
+  if (!this.createdAtIST) {
+    this.createdAtIST = formatIST(this.createdAt || now);
+  }
+  next();
+});
 
 const Brand = mongoose.models.Brand || mongoose.model('Brand', brandSchema);
 export default Brand;

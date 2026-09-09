@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { formatIST } from '../utils/dateFormat.js';
 
 const addressSchema = new mongoose.Schema(
   {
@@ -125,6 +126,14 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    createdAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
+    updatedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   {
     timestamps: true,
@@ -140,8 +149,14 @@ userSchema.virtual('isEmailVerified').get(function () {
   this.emailVerified = val;
 });
 
-// Sync status and isActive, role normalization, name sync before saving
+// Sync status and isActive, role normalization, name sync, IST timestamps before saving
 userSchema.pre('save', async function (next) {
+  const now = new Date();
+  this.updatedAtIST = formatIST(now);
+  if (!this.createdAtIST) {
+    this.createdAtIST = formatIST(this.createdAt || now);
+  }
+
   // Normalize role to uppercase if string provided
   if (this.role && typeof this.role === 'string') {
     this.role = this.role.toUpperCase();

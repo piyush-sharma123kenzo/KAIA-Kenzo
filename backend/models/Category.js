@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { formatIST } from '../utils/dateFormat.js';
 
 const categorySchema = new mongoose.Schema(
   {
@@ -40,11 +41,30 @@ const categorySchema = new mongoose.Schema(
       required: true,
       default: 5.0, // Commission in percentage
     },
+    createdAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
+    updatedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+categorySchema.pre('save', function (next) {
+  const now = new Date();
+  this.updatedAtIST = formatIST(now);
+  if (!this.createdAtIST) {
+    this.createdAtIST = formatIST(this.createdAt || now);
+  }
+  next();
+});
 
 const Category = mongoose.models.Category || mongoose.model('Category', categorySchema);
 export default Category;

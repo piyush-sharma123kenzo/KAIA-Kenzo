@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { formatIST } from '../utils/dateFormat.js';
 
 const couponSchema = new mongoose.Schema(
   {
@@ -80,13 +81,28 @@ const couponSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    createdAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
+    updatedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
 couponSchema.pre('save', function (next) {
+  const now = new Date();
+  this.updatedAtIST = formatIST(now);
+  if (!this.createdAtIST) {
+    this.createdAtIST = formatIST(this.createdAt || now);
+  }
   if (!this.type) this.type = this.discountType.toUpperCase();
   if (!this.discountType) this.discountType = this.type.toLowerCase();
   if (this.value === undefined) this.value = this.discountValue;

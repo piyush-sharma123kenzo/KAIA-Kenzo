@@ -6,6 +6,7 @@ import { getAccurateProductImage } from '../../utils/productImageMap';
 import { Skeleton } from '../../components/feedback/Skeleton';
 import Container from '../../components/ui/Container';
 import ViewModeSwitch from '../../components/ui/ViewModeSwitch';
+import { formatDateIST } from '../../utils/dateFormatter';
 
 const Wishlist = () => {
   const { wishlist, loading, removeFromWishlist, moveToCart, clearWishlist } = useWishlist();
@@ -262,7 +263,7 @@ const Wishlist = () => {
 
                       {item.addedAt && (
                         <span className="text-[11px] text-slate-400 font-medium block">
-                          Saved on {new Date(item.addedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          Saved on {item.addedAtIST || formatDateIST(item.addedAt)}
                         </span>
                       )}
                     </div>

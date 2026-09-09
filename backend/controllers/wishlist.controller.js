@@ -4,6 +4,7 @@ import Product from '../models/Product.js';
 import Cart from '../models/Cart.js';
 import { getPopulatedCart, isPurchasableProduct, getProductAvailableStock } from './cartController.js';
 import { isProhibitedBrand } from '../utils/brandValidation.js';
+import { formatIST } from '../utils/dateFormat.js';
 
 /**
  * Helper: Retrieve user wishlist populated with live MongoDB product details,
@@ -69,6 +70,7 @@ export const getPopulatedWishlist = async (userId) => {
       _id: item._id,
       product: p,
       addedAt: item.addedAt,
+      addedAtIST: item.addedAtIST || formatIST(item.addedAt),
       unitPrice,
       mrp,
       discount,
@@ -89,6 +91,10 @@ export const getPopulatedWishlist = async (userId) => {
     count: formattedItems.length,
     items: formattedItems,
     products: formattedItems,
+    createdAt: wishlist.createdAt,
+    updatedAt: wishlist.updatedAt,
+    createdAtIST: formatIST(wishlist.createdAt),
+    updatedAtIST: formatIST(wishlist.updatedAt),
   };
 };
 
@@ -155,6 +161,7 @@ export const addToWishlist = async (req, res) => {
     wishlist.products.unshift({
       product: targetProductId,
       addedAt: new Date(),
+      addedAtIST: formatIST(new Date()),
     });
 
     await wishlist.save();
@@ -259,6 +266,7 @@ export const toggleWishlist = async (req, res) => {
       wishlist.products.unshift({
         product: targetProductId,
         addedAt: new Date(),
+        addedAtIST: formatIST(new Date()),
       });
       isWishlisted = true;
       message = 'Added to your wishlist.';
