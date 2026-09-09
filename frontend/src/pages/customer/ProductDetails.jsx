@@ -551,43 +551,6 @@ const ProductDetails = () => {
                 <span>Buy Now</span>
               </Button>
             </div>
-
-            {/* EMI Options Widget */}
-            <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-1.5 text-xs text-left">
-              <div className="flex items-center space-x-2 font-black text-slate-900">
-                <CreditCard className="w-4 h-4 text-amber-600" />
-                <span>No-Cost EMI Options Available</span>
-              </div>
-              <p className="text-slate-600 text-[11px] leading-relaxed">
-                Starting from <strong className="text-slate-900 font-bold">₹{Math.round(product.sellingPrice / 12).toLocaleString('en-IN')}/month</strong> for 12 months with No-Cost EMI on select major bank cards and UPI credit lines.
-              </p>
-            </div>
-
-            {/* What's In The Box Section */}
-            <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-2.5 text-left shadow-2xs">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center space-x-1.5">
-                <Box className="w-4 h-4 text-amber-600" />
-                <span>What's In The Box</span>
-              </h4>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-700">
-                <li className="flex items-center space-x-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="truncate">1x {product.name}</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>1x High-Output OEM Power Adapter</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>1x Braided USB-C Data Cable</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>1x Official Manufacturer Warranty Card</span>
-                </li>
-              </ul>
-            </div>
           </div>
 
           {/* Delivery Availability Checker */}
