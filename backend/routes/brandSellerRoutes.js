@@ -16,6 +16,10 @@ import {
   getBrandProfile,
   updateBrandProfile,
   getBrandReviews,
+  getBrandCategoryAnalytics,
+  getBrandModelAnalytics,
+  getBrandAreaAnalytics,
+  getBrandDemandAnalytics,
 } from '../controllers/brandSellerController.js';
 import {
   getBrandShipments,
@@ -115,6 +119,11 @@ router.patch('/orders/:id/status', updateBrandOrderStatus);
 
 // 5. Sales Analytics & Settlement Ledger
 router.get('/sales', getBrandSales);
+router.get('/analytics/sales', getBrandSales);
+router.get('/analytics/categories', getBrandCategoryAnalytics);
+router.get('/analytics/models', getBrandModelAnalytics);
+router.get('/analytics/areas', getBrandAreaAnalytics);
+router.get('/analytics/demand', getBrandDemandAnalytics);
 router.get('/earnings', getBrandEarnings);
 router.get('/ledger', getBrandLedger);
 router.get('/settlements', getBrandSettlements);

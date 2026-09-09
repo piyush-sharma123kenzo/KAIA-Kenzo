@@ -772,6 +772,57 @@ export const brandSellerService = {
     }
   },
 
+  // 14. Vendor Granular Business Intelligence Analytics
+  getSalesAnalytics: async (range = '30d') => {
+    try {
+      const res = await axiosInstance.get(`/brand/sales?range=${range}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching sales analytics:', err);
+      throw err;
+    }
+  },
+
+  getCategoryAnalytics: async (range = '30d') => {
+    try {
+      const res = await axiosInstance.get(`/brand/analytics/categories?range=${range}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching category analytics:', err);
+      throw err;
+    }
+  },
+
+  getModelAnalytics: async (range = '30d') => {
+    try {
+      const res = await axiosInstance.get(`/brand/analytics/models?range=${range}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching model analytics:', err);
+      throw err;
+    }
+  },
+
+  getAreaAnalytics: async (range = '30d') => {
+    try {
+      const res = await axiosInstance.get(`/brand/analytics/areas?range=${range}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching area analytics:', err);
+      throw err;
+    }
+  },
+
+  getDemandAnalytics: async () => {
+    try {
+      const res = await axiosInstance.get(`/brand/analytics/demand`);
+      return res.data;
+    } catch (err) {
+      console.error('Error fetching demand analytics:', err);
+      throw err;
+    }
+  },
+
   exportCsv: async (entity) => {
     try {
       const res = await axiosInstance.get(`/admin/export/${entity}`, { responseType: 'blob' });

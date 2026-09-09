@@ -149,6 +149,14 @@ const productSchema = new mongoose.Schema(
       default: 'Approved',
       index: true,
     },
+    rejectionReason: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    approvedAt: {
+      type: Date,
+    },
     ratings: {
       average: { type: Number, default: 0, min: 0, max: 5 },
       count: { type: Number, default: 0 },

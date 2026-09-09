@@ -144,6 +144,7 @@ const Products = () => {
               <option value="all">All Status</option>
               <option value="Approved">Published</option>
               <option value="Pending Approval">Under Review</option>
+              <option value="Rejected">Rejected</option>
               <option value="Draft">Draft</option>
               <option value="Archived">Archived</option>
             </select>
@@ -230,6 +231,14 @@ const Products = () => {
                           <span className="text-[10px] text-brand-gray-400 block truncate">
                             {p.shortDescription || 'Brand Hardware Listing'}
                           </span>
+                          {p.status === 'Rejected' && p.rejectionReason && (
+                            <div className="mt-1 flex items-start space-x-1 text-[10px] text-red-600 bg-red-50 p-1 rounded border border-red-150">
+                              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+                              <span className="truncate" title={p.rejectionReason}>
+                                {p.rejectionReason}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </td>
 
@@ -266,11 +275,13 @@ const Products = () => {
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                           p.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          p.status === 'Rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
                           p.status === 'Archived' ? 'bg-brand-gray-100 text-brand-gray-600 border border-brand-gray-300' :
                           p.status === 'Draft' ? 'bg-brand-gray-100 text-brand-gray-700 border border-brand-gray-300' :
                           'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}>
                           {p.status === 'Approved' && <ShieldCheck className="w-3 h-3 mr-0.5" />}
+                          {p.status === 'Rejected' && <ShieldX className="w-3 h-3 mr-0.5" />}
                           {p.status === 'Pending Approval' && <Clock className="w-3 h-3 mr-0.5" />}
                           <span>{p.status === 'Approved' ? 'Published' : p.status}</span>
                         </span>

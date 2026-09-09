@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Brand from '../models/Brand.js';
 import Category from '../models/Category.js';
+import AuditLog from '../models/AuditLog.js';
+import User from '../models/User.js';
+import { createNotification, notifyBrandOwner } from '../services/notification/notification.service.js';
+import { sendCustomEmail } from '../services/email/email.service.js';
 import { isProhibitedBrand } from '../utils/brandValidation.js';
 
 // Helper to generate clean slug
@@ -598,19 +602,26 @@ export const updateAdminProductStock = async (req, res) => {
 export const toggleAdminProductStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { isActive, status, isFeatured, isBestSeller, isNewArrival, isBestDeal } = req.body;
+    const { isActive, status, isFeatured, isBestSeller, isNewArrival, isBestDeal, rejectionReason } = req.body;
 
     const product = await Product.findById(id);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
 
+    const previousStatus = product.status;
+
     // Handle Status
     if (status !== undefined) {
       product.status = status;
       if (status === 'Approved' || status === 'published') {
         product.isActive = true;
-      } else if (['Draft', 'Pending Approval', 'Rejected', 'Inactive'].includes(status)) {
+        product.approvedAt = new Date();
+        product.rejectionReason = '';
+      } else if (status === 'Rejected') {
+        product.isActive = false;
+        if (rejectionReason) product.rejectionReason = rejectionReason.trim();
+      } else if (['Draft', 'Pending Approval', 'Inactive'].includes(status)) {
         product.isActive = false;
       }
     }
@@ -620,6 +631,7 @@ export const toggleAdminProductStatus = async (req, res) => {
       product.isActive = Boolean(isActive);
       if (product.isActive && (!product.status || product.status === 'Inactive' || product.status === 'Draft')) {
         product.status = 'Approved';
+        product.approvedAt = new Date();
       } else if (!product.isActive && product.status === 'Approved') {
         product.status = 'Inactive';
       }
@@ -642,9 +654,71 @@ export const toggleAdminProductStatus = async (req, res) => {
     ) {
       product.isActive = !product.isActive;
       product.status = product.isActive ? 'Approved' : 'Inactive';
+      if (product.isActive) product.approvedAt = new Date();
     }
 
     await product.save();
+
+    // Trigger Notifications & Audit Log on status transition
+    if (previousStatus !== product.status) {
+      try {
+        const brand = await Brand.findById(product.brand);
+        if (brand && brand.owner) {
+          if (product.status === 'Approved') {
+            await createNotification({
+              userId: brand.owner,
+              title: 'Product Approved',
+              message: `Your product "${product.name}" (SKU: ${product.SKU || product.modelNumber || 'Listing'}) has been approved and is now live on the KAIA storefront.`,
+              type: 'BRAND',
+              referenceType: 'Product',
+              referenceId: product._id,
+              link: `/vendor/products`,
+            });
+
+            if (brand.contactEmail) {
+              await sendCustomEmail({
+                to: brand.contactEmail,
+                subject: `Product Approved: ${product.name}`,
+                html: `<h2>Congratulations!</h2><p>Your product listing <strong>${product.name}</strong> (SKU: ${product.SKU}) has been approved by KAIA Administration and published live to the platform storefront.</p><p><a href="${process.env.FRONTEND_URL || 'https://kaia-kenzo.vercel.app'}/product/${product.slug}">View Live Product on Storefront</a></p>`,
+              }).catch((e) => console.error('[Notification] Email delivery warning:', e.message));
+            }
+          } else if (product.status === 'Rejected') {
+            const reasonText = product.rejectionReason || 'Product specifications or images need verification.';
+            await createNotification({
+              userId: brand.owner,
+              title: 'Product Rejected',
+              message: `Your product "${product.name}" was rejected. Reason: ${reasonText}`,
+              type: 'BRAND',
+              referenceType: 'Product',
+              referenceId: product._id,
+              link: `/vendor/products`,
+            });
+
+            if (brand.contactEmail) {
+              await sendCustomEmail({
+                to: brand.contactEmail,
+                subject: `Product Listing Status: ${product.name}`,
+                html: `<h2>Product Listing Rejected</h2><p>Your product submission for <strong>${product.name}</strong> was rejected during administrative review.</p><p><strong>Rejection Reason:</strong> ${reasonText}</p><p>Please review and update the product in your Vendor Dashboard to resubmit.</p>`,
+              }).catch((e) => console.error('[Notification] Email delivery warning:', e.message));
+            }
+          }
+        }
+
+        // Audit Logging
+        if (req.user && req.user._id) {
+          await AuditLog.create({
+            user: req.user._id,
+            action: product.status === 'Approved' ? 'APPROVE_PRODUCT' : product.status === 'Rejected' ? 'REJECT_PRODUCT' : 'UPDATE_PRODUCT_STATUS',
+            entity: 'Product',
+            entityId: product._id,
+            changes: { status: product.status, isActive: product.isActive, rejectionReason: product.rejectionReason },
+            metadata: { ip: req.ip || '', userAgent: req.headers['user-agent'] || '' },
+          }).catch((e) => console.error('[Audit] Log creation warning:', e.message));
+        }
+      } catch (notifErr) {
+        console.error('[Notification] Error during approval dispatch:', notifErr);
+      }
+    }
 
     const populated = await Product.findById(product._id)
       .populate('brand', 'name slug logo')
@@ -755,7 +829,7 @@ export const deleteAdminProductImage = async (req, res) => {
 export const verifyProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { approvalStatus, isApproved, status } = req.body;
+    const { approvalStatus, isApproved, status, rejectionReason } = req.body;
 
     const product = await Product.findById(id);
     if (!product) {
@@ -765,7 +839,44 @@ export const verifyProduct = async (req, res) => {
     const finalStatus = status || (approvalStatus === 'Approved' || isApproved ? 'Approved' : 'Rejected');
     product.status = finalStatus;
     product.isActive = finalStatus === 'Approved';
+    if (product.isActive) {
+      product.approvedAt = new Date();
+      product.rejectionReason = '';
+    } else if (finalStatus === 'Rejected') {
+      product.rejectionReason = rejectionReason ? rejectionReason.trim() : 'Product details require verification';
+    }
+
     await product.save();
+
+    // Trigger Notification
+    try {
+      const brand = await Brand.findById(product.brand);
+      if (brand && brand.owner) {
+        if (finalStatus === 'Approved') {
+          await createNotification({
+            userId: brand.owner,
+            title: 'Product Approved',
+            message: `Your product "${product.name}" has been approved by administrator.`,
+            type: 'BRAND',
+            referenceType: 'Product',
+            referenceId: product._id,
+            link: '/vendor/products',
+          });
+        } else if (finalStatus === 'Rejected') {
+          await createNotification({
+            userId: brand.owner,
+            title: 'Product Rejected',
+            message: `Your product "${product.name}" was rejected. Reason: ${product.rejectionReason}`,
+            type: 'BRAND',
+            referenceType: 'Product',
+            referenceId: product._id,
+            link: '/vendor/products',
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[Notification] Verification dispatch error:', e.message);
+    }
 
     res.status(200).json({
       success: true,

@@ -1383,3 +1383,318 @@ export const getBrandReviews = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error retrieving brand reviews.' });
   }
 };
+
+// ==========================================
+// 7. VENDOR CATEGORY ANALYTICS
+// ==========================================
+// @desc    Get category-wise performance analytics for authenticated vendor
+// @route   GET /api/vendor/analytics/categories, GET /api/brand/analytics/categories
+// @access  Private (Role: BRAND / VENDOR, Approved)
+export const getBrandCategoryAnalytics = async (req, res) => {
+  try {
+    const brandId = req.brand._id;
+    const { range = '30d' } = req.query;
+
+    const now = new Date();
+    let startDate = new Date();
+    if (range === 'today') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (range === '7d') {
+      startDate.setDate(now.getDate() - 7);
+    } else if (range === '30d') {
+      startDate.setDate(now.getDate() - 30);
+    } else if (range === '90d') {
+      startDate.setDate(now.getDate() - 90);
+    } else if (range === 'thisMonth') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (range === 'all') {
+      startDate = new Date(2020, 0, 1);
+    } else {
+      startDate.setDate(now.getDate() - 30);
+    }
+
+    // 1. Get all products of this vendor with category details
+    const vendorProducts = await Product.find({ brand: brandId, isDeleted: false })
+      .populate('category', 'name slug')
+      .lean();
+
+    const categoryMap = {};
+
+    vendorProducts.forEach((p) => {
+      const catId = p.category?._id?.toString() || 'uncategorized';
+      const catName = p.category?.name || 'General';
+      if (!categoryMap[catId]) {
+        categoryMap[catId] = {
+          categoryId: catId,
+          categoryName: catName,
+          totalProducts: 0,
+          approvedProducts: 0,
+          unitsSold: 0,
+          ordersCount: 0,
+          revenue: 0,
+        };
+      }
+      categoryMap[catId].totalProducts += 1;
+      if (p.status === 'Approved' || p.status === 'published') {
+        categoryMap[catId].approvedProducts += 1;
+      }
+    });
+
+    // 2. Fetch seller orders within timeframe to calculate real sales per category
+    const sellerOrders = await SellerOrder.find({
+      seller: brandId,
+      createdAt: { $gte: startDate },
+      fulfillmentStatus: { $ne: 'Cancelled' },
+    }).lean();
+
+    let totalVendorRevenue = 0;
+
+    sellerOrders.forEach((so) => {
+      (so.items || []).forEach((it) => {
+        const prod = vendorProducts.find((p) => p._id.toString() === (it.product?.toString() || ''));
+        const catId = prod?.category?._id?.toString() || 'uncategorized';
+        const itemRevenue = (it.price || 0) * (it.qty || it.quantity || 1);
+        const itemUnits = it.qty || it.quantity || 1;
+
+        totalVendorRevenue += itemRevenue;
+
+        if (categoryMap[catId]) {
+          categoryMap[catId].unitsSold += itemUnits;
+          categoryMap[catId].ordersCount += 1;
+          categoryMap[catId].revenue += itemRevenue;
+        }
+      });
+    });
+
+    const categories = Object.values(categoryMap).map((cat) => ({
+      ...cat,
+      percentageOfSales: totalVendorRevenue > 0 ? Math.round((cat.revenue / totalVendorRevenue) * 100) : 0,
+    }));
+
+    // Sort by revenue descending
+    categories.sort((a, b) => b.revenue - a.revenue);
+
+    res.status(200).json({
+      success: true,
+      range,
+      totalRevenue: totalVendorRevenue,
+      categories,
+    });
+  } catch (error) {
+    console.error('Error calculating category analytics:', error);
+    res.status(500).json({ success: false, message: 'Error retrieving category analytics' });
+  }
+};
+
+// ==========================================
+// 8. VENDOR MODEL & PRODUCT ANALYTICS
+// ==========================================
+// @desc    Get model-wise SKU & product performance for authenticated vendor
+// @route   GET /api/vendor/analytics/models, GET /api/brand/analytics/models
+// @access  Private (Role: BRAND / VENDOR, Approved)
+export const getBrandModelAnalytics = async (req, res) => {
+  try {
+    const brandId = req.brand._id;
+    const { range = '30d' } = req.query;
+
+    const now = new Date();
+    let startDate = new Date();
+    if (range === 'today') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (range === '7d') {
+      startDate.setDate(now.getDate() - 7);
+    } else if (range === '30d') {
+      startDate.setDate(now.getDate() - 30);
+    } else if (range === 'thisMonth') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else {
+      startDate.setDate(now.getDate() - 30);
+    }
+
+    const products = await Product.find({ brand: brandId, isDeleted: false })
+      .populate('category', 'name slug')
+      .lean();
+
+    const productStats = {};
+    products.forEach((p) => {
+      productStats[p._id.toString()] = {
+        productId: p._id,
+        name: p.name,
+        modelNumber: p.modelNumber || 'N/A',
+        SKU: p.SKU || 'N/A',
+        categoryName: p.category?.name || 'General',
+        sellingPrice: p.sellingPrice || 0,
+        currentStock: p.stock?.availableQuantity ?? p.stockQuantity ?? p.stock?.quantity ?? 0,
+        status: p.status,
+        unitsSold: 0,
+        ordersCount: 0,
+        revenue: 0,
+      };
+    });
+
+    const sellerOrders = await SellerOrder.find({
+      seller: brandId,
+      createdAt: { $gte: startDate },
+      fulfillmentStatus: { $ne: 'Cancelled' },
+    }).lean();
+
+    sellerOrders.forEach((so) => {
+      (so.items || []).forEach((it) => {
+        const pid = it.product?.toString();
+        if (productStats[pid]) {
+          const qty = it.qty || it.quantity || 1;
+          const rev = (it.price || 0) * qty;
+          productStats[pid].unitsSold += qty;
+          productStats[pid].ordersCount += 1;
+          productStats[pid].revenue += rev;
+        }
+      });
+    });
+
+    const modelsList = Object.values(productStats);
+    modelsList.sort((a, b) => b.unitsSold - a.unitsSold);
+
+    const bestSellers = [...modelsList].filter((m) => m.unitsSold > 0).slice(0, 5);
+    const lowStockAlerts = modelsList.filter((m) => m.currentStock <= 5);
+
+    res.status(200).json({
+      success: true,
+      range,
+      totalModels: modelsList.length,
+      bestSellers,
+      lowStockAlerts,
+      models: modelsList,
+    });
+  } catch (error) {
+    console.error('Error calculating model analytics:', error);
+    res.status(500).json({ success: false, message: 'Error retrieving model analytics' });
+  }
+};
+
+// ==========================================
+// 9. VENDOR DELIVERY AREA DEMAND ANALYTICS
+// ==========================================
+// @desc    Get aggregated regional / delivery area demand (Privacy Protected)
+// @route   GET /api/vendor/analytics/areas, GET /api/brand/analytics/areas
+// @access  Private (Role: BRAND / VENDOR, Approved)
+export const getBrandAreaAnalytics = async (req, res) => {
+  try {
+    const brandId = req.brand._id;
+    const { range = '30d' } = req.query;
+
+    const now = new Date();
+    let startDate = new Date();
+    if (range === 'today') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (range === '7d') {
+      startDate.setDate(now.getDate() - 7);
+    } else if (range === '30d') {
+      startDate.setDate(now.getDate() - 30);
+    } else if (range === 'thisMonth') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else {
+      startDate.setDate(now.getDate() - 30);
+    }
+
+    const sellerOrders = await SellerOrder.find({
+      seller: brandId,
+      createdAt: { $gte: startDate },
+      fulfillmentStatus: { $ne: 'Cancelled' },
+    })
+      .populate('parentOrder', 'shippingAddress')
+      .lean();
+
+    const areaMap = {};
+
+    sellerOrders.forEach((so) => {
+      const addr = so.parentOrder?.shippingAddress || so.shippingAddress;
+      const city = (addr?.city || 'Unspecified').trim();
+      const state = (addr?.state || '').trim();
+      const pincode = (addr?.postalCode || '').trim();
+      const areaKey = `${city}-${state || pincode}`.toLowerCase();
+
+      if (!areaMap[areaKey]) {
+        areaMap[areaKey] = {
+          city: city || 'Local Service Area',
+          state: state || 'NCR',
+          pincode: pincode ? pincode.slice(0, 3) + 'XXX' : 'N/A', // Privacy mask
+          ordersCount: 0,
+          unitsSold: 0,
+          totalRevenue: 0,
+        };
+      }
+
+      areaMap[areaKey].ordersCount += 1;
+      areaMap[areaKey].totalRevenue += so.finalAmount || 0;
+      (so.items || []).forEach((it) => {
+        areaMap[areaKey].unitsSold += it.qty || it.quantity || 1;
+      });
+    });
+
+    const areas = Object.values(areaMap);
+    areas.sort((a, b) => b.ordersCount - a.ordersCount);
+
+    res.status(200).json({
+      success: true,
+      range,
+      totalOrders: sellerOrders.length,
+      areas,
+    });
+  } catch (error) {
+    console.error('Error calculating delivery area analytics:', error);
+    res.status(500).json({ success: false, message: 'Error retrieving delivery area analytics' });
+  }
+};
+
+// ==========================================
+// 10. VENDOR DEMAND ANALYTICS
+// ==========================================
+// @desc    Get order demand timeline (Daily, Weekly, Monthly)
+// @route   GET /api/vendor/analytics/demand, GET /api/brand/analytics/demand
+// @access  Private (Role: BRAND / VENDOR, Approved)
+export const getBrandDemandAnalytics = async (req, res) => {
+  try {
+    const brandId = req.brand._id;
+    const now = new Date();
+
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [todayOrders, weekOrders, monthOrders, allOrders] = await Promise.all([
+      SellerOrder.countDocuments({ seller: brandId, createdAt: { $gte: startOfToday }, fulfillmentStatus: { $ne: 'Cancelled' } }),
+      SellerOrder.countDocuments({ seller: brandId, createdAt: { $gte: startOfWeek }, fulfillmentStatus: { $ne: 'Cancelled' } }),
+      SellerOrder.countDocuments({ seller: brandId, createdAt: { $gte: startOfMonth }, fulfillmentStatus: { $ne: 'Cancelled' } }),
+      SellerOrder.find({ seller: brandId, fulfillmentStatus: { $ne: 'Cancelled' } }).select('createdAt finalAmount items').lean(),
+    ]);
+
+    // Build 14-day demand timeline
+    const timeline = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const dayKey = d.toISOString().split('T')[0];
+      const dayOrders = allOrders.filter((o) => new Date(o.createdAt).toISOString().split('T')[0] === dayKey);
+      timeline.push({
+        date: dayKey,
+        orders: dayOrders.length,
+        revenue: dayOrders.reduce((sum, o) => sum + (o.finalAmount || 0), 0),
+        units: dayOrders.reduce((sum, o) => sum + (o.items || []).reduce((s, it) => s + (it.qty || it.quantity || 1), 0), 0),
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      demand: {
+        today: todayOrders,
+        thisWeek: weekOrders,
+        thisMonth: monthOrders,
+      },
+      timeline,
+    });
+  } catch (error) {
+    console.error('Error calculating demand analytics:', error);
+    res.status(500).json({ success: false, message: 'Error retrieving demand analytics' });
+  }
+};
