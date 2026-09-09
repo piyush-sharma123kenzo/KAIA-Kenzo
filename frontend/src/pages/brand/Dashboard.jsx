@@ -309,23 +309,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 4. Order Status Pipeline Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {orderStatusCards.map((item, i) => {
-          const Icon = item.icon;
-          return (
-            <div key={i} className="bg-white border border-brand-gray-200 p-4 rounded-sm shadow-premium flex items-center space-x-3.5">
-              <div className={`p-2.5 rounded-sm ${item.color} shrink-0`}>
-                <Icon className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-brand-gray-400 uppercase tracking-wider leading-none">{item.title}</p>
-                <p className="text-xl font-black text-brand-gray-900 mt-1">{item.value}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
       {/* 5. Recent Orders Table */}
       <div className="bg-white border border-brand-gray-200 rounded-sm shadow-premium overflow-hidden">
