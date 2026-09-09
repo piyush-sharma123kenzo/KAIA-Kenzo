@@ -3,6 +3,7 @@ import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
 import Brand from '../models/Brand.js';
 import { isProhibitedBrand } from '../utils/brandValidation.js';
+import { formatIST } from '../utils/dateFormat.js';
 
 /**
  * Helper: Determine if a product is active, approved, and eligible for customer purchase.
@@ -134,6 +135,8 @@ export const getPopulatedCart = async (userId) => {
     totals,
     createdAt: cart.createdAt,
     updatedAt: cart.updatedAt,
+    createdAtIST: formatIST(cart.createdAt),
+    updatedAtIST: formatIST(cart.updatedAt),
   };
 };
 
