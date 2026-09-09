@@ -45,6 +45,11 @@ const deliveryLocationSchema = new mongoose.Schema(
         max: [180, 'Longitude must be <= 180'],
       },
     },
+    serviceablePincodes: {
+      type: [String],
+      default: [],
+      index: true,
+    },
     deliveryRadius: {
       type: Number,
       required: [true, 'Delivery radius in KM is required'],
@@ -74,6 +79,7 @@ const deliveryLocationSchema = new mongoose.Schema(
 
 // Compound index for active locations and PIN code
 deliveryLocationSchema.index({ isActive: 1, pincode: 1 });
+deliveryLocationSchema.index({ isActive: 1, serviceablePincodes: 1 });
 deliveryLocationSchema.index({ 'coordinates.latitude': 1, 'coordinates.longitude': 1 });
 
 const DeliveryLocation = mongoose.model('DeliveryLocation', deliveryLocationSchema);
