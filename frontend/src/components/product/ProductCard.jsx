@@ -98,6 +98,9 @@ const ProductCard = ({
       setTimeout(() => setJustAdded(false), 1800);
     } catch (err) {
       console.error('Error in quick add to cart:', err);
+      if (toast.showToast) {
+        toast.showToast(err.response?.data?.message || err.message || 'Unable to add item to cart.', 'error');
+      }
     } finally {
       setAddingToCart(false);
     }

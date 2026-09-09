@@ -2,22 +2,8 @@ import mongoose from 'mongoose';
 import Wishlist from '../models/Wishlist.js';
 import Product from '../models/Product.js';
 import Cart from '../models/Cart.js';
-import { getPopulatedCart } from './cartController.js';
-
-// Helper: Prohibited brand filter (Apple & Sony)
-const isProhibitedBrand = (str) => {
-  if (!str) return false;
-  const s = String(str).toLowerCase();
-  return (
-    s.includes('apple') ||
-    s.includes('iphone') ||
-    s.includes('ipad') ||
-    s.includes('macbook') ||
-    s.includes('sony') ||
-    s.includes('playstation') ||
-    s.includes('bravia')
-  );
-};
+import { getPopulatedCart, isPurchasableProduct, getProductAvailableStock } from './cartController.js';
+import { isProhibitedBrand } from '../utils/brandValidation.js';
 
 /**
  * Helper: Retrieve user wishlist populated with live MongoDB product details,
@@ -26,7 +12,7 @@ const isProhibitedBrand = (str) => {
 export const getPopulatedWishlist = async (userId) => {
   let wishlist = await Wishlist.findOne({ user: userId }).populate({
     path: 'products.product',
-    select: 'name slug brand category mrp sellingPrice price images stock status isActive isDeleted gstRate SKU modelNumber description',
+    select: 'name slug brand category mrp sellingPrice price images stock stockQuantity status isActive isDeleted gstRate SKU modelNumber description',
     populate: [
       { path: 'brand', select: 'name slug logo' },
       { path: 'category', select: 'name slug' },
@@ -37,7 +23,7 @@ export const getPopulatedWishlist = async (userId) => {
     wishlist = await Wishlist.create({ user: userId, products: [] });
     wishlist = await Wishlist.findOne({ user: userId }).populate({
       path: 'products.product',
-      select: 'name slug brand category mrp sellingPrice price images stock status isActive isDeleted gstRate SKU modelNumber description',
+      select: 'name slug brand category mrp sellingPrice price images stock stockQuantity status isActive isDeleted gstRate SKU modelNumber description',
       populate: [
         { path: 'brand', select: 'name slug logo' },
         { path: 'category', select: 'name slug' },
@@ -49,15 +35,14 @@ export const getPopulatedWishlist = async (userId) => {
   let itemsChanged = false;
   const validProducts = [];
 
-  for (const item of wishlist.products) {
+  for (const item of (wishlist.products || [])) {
     const p = item.product;
-    if (
-      !p ||
-      p.isDeleted === true ||
-      isProhibitedBrand(p.name) ||
-      isProhibitedBrand(p.brand?.name) ||
-      isProhibitedBrand(p.slug)
-    ) {
+    if (!p || p.isDeleted === true) {
+      itemsChanged = true;
+      continue;
+    }
+    const brandName = p.brand?.name || (typeof p.brand === 'string' ? p.brand : '');
+    if (isProhibitedBrand(p.name) || isProhibitedBrand(brandName)) {
       itemsChanged = true;
       continue;
     }
@@ -70,15 +55,15 @@ export const getPopulatedWishlist = async (userId) => {
   }
 
   // Format products with dynamic stock and price attributes
-  const formattedItems = wishlist.products.map((item) => {
+  const formattedItems = (wishlist.products || []).map((item) => {
     const p = item.product;
     const unitPrice = Number(p.sellingPrice ?? p.price ?? 0);
     const mrp = Number(p.mrp ?? unitPrice);
     const discount = mrp > unitPrice ? Math.round(((mrp - unitPrice) / mrp) * 100) : 0;
 
-    const availableStock = Math.max(0, (p.stock?.quantity ?? 0) - (p.stock?.reservedQuantity ?? 0));
+    const availableStock = getProductAvailableStock(p);
     const isOutOfStock = availableStock <= 0;
-    const isLiveActive = p.isActive !== false && p.status === 'Approved' && p.isDeleted !== true;
+    const isLiveActive = isPurchasableProduct(p);
 
     return {
       _id: item._id,
@@ -130,24 +115,20 @@ export const getWishlist = async (req, res) => {
 // @route   POST /api/wishlist/add, POST /api/wishlist, POST /api/account/wishlist
 // @access  Private (Authenticated User)
 export const addToWishlist = async (req, res) => {
-  const { productId } = req.body;
+  const targetProductId = req.body.productId || req.body.product || req.body.id || req.body._id;
 
   try {
-    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({ success: false, message: 'Valid Product ID is required.' });
+    if (!targetProductId || !mongoose.Types.ObjectId.isValid(targetProductId)) {
+      return res.status(400).json({ success: false, message: 'A valid Product ID is required.' });
     }
 
-    const product = await Product.findById(productId).populate('brand', 'name slug');
+    const product = await Product.findById(targetProductId).populate('brand', 'name slug');
     if (!product || product.isDeleted === true) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
 
-    // Prohibited brand check (Apple & Sony)
-    if (
-      isProhibitedBrand(product.name) ||
-      isProhibitedBrand(product.slug) ||
-      isProhibitedBrand(product.brand?.name)
-    ) {
+    const brandName = product.brand?.name || (typeof product.brand === 'string' ? product.brand : '');
+    if (isProhibitedBrand(product.name) || isProhibitedBrand(brandName)) {
       return res.status(400).json({
         success: false,
         message: 'This product brand is not permitted on KAIA Technologies.',
@@ -159,7 +140,7 @@ export const addToWishlist = async (req, res) => {
       wishlist = await Wishlist.create({ user: req.user._id, products: [] });
     }
 
-    const exists = wishlist.products.some((it) => it.product.toString() === productId.toString());
+    const exists = wishlist.products.some((it) => it.product.toString() === targetProductId.toString());
     if (exists) {
       const populated = await getPopulatedWishlist(req.user._id);
       return res.status(200).json({
@@ -172,7 +153,7 @@ export const addToWishlist = async (req, res) => {
     }
 
     wishlist.products.unshift({
-      product: productId,
+      product: targetProductId,
       addedAt: new Date(),
     });
 
@@ -196,11 +177,11 @@ export const addToWishlist = async (req, res) => {
 // @route   DELETE /api/wishlist/:productId, DELETE /api/account/wishlist/:productId
 // @access  Private (Authenticated User)
 export const removeFromWishlist = async (req, res) => {
-  const targetProductId = req.params.productId || req.body.productId;
+  const targetProductId = req.params.productId || req.body.productId || req.body.product;
 
   try {
     if (!targetProductId || !mongoose.Types.ObjectId.isValid(targetProductId)) {
-      return res.status(400).json({ success: false, message: 'Valid Product ID is required.' });
+      return res.status(400).json({ success: false, message: 'A valid Product ID is required.' });
     }
 
     const wishlist = await Wishlist.findOne({ user: req.user._id });
@@ -238,23 +219,20 @@ export const removeFromWishlist = async (req, res) => {
 // @route   POST /api/wishlist/toggle
 // @access  Private (Authenticated User)
 export const toggleWishlist = async (req, res) => {
-  const { productId } = req.body;
+  const targetProductId = req.body.productId || req.body.product || req.body.id || req.body._id;
 
   try {
-    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({ success: false, message: 'Valid Product ID is required.' });
+    if (!targetProductId || !mongoose.Types.ObjectId.isValid(targetProductId)) {
+      return res.status(400).json({ success: false, message: 'A valid Product ID is required.' });
     }
 
-    const product = await Product.findById(productId).populate('brand', 'name slug');
+    const product = await Product.findById(targetProductId).populate('brand', 'name slug');
     if (!product || product.isDeleted === true) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
 
-    if (
-      isProhibitedBrand(product.name) ||
-      isProhibitedBrand(product.slug) ||
-      isProhibitedBrand(product.brand?.name)
-    ) {
+    const brandName = product.brand?.name || (typeof product.brand === 'string' ? product.brand : '');
+    if (isProhibitedBrand(product.name) || isProhibitedBrand(brandName)) {
       return res.status(400).json({
         success: false,
         message: 'This product brand is not permitted on KAIA Technologies.',
@@ -267,7 +245,7 @@ export const toggleWishlist = async (req, res) => {
     }
 
     const existingIndex = wishlist.products.findIndex(
-      (it) => it.product.toString() === productId.toString()
+      (it) => it.product.toString() === targetProductId.toString()
     );
 
     let isWishlisted = false;
@@ -279,7 +257,7 @@ export const toggleWishlist = async (req, res) => {
       message = 'Removed from wishlist.';
     } else {
       wishlist.products.unshift({
-        product: productId,
+        product: targetProductId,
         addedAt: new Date(),
       });
       isWishlisted = true;
@@ -333,23 +311,23 @@ export const clearWishlist = async (req, res) => {
 // @route   POST /api/wishlist/:productId/move-to-cart
 // @access  Private (Authenticated User)
 export const moveToCart = async (req, res) => {
-  const targetProductId = req.params.productId || req.body.productId;
+  const targetProductId = req.params.productId || req.body.productId || req.body.product;
   const { quantity = 1, selectedSpecs = {} } = req.body;
 
   try {
     if (!targetProductId || !mongoose.Types.ObjectId.isValid(targetProductId)) {
-      return res.status(400).json({ success: false, message: 'Valid Product ID is required.' });
+      return res.status(400).json({ success: false, message: 'A valid Product ID is required.' });
     }
 
-    const product = await Product.findById(targetProductId);
-    if (!product || product.isDeleted || !product.isActive || product.status !== 'Approved') {
+    const product = await Product.findById(targetProductId).populate('brand', 'name');
+    if (!product || !isPurchasableProduct(product)) {
       return res.status(400).json({
         success: false,
-        message: 'Product is currently unavailable or inactive.',
+        message: 'This product is currently unavailable or pending approval.',
       });
     }
 
-    const availableStock = Math.max(0, (product.stock?.quantity ?? 0) - (product.stock?.reservedQuantity ?? 0));
+    const availableStock = getProductAvailableStock(product);
     if (availableStock <= 0) {
       return res.status(400).json({
         success: false,
@@ -377,6 +355,8 @@ export const moveToCart = async (req, res) => {
         JSON.stringify(item.selectedSpecs || {}) === JSON.stringify(selectedSpecs || {})
     );
 
+    const unitPrice = Number(product.sellingPrice ?? product.price ?? 0);
+
     if (existingIndex > -1) {
       const combinedQty = Math.min(availableStock, cart.items[existingIndex].quantity + requestedQty);
       cart.items[existingIndex].quantity = combinedQty;
@@ -385,7 +365,7 @@ export const moveToCart = async (req, res) => {
         product: targetProductId,
         quantity: requestedQty,
         selectedSpecs: selectedSpecs || {},
-        priceAtAdd: product.sellingPrice,
+        priceAtAdd: unitPrice,
       });
     }
     await cart.save();
@@ -416,4 +396,3 @@ export const moveToCart = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error moving item to cart.' });
   }
 };
-

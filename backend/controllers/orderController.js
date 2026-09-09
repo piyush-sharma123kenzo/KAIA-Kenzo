@@ -15,6 +15,7 @@ import Payment from '../models/Payment.js';
 import paymentService from '../services/payment/payment.service.js';
 import inventoryService from '../services/inventory/inventory.service.js';
 import { validateOrderDelivery } from './deliveryController.js';
+import { isPurchasableProduct, getProductAvailableStock } from './cartController.js';
 
 /**
  * Helper: Derive the Master Order status from its child SellerOrders.
@@ -40,23 +41,22 @@ export const deriveMasterOrderStatus = async (masterOrderId) => {
       return order.orderStatus;
     }
 
-    const statuses = childOrders.map((so) => so.fulfillmentStatus);
-    const allCancelled = statuses.every((s) => s === 'Cancelled');
+    const statuses = childOrders.map((co) => co.fulfillmentStatus);
     const allDelivered = statuses.every((s) => s === 'Delivered');
-    const allShipped = statuses.every((s) => s === 'Shipped');
-    const anyShippedOrOut = statuses.some((s) => s === 'Shipped' || s === 'Out for Delivery' || s === 'Delivered');
+    const allCancelled = statuses.every((s) => s === 'Cancelled');
+    const anyShipped = statuses.some((s) => s === 'Shipped' || s === 'Out for Delivery');
+    const anyPacked = statuses.some((s) => s === 'Packed');
     const anyCancelled = statuses.some((s) => s === 'Cancelled');
 
-    let newStatus = 'processing';
-
-    if (allCancelled) {
-      newStatus = 'cancelled';
-    } else if (allDelivered) {
+    let newStatus = 'placed';
+    if (allDelivered) {
       newStatus = 'delivered';
-    } else if (allShipped) {
+    } else if (allCancelled) {
+      newStatus = 'cancelled';
+    } else if (anyShipped) {
       newStatus = 'shipped';
-    } else if (anyShippedOrOut) {
-      newStatus = 'partially_shipped';
+    } else if (anyPacked) {
+      newStatus = 'processing';
     } else if (anyCancelled) {
       newStatus = 'partially_cancelled';
     } else {
@@ -129,13 +129,13 @@ export const initiateCheckout = async (req, res) => {
     // Validate each cart item
     for (let it of cart.items) {
       const p = productMap[it.product.toString()];
-      if (!p || !p.isActive || p.status !== 'Approved') {
+      if (!isPurchasableProduct(p)) {
         return res.status(400).json({
-          message: `Product "${p?.name || 'Item'}" is currently unavailable or inactive.`,
+          message: `Product "${p?.name || 'Item'}" is currently unavailable or pending approval.`,
         });
       }
 
-      const availableStock = Math.max(0, p.stock.quantity - (p.stock.reservedQuantity || 0));
+      const availableStock = getProductAvailableStock(p);
       if (availableStock < it.quantity) {
         return res.status(400).json({
           message: `Insufficient stock for "${p.name}". Available: ${availableStock}, Requested: ${it.quantity}.`,
@@ -154,9 +154,9 @@ export const initiateCheckout = async (req, res) => {
 
     for (let it of cart.items) {
       const p = productMap[it.product.toString()];
-      const price = p.sellingPrice;
+      const price = Number(p.sellingPrice ?? p.price ?? 0);
       const qty = it.quantity;
-      const gstRate = p.gstRate || 18.0;
+      const gstRate = Number(p.gstRate ?? 18.0);
 
       const itemTotal = price * qty;
       const itemGst = Math.round(itemTotal * (gstRate / (100 + gstRate)));
@@ -165,8 +165,8 @@ export const initiateCheckout = async (req, res) => {
       calculatedSubtotal += itemSubtotal;
       calculatedTax += itemGst;
 
-      const brandId = p.brand._id.toString();
-      const brandName = p.brand.name || 'Authorized Brand';
+      const brandId = (p.brand?._id || p.brand || '').toString();
+      const brandName = p.brand?.name || 'Authorized Brand';
 
       const snapshotItem = {
         product: p._id,

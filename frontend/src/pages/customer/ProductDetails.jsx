@@ -233,17 +233,35 @@ const ProductDetails = () => {
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
-    addToCart(product, quantity, { RAM: selectedRam, Storage: selectedStorage });
-    setReviewMsg({ type: 'success', text: `Added ${product.name} to cart!` });
-    setTimeout(() => setReviewMsg({ type: '', text: '' }), 3000);
+    try {
+      await addToCart(product, quantity, { RAM: selectedRam, Storage: selectedStorage });
+      setReviewMsg({ type: 'success', text: `Added "${product.name}" to your cart!` });
+      setTimeout(() => setReviewMsg({ type: '', text: '' }), 3000);
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      setReviewMsg({
+        type: 'error',
+        text: err.response?.data?.message || err.message || 'Unable to add this product to cart.',
+      });
+      setTimeout(() => setReviewMsg({ type: '', text: '' }), 4000);
+    }
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!product) return;
-    addToCart(product, quantity, { RAM: selectedRam, Storage: selectedStorage });
-    navigate('/cart');
+    try {
+      await addToCart(product, quantity, { RAM: selectedRam, Storage: selectedStorage });
+      navigate('/cart');
+    } catch (err) {
+      console.error('Error in buy now:', err);
+      setReviewMsg({
+        type: 'error',
+        text: err.response?.data?.message || err.message || 'Unable to proceed to cart.',
+      });
+      setTimeout(() => setReviewMsg({ type: '', text: '' }), 4000);
+    }
   };
 
   const submitReview = async (e) => {
