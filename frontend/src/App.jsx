@@ -145,23 +145,23 @@ function App() {
                     <Route path="order-success" element={<OrderSuccess />} />
                     <Route path="payment-pending" element={<PaymentPending />} />
                     <Route path="payment-failed" element={<PaymentFailed />} />
-                    <Route path="account" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Account /></ProtectedRoute>} />
-                    <Route path="dashboard" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Account /></ProtectedRoute>} />
-                    <Route path="profile" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Navigate to="/account?tab=profile" replace /></ProtectedRoute>} />
-                    <Route path="addresses" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Navigate to="/account?tab=addresses" replace /></ProtectedRoute>} />
-                    <Route path="my-orders" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><CustomerOrders /></ProtectedRoute>} />
-                    <Route path="account/orders" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><CustomerOrders /></ProtectedRoute>} />
-                    <Route path="account/wishlist" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Wishlist /></ProtectedRoute>} />
-                    <Route path="wishlist" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Wishlist /></ProtectedRoute>} />
+                    <Route path="account" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Account /></ProtectedRoute>} />
+                    <Route path="dashboard" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Account /></ProtectedRoute>} />
+                    <Route path="profile" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Navigate to="/account?tab=profile" replace /></ProtectedRoute>} />
+                    <Route path="addresses" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Navigate to="/account?tab=addresses" replace /></ProtectedRoute>} />
+                    <Route path="my-orders" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><CustomerOrders /></ProtectedRoute>} />
+                    <Route path="account/orders" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><CustomerOrders /></ProtectedRoute>} />
+                    <Route path="account/wishlist" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Wishlist /></ProtectedRoute>} />
+                    <Route path="wishlist" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Wishlist /></ProtectedRoute>} />
                     <Route path="compare" element={<Compare />} />
-                    <Route path="orders" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><CustomerOrders /></ProtectedRoute>} />
-                    <Route path="orders/:id" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><CustomerOrderDetails /></ProtectedRoute>} />
-                    <Route path="orders/:id/tracking" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><OrderTracking /></ProtectedRoute>} />
-                    <Route path="account/orders/:id/tracking" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><OrderTracking /></ProtectedRoute>} />
-                    <Route path="order-details/:orderId" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><CustomerOrderDetails /></ProtectedRoute>} />
-                    <Route path="order-details/:orderId/tracking" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><OrderTracking /></ProtectedRoute>} />
-                    <Route path="returns/request/:orderId" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><Returns /></ProtectedRoute>} />
-                    <Route path="returns/details/:id" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><ReturnDetails /></ProtectedRoute>} />
+                    <Route path="orders" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><CustomerOrders /></ProtectedRoute>} />
+                    <Route path="orders/:id" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><CustomerOrderDetails /></ProtectedRoute>} />
+                    <Route path="orders/:id/tracking" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><OrderTracking /></ProtectedRoute>} />
+                    <Route path="account/orders/:id/tracking" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><OrderTracking /></ProtectedRoute>} />
+                    <Route path="order-details/:orderId" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><CustomerOrderDetails /></ProtectedRoute>} />
+                    <Route path="order-details/:orderId/tracking" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><OrderTracking /></ProtectedRoute>} />
+                    <Route path="returns/request/:orderId" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><Returns /></ProtectedRoute>} />
+                    <Route path="returns/details/:id" element={<ProtectedRoute allowedRoles={['CUSTOMER', 'USER', 'VENDOR', 'BRAND', 'ADMIN']}><ReturnDetails /></ProtectedRoute>} />
                     <Route path="warranty" element={<Warranty />} />
                     <Route path="warranty-check" element={<Warranty />} />
                     <Route path="login" element={<Login />} />

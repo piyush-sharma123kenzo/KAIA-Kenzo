@@ -571,7 +571,7 @@ const Header = () => {
                       </div>
 
                       {/* Management Consoles (Role-based) */}
-                      {(user?.role === 'ADMIN' || user?.role === 'BRAND') && (
+                      {(user?.role === 'ADMIN' || user?.role === 'BRAND' || user?.role === 'VENDOR') && (
                         <div className="p-2.5 pt-0 space-y-1 border-t border-slate-100">
                           <div className="px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
                             Management Consoles
@@ -588,13 +588,13 @@ const Header = () => {
                             </Link>
                           )}
 
-                          {user?.role === 'BRAND' && (
+                          {(user?.role === 'BRAND' || user?.role === 'VENDOR') && (
                             <Link
                               to="/brand/dashboard"
                               className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100/70 transition-colors group font-bold text-xs"
                             >
                               <Building2 className="w-4 h-4 text-amber-700" />
-                              <span className="flex-1">Brand Seller Portal</span>
+                              <span className="flex-1">Vendor / Brand Seller Portal</span>
                               <ChevronRight className="w-3.5 h-3.5 text-amber-500" />
                             </Link>
                           )}

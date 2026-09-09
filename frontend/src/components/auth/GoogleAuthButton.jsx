@@ -52,9 +52,10 @@ const GoogleAuthButton = ({ text = 'Continue with Google', mode = 'login' }) => 
       const res = await googleSignIn(authPayload);
       if (res?.success) {
         toast?.success?.(res.message || 'Signed in with Google successfully!');
-        if (res.user?.role === 'ADMIN') {
+        const role = (res.user?.role || '').toUpperCase();
+        if (role === 'ADMIN') {
           navigate('/admin/dashboard', { replace: true });
-        } else if (res.user?.role === 'BRAND') {
+        } else if (role === 'BRAND' || role === 'VENDOR') {
           navigate('/brand/dashboard', { replace: true });
         } else {
           navigate(from === '/login' || from === '/register' ? '/account' : from, { replace: true });

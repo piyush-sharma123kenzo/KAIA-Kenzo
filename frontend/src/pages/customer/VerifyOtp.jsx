@@ -40,8 +40,9 @@ const VerifyOtp = () => {
   // Redirect on session creation (post-signup auto-login)
   useEffect(() => {
     if (user) {
-      if (user.role === 'ADMIN') navigate('/admin/dashboard');
-      else if (user.role === 'BRAND') navigate('/brand/dashboard');
+      const role = (user.role || '').toUpperCase();
+      if (role === 'ADMIN') navigate('/admin/dashboard');
+      else if (role === 'BRAND' || role === 'VENDOR') navigate('/brand/dashboard');
       else navigate('/account');
     }
   }, [user, navigate]);
