@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { formatIST } from '../utils/dateFormat.js';
 
 const sellerOrderItemSchema = new mongoose.Schema(
   {
@@ -179,14 +180,29 @@ const sellerOrderSchema = new mongoose.Schema(
     deliveredAt: {
       type: Date,
     },
+    createdAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
+    updatedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
-// Pre-save middleware to synchronize alias fields
+// Pre-save middleware to synchronize alias fields and IST timestamps
 sellerOrderSchema.pre('save', function (next) {
+  const now = new Date();
+  this.updatedAtIST = formatIST(now);
+  if (!this.createdAtIST) {
+    this.createdAtIST = formatIST(this.createdAt || now);
+  }
   if (this.taxAllocation === 0 && this.gstAmount > 0) {
     this.taxAllocation = this.gstAmount;
   }

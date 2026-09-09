@@ -22,6 +22,10 @@ const cartItemSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    addedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   { _id: true }
 );
@@ -36,6 +40,14 @@ const cartSchema = new mongoose.Schema(
       index: true,
     },
     items: [cartItemSchema],
+    createdAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
+    updatedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   {
     timestamps: true,
@@ -44,12 +56,13 @@ const cartSchema = new mongoose.Schema(
   }
 );
 
-cartSchema.virtual('createdAtIST').get(function () {
-  return formatIST(this.createdAt);
-});
-
-cartSchema.virtual('updatedAtIST').get(function () {
-  return formatIST(this.updatedAt);
+cartSchema.pre('save', function (next) {
+  const now = new Date();
+  this.updatedAtIST = formatIST(now);
+  if (!this.createdAtIST) {
+    this.createdAtIST = formatIST(this.createdAt || now);
+  }
+  next();
 });
 
 const Cart = mongoose.model('Cart', cartSchema);

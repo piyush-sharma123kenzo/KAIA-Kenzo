@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { formatIST } from '../utils/dateFormat.js';
 
 const orderItemSnapshotSchema = new mongoose.Schema(
   {
@@ -189,11 +190,31 @@ const orderSchema = new mongoose.Schema(
         longitude: { type: Number, default: null },
       },
     },
+    createdAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
+    updatedAtIST: {
+      type: String,
+      default: () => formatIST(new Date()),
+    },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+// Pre-save middleware to synchronize IST timestamps
+orderSchema.pre('save', function (next) {
+  const now = new Date();
+  this.updatedAtIST = formatIST(now);
+  if (!this.createdAtIST) {
+    this.createdAtIST = formatIST(this.createdAt || now);
+  }
+  next();
+});
 
 // Virtual helper alias for sellerOrders
 orderSchema.virtual('sellerOrders', {
