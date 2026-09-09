@@ -5,7 +5,7 @@ import Category from '../models/Category.js';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
 import { createNotification, notifyBrandOwner } from '../services/notification/notification.service.js';
-import { sendCustomEmail } from '../services/email/email.service.js';
+import { sendEmail, sendCustomEmail } from '../services/email/email.service.js';
 import { isProhibitedBrand } from '../utils/brandValidation.js';
 
 // Helper to generate clean slug

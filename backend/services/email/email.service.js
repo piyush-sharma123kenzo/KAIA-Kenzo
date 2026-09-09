@@ -157,7 +157,10 @@ export const sendOtpEmail = async (toEmail, rawOtp, purpose) => {
   };
 };
 
+export const sendCustomEmail = sendEmail;
+
 export default {
   sendEmail,
   sendOtpEmail,
+  sendCustomEmail,
 };
