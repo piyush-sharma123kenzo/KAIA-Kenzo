@@ -477,10 +477,22 @@ export const createDeliveryLocation = async (req, res) => {
       });
     }
 
-    if (!isValidCoordinates(latitude, longitude)) {
+    // Auto-resolve latitude and longitude if missing or not valid
+    let lat = latitude !== undefined && latitude !== '' ? Number(latitude) : null;
+    let lng = longitude !== undefined && longitude !== '' ? Number(longitude) : null;
+
+    if (!isValidCoordinates(lat, lng)) {
+      const resolved = resolvePincodeCoordinates(pincode);
+      if (resolved && isValidCoordinates(resolved.latitude, resolved.longitude)) {
+        lat = resolved.latitude;
+        lng = resolved.longitude;
+      }
+    }
+
+    if (!isValidCoordinates(lat, lng)) {
       return res.status(400).json({
         success: false,
-        message: 'Valid geographical coordinates (Latitude: -90 to 90, Longitude: -180 to 180) are required.',
+        message: 'Valid geographical coordinates (Latitude: -90 to 90, Longitude: -180 to 180) are required. Please provide valid coordinates or a recognized PIN code.',
       });
     }
 
@@ -492,16 +504,16 @@ export const createDeliveryLocation = async (req, res) => {
       });
     }
 
-    // Check for duplicate active location with identical coordinates
+    // Check for duplicate location with exact same name and address
     const duplicate = await DeliveryLocation.findOne({
-      'coordinates.latitude': Number(latitude),
-      'coordinates.longitude': Number(longitude),
+      locationName: { $regex: `^${locationName.trim()}$`, $options: 'i' },
+      address: { $regex: `^${address.trim()}$`, $options: 'i' },
     });
 
     if (duplicate) {
       return res.status(400).json({
         success: false,
-        message: `A delivery location (${duplicate.locationName}) with these exact coordinates already exists.`,
+        message: `A delivery location named "${duplicate.locationName}" with address "${duplicate.address}" already exists. You can edit it or use a distinct hub name.`,
       });
     }
 
@@ -512,8 +524,8 @@ export const createDeliveryLocation = async (req, res) => {
       state: (state || 'Delhi').trim(),
       pincode: String(pincode).trim(),
       coordinates: {
-        latitude: Number(latitude),
-        longitude: Number(longitude),
+        latitude: lat,
+        longitude: lng,
       },
       deliveryRadius: radius,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
@@ -523,7 +535,7 @@ export const createDeliveryLocation = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: `Service location "${location.locationName}" created successfully with a ${location.deliveryRadius} KM delivery radius.`,
+      message: `Delivery location "${location.locationName}" added successfully with a ${location.deliveryRadius} KM delivery radius.`,
       location,
     });
   } catch (error) {
@@ -531,6 +543,244 @@ export const createDeliveryLocation = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to create delivery location.',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Admin: Bulk create or import multiple delivery locations
+ * POST /api/delivery/admin/bulk-locations
+ */
+export const bulkCreateDeliveryLocations = async (req, res) => {
+  try {
+    const { locations } = req.body;
+    if (!Array.isArray(locations) || locations.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an array of delivery locations to create.',
+      });
+    }
+
+    const createdList = [];
+    const skippedList = [];
+
+    for (const item of locations) {
+      const { locationName, address, city, state, pincode, latitude, longitude, deliveryRadius, isActive, notes } = item;
+      if (!locationName || !address || !pincode) {
+        skippedList.push({ item, reason: 'Missing locationName, address, or pincode' });
+        continue;
+      }
+
+      if (!isValidIndianPincode(pincode)) {
+        skippedList.push({ item, reason: `Invalid PIN code: ${pincode}` });
+        continue;
+      }
+
+      let lat = latitude !== undefined && latitude !== '' ? Number(latitude) : null;
+      let lng = longitude !== undefined && longitude !== '' ? Number(longitude) : null;
+
+      if (!isValidCoordinates(lat, lng)) {
+        const resolved = resolvePincodeCoordinates(pincode);
+        if (resolved && isValidCoordinates(resolved.latitude, resolved.longitude)) {
+          lat = resolved.latitude;
+          lng = resolved.longitude;
+        }
+      }
+
+      if (!isValidCoordinates(lat, lng)) {
+        skippedList.push({ item, reason: 'Coordinates could not be resolved' });
+        continue;
+      }
+
+      const existing = await DeliveryLocation.findOne({
+        locationName: { $regex: `^${locationName.trim()}$`, $options: 'i' },
+        pincode: String(pincode).trim(),
+      });
+
+      if (existing) {
+        // Update existing
+        existing.address = address.trim();
+        existing.city = (city || existing.city || 'Delhi').trim();
+        existing.state = (state || existing.state || 'Delhi').trim();
+        existing.coordinates = { latitude: lat, longitude: lng };
+        existing.deliveryRadius = Number(deliveryRadius) || existing.deliveryRadius || 10;
+        if (isActive !== undefined) existing.isActive = Boolean(isActive);
+        await existing.save();
+        createdList.push(existing);
+      } else {
+        const created = await DeliveryLocation.create({
+          locationName: locationName.trim(),
+          address: address.trim(),
+          city: (city || 'Delhi').trim(),
+          state: (state || 'Delhi').trim(),
+          pincode: String(pincode).trim(),
+          coordinates: { latitude: lat, longitude: lng },
+          deliveryRadius: Number(deliveryRadius) || 10,
+          isActive: isActive !== undefined ? Boolean(isActive) : true,
+          notes: notes ? String(notes).trim() : '',
+          createdBy: req.user?._id,
+        });
+        createdList.push(created);
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `Successfully processed ${createdList.length} delivery locations.`,
+      createdCount: createdList.length,
+      skippedCount: skippedList.length,
+      locations: createdList,
+      skipped: skippedList,
+    });
+  } catch (error) {
+    console.error('[DeliveryController] bulkCreateDeliveryLocations error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to bulk create delivery locations.',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Admin: Seed default major metro delivery hubs across India
+ * POST /api/delivery/admin/seed-defaults
+ */
+export const seedDefaultDeliveryLocations = async (req, res) => {
+  try {
+    const DEFAULT_HUBS = [
+      {
+        locationName: 'Delhi - Mayur Vihar Phase 1 Hub',
+        city: 'Delhi',
+        state: 'Delhi',
+        pincode: '110091',
+        latitude: 28.6056,
+        longitude: 77.2917,
+        deliveryRadius: 10,
+        address: 'KAIA Technologies Pvt. Ltd., Mayur Vihar Phase 1, Near Unna Enclave, Delhi',
+        notes: 'Primary Delhi NCR fulfillment hub with 10 KM delivery coverage',
+      },
+      {
+        locationName: 'Delhi - Connaught Place Hub',
+        city: 'Delhi',
+        state: 'Delhi',
+        pincode: '110001',
+        latitude: 28.6315,
+        longitude: 77.2167,
+        deliveryRadius: 10,
+        address: 'Barakhamba Road, Connaught Place, Central Delhi',
+        notes: 'Central Delhi fast dispatch center',
+      },
+      {
+        locationName: 'Noida - Sector 62 Tech Hub',
+        city: 'Noida',
+        state: 'Uttar Pradesh',
+        pincode: '201309',
+        latitude: 28.6280,
+        longitude: 77.3649,
+        deliveryRadius: 10,
+        address: 'Electronic City, Sector 62, Noida, Uttar Pradesh',
+        notes: 'Noida & East NCR delivery center',
+      },
+      {
+        locationName: 'Gurgaon - Cyber City Hub',
+        city: 'Gurgaon',
+        state: 'Haryana',
+        pincode: '122002',
+        latitude: 28.4950,
+        longitude: 77.0895,
+        deliveryRadius: 10,
+        address: 'DLF Cyber City, Phase 2, Gurugram, Haryana',
+        notes: 'South NCR & Gurgaon corporate delivery center',
+      },
+      {
+        locationName: 'Bangalore - Indiranagar Hub',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        pincode: '560038',
+        latitude: 12.9784,
+        longitude: 77.6408,
+        deliveryRadius: 10,
+        address: '100 Feet Road, Indiranagar, Bengaluru, Karnataka',
+        notes: 'East Bengaluru & Central tech corridor hub',
+      },
+      {
+        locationName: 'Bangalore - Electronic City Hub',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        pincode: '560100',
+        latitude: 12.8399,
+        longitude: 77.6770,
+        deliveryRadius: 10,
+        address: 'Phase 1, Hosur Road, Electronic City, Bengaluru, Karnataka',
+        notes: 'South Bengaluru fulfillment center',
+      },
+      {
+        locationName: 'Mumbai - BKC Business Hub',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400051',
+        latitude: 19.0657,
+        longitude: 72.8687,
+        deliveryRadius: 10,
+        address: 'Bandra Kurla Complex, Bandra East, Mumbai, Maharashtra',
+        notes: 'Mumbai metro express hub',
+      },
+      {
+        locationName: 'Hyderabad - HITEC City Hub',
+        city: 'Hyderabad',
+        state: 'Telangana',
+        pincode: '500081',
+        latitude: 17.4435,
+        longitude: 78.3772,
+        deliveryRadius: 10,
+        address: 'Madhapur Main Road, HITEC City, Hyderabad, Telangana',
+        notes: 'Hyderabad tech zone distribution center',
+      },
+    ];
+
+    const results = [];
+    for (const hub of DEFAULT_HUBS) {
+      let record = await DeliveryLocation.findOne({
+        $or: [
+          { locationName: hub.locationName },
+          { pincode: hub.pincode, city: hub.city },
+        ],
+      });
+
+      if (record) {
+        record.address = hub.address;
+        record.city = hub.city;
+        record.state = hub.state;
+        record.pincode = hub.pincode;
+        record.coordinates = { latitude: hub.latitude, longitude: hub.longitude };
+        record.deliveryRadius = hub.deliveryRadius;
+        record.isActive = true;
+        record.notes = hub.notes;
+        await record.save();
+        results.push(record);
+      } else {
+        const created = await DeliveryLocation.create({
+          ...hub,
+          coordinates: { latitude: hub.latitude, longitude: hub.longitude },
+          isActive: true,
+          createdBy: req.user?._id,
+        });
+        results.push(created);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Successfully configured ${results.length} multi-city delivery hubs across India.`,
+      locations: results,
+    });
+  } catch (error) {
+    console.error('[DeliveryController] seedDefaultDeliveryLocations error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to seed default delivery locations.',
       error: error.message,
     });
   }

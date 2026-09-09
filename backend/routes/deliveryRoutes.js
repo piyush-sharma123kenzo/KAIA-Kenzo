@@ -8,6 +8,8 @@ import {
   toggleDeliveryLocationStatus,
   deleteDeliveryLocation,
   getDeliveryAnalytics,
+  bulkCreateDeliveryLocations,
+  seedDefaultDeliveryLocations,
 } from '../controllers/deliveryController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
@@ -37,6 +39,12 @@ router.get('/admin/zones', getAdminDeliveryLocations);
 
 // GET /api/delivery/admin/analytics - Delivery availability analytics
 router.get('/admin/analytics', getDeliveryAnalytics);
+
+// POST /api/delivery/admin/seed-defaults - Seed default major metro hubs
+router.post('/admin/seed-defaults', seedDefaultDeliveryLocations);
+
+// POST /api/delivery/admin/bulk-locations - Bulk create multiple delivery locations
+router.post('/admin/bulk-locations', bulkCreateDeliveryLocations);
 
 // POST /api/delivery/admin/locations & /api/delivery/admin/zones - Create a new delivery location
 router.post('/admin/locations', createDeliveryLocation);

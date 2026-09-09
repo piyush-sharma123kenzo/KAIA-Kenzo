@@ -45,6 +45,23 @@ const deliveryService = {
   },
 
   /**
+   * Admin: Bulk create or import multiple delivery locations
+   * @param {Array<Object>} locations
+   */
+  bulkCreateLocations: async (locations) => {
+    const res = await axiosInstance.post('/delivery/admin/bulk-locations', { locations });
+    return res.data;
+  },
+
+  /**
+   * Admin: Seed default major metro hubs across India (Delhi, Mumbai, Bangalore, etc.)
+   */
+  seedDefaultLocations: async () => {
+    const res = await axiosInstance.post('/delivery/admin/seed-defaults');
+    return res.data;
+  },
+
+  /**
    * Admin: Update an existing serviceable location
    * @param {string} id
    * @param {Object} data

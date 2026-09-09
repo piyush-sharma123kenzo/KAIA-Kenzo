@@ -2,22 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Plus, Edit2, Trash2, CheckCircle2, XCircle, Search, 
   RefreshCw, TrendingUp, Navigation, ShieldCheck, AlertTriangle, 
-  Layers, Globe, Check, X, Loader2, Building, Sparkles
+  Layers, Globe, Check, X, Loader2, Building, Sparkles, PlusCircle, Database
 } from 'lucide-react';
 import deliveryService from '../../services/deliveryService';
 import { useToast } from '../../context/ToastContext';
 
 // Quick Presets for fast onboarding of multi-city hubs
 const CITY_PRESETS = [
-  {
-    name: 'Custom Location / Area',
-    city: '',
-    state: '',
-    pincode: '',
-    latitude: '',
-    longitude: '',
-    radius: 10,
-  },
   {
     name: 'Delhi - Mayur Vihar Phase 1 Hub',
     city: 'Delhi',
@@ -36,7 +27,17 @@ const CITY_PRESETS = [
     latitude: 28.6315,
     longitude: 77.2167,
     radius: 10,
-    address: 'Barakhamba Road, Connaught Place, New Delhi',
+    address: 'Barakhamba Road, Connaught Place, Central Delhi',
+  },
+  {
+    name: 'Delhi - Karol Bagh Hub',
+    city: 'Delhi',
+    state: 'Delhi',
+    pincode: '110005',
+    latitude: 28.6517,
+    longitude: 77.1906,
+    radius: 10,
+    address: 'Pusa Road, Karol Bagh, New Delhi',
   },
   {
     name: 'Noida - Sector 62 Tech Hub',
@@ -47,6 +48,16 @@ const CITY_PRESETS = [
     longitude: 77.3649,
     radius: 10,
     address: 'Electronic City, Sector 62, Noida, Uttar Pradesh',
+  },
+  {
+    name: 'Gurgaon - Cyber City Hub',
+    city: 'Gurgaon',
+    state: 'Haryana',
+    pincode: '122002',
+    latitude: 28.4950,
+    longitude: 77.0895,
+    radius: 10,
+    address: 'DLF Cyber City, Phase 2, Gurugram, Haryana',
   },
   {
     name: 'Bangalore - Indiranagar Hub',
@@ -79,16 +90,38 @@ const CITY_PRESETS = [
     address: 'Bandra Kurla Complex, Bandra East, Mumbai, Maharashtra',
   },
   {
-    name: 'Gurgaon - Cyber City Hub',
-    city: 'Gurgaon',
-    state: 'Haryana',
-    pincode: '122002',
-    latitude: 28.4950,
-    longitude: 77.0895,
+    name: 'Hyderabad - HITEC City Hub',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    pincode: '500081',
+    latitude: 17.4435,
+    longitude: 78.3772,
     radius: 10,
-    address: 'DLF Cyber City, Phase 2, Gurugram, Haryana',
+    address: 'Madhapur Main Road, HITEC City, Hyderabad, Telangana',
   },
 ];
+
+// High-speed PIN code to coordinate & city lookup dictionary
+const PINCODE_LOOKUP = {
+  '110091': { city: 'Delhi', state: 'Delhi', lat: 28.6056, lng: 77.2917, area: 'Mayur Vihar Phase 1' },
+  '110092': { city: 'Delhi', state: 'Delhi', lat: 28.6180, lng: 77.3015, area: 'Mayur Vihar Phase 2' },
+  '110096': { city: 'Delhi', state: 'Delhi', lat: 28.6012, lng: 77.3245, area: 'Mayur Vihar Phase 3' },
+  '110001': { city: 'Delhi', state: 'Delhi', lat: 28.6315, lng: 77.2167, area: 'Connaught Place' },
+  '110005': { city: 'Delhi', state: 'Delhi', lat: 28.6517, lng: 77.1906, area: 'Karol Bagh' },
+  '110016': { city: 'Delhi', state: 'Delhi', lat: 28.5494, lng: 77.1994, area: 'Hauz Khas' },
+  '110017': { city: 'Delhi', state: 'Delhi', lat: 28.5300, lng: 77.2177, area: 'Malviya Nagar / Saket' },
+  '110019': { city: 'Delhi', state: 'Delhi', lat: 28.5416, lng: 77.2588, area: 'Nehru Place / Kalkaji' },
+  '201301': { city: 'Noida', state: 'Uttar Pradesh', lat: 28.5700, lng: 77.3200, area: 'Noida Sector 1-20' },
+  '201309': { city: 'Noida', state: 'Uttar Pradesh', lat: 28.6280, lng: 77.3649, area: 'Noida Sector 62' },
+  '122002': { city: 'Gurgaon', state: 'Haryana', lat: 28.4950, lng: 77.0895, area: 'Cyber City' },
+  '560038': { city: 'Bengaluru', state: 'Karnataka', lat: 12.9784, lng: 77.6408, area: 'Indiranagar' },
+  '560001': { city: 'Bengaluru', state: 'Karnataka', lat: 12.9716, lng: 77.5946, area: 'MG Road' },
+  '560034': { city: 'Bengaluru', state: 'Karnataka', lat: 12.9279, lng: 77.6271, area: 'Koramangala' },
+  '560100': { city: 'Bengaluru', state: 'Karnataka', lat: 12.8399, lng: 77.6770, area: 'Electronic City' },
+  '400051': { city: 'Mumbai', state: 'Maharashtra', lat: 19.0657, lng: 72.8687, area: 'BKC Bandra' },
+  '400001': { city: 'Mumbai', state: 'Maharashtra', lat: 18.9322, lng: 72.8335, area: 'Fort / Nariman Point' },
+  '500081': { city: 'Hyderabad', state: 'Telangana', lat: 17.4435, lng: 78.3772, area: 'HITEC City' },
+};
 
 const DeliveryLocations = () => {
   const toast = useToast();
@@ -105,12 +138,22 @@ const DeliveryLocations = () => {
   // Analytics state
   const [analytics, setAnalytics] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   // Add / Edit Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Bulk Modal state
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [bulkError, setBulkError] = useState('');
+  const [bulkRows, setBulkRows] = useState([
+    { locationName: '', city: 'Delhi', state: 'Delhi', pincode: '', address: '', deliveryRadius: 10, latitude: '', longitude: '' },
+    { locationName: '', city: 'Bengaluru', state: 'Karnataka', pincode: '', address: '', deliveryRadius: 10, latitude: '', longitude: '' }
+  ]);
 
   const [form, setForm] = useState({
     locationName: '',
@@ -210,7 +253,7 @@ const DeliveryLocations = () => {
   };
 
   const handleSelectPreset = (preset) => {
-    if (!preset.city && !preset.latitude) return;
+    if (!preset) return;
     setForm((prev) => ({
       ...prev,
       locationName: preset.name,
@@ -222,6 +265,23 @@ const DeliveryLocations = () => {
       longitude: preset.longitude,
       deliveryRadius: preset.radius || 10,
     }));
+  };
+
+  // Handle PIN code typing with automatic coordinates & city resolution
+  const handlePincodeChange = (e) => {
+    const pin = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setForm((prev) => {
+      const updated = { ...prev, pincode: pin };
+      if (pin.length === 6 && PINCODE_LOOKUP[pin]) {
+        const item = PINCODE_LOOKUP[pin];
+        if (!updated.city || updated.city === 'Delhi') updated.city = item.city;
+        if (!updated.state || updated.state === 'Delhi') updated.state = item.state;
+        if (!updated.latitude) updated.latitude = item.lat;
+        if (!updated.longitude) updated.longitude = item.lng;
+        if (!updated.locationName) updated.locationName = `${item.city} - ${item.area} Hub`;
+      }
+      return updated;
+    });
   };
 
   const handleFormSubmit = async (e) => {
@@ -238,16 +298,17 @@ const DeliveryLocations = () => {
       return;
     }
 
-    const lat = Number(form.latitude);
-    const lng = Number(form.longitude);
+    let lat = form.latitude !== '' ? Number(form.latitude) : null;
+    let lng = form.longitude !== '' ? Number(form.longitude) : null;
 
-    if (isNaN(lat) || lat < -90 || lat > 90 || isNaN(lng) || lng < -180 || lng > 180) {
-      setFormError('Please provide valid Latitude (-90 to 90) and Longitude (-180 to 180) coordinates.');
-      return;
+    // Auto-resolve if empty
+    if ((lat === null || isNaN(lat)) && PINCODE_LOOKUP[form.pincode.trim()]) {
+      lat = PINCODE_LOOKUP[form.pincode.trim()].lat;
+      lng = PINCODE_LOOKUP[form.pincode.trim()].lng;
     }
 
-    const radius = Number(form.deliveryRadius);
-    if (isNaN(radius) || radius < 0.5 || radius > 100) {
+    const radius = Number(form.deliveryRadius) || 10;
+    if (radius < 0.5 || radius > 100) {
       setFormError('Delivery Radius must be between 0.5 KM and 100 KM.');
       return;
     }
@@ -286,6 +347,87 @@ const DeliveryLocations = () => {
       setFormError(err.response?.data?.message || 'Failed to save delivery location.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // 1-Click Multi-City Seeder
+  const handleSeedDefaults = async () => {
+    if (!window.confirm('This will seed 8 authorized delivery hubs across Delhi NCR, Bangalore, Mumbai, Gurgaon, and Hyderabad with 10 KM delivery radius. Continue?')) {
+      return;
+    }
+
+    setSeeding(true);
+    try {
+      const res = await deliveryService.seedDefaultLocations();
+      if (res.success) {
+        toast?.success?.(res.message || 'All default delivery hubs configured successfully!');
+        fetchLocations();
+        fetchAnalytics();
+      }
+    } catch (err) {
+      console.error('Error seeding default delivery locations:', err);
+      toast?.error?.(err.response?.data?.message || 'Failed to seed delivery hubs.');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  // Bulk add row handlers
+  const handleAddBulkRow = () => {
+    setBulkRows((prev) => [
+      ...prev,
+      { locationName: '', city: 'Delhi', state: 'Delhi', pincode: '', address: '', deliveryRadius: 10, latitude: '', longitude: '' }
+    ]);
+  };
+
+  const handleRemoveBulkRow = (index) => {
+    setBulkRows((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleBulkRowChange = (index, field, value) => {
+    setBulkRows((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      if (field === 'pincode') {
+        const pin = value.replace(/\D/g, '').slice(0, 6);
+        copy[index].pincode = pin;
+        if (pin.length === 6 && PINCODE_LOOKUP[pin]) {
+          const item = PINCODE_LOOKUP[pin];
+          copy[index].city = item.city;
+          copy[index].state = item.state;
+          copy[index].latitude = item.lat;
+          copy[index].longitude = item.lng;
+          if (!copy[index].locationName) copy[index].locationName = `${item.city} - ${item.area} Hub`;
+        }
+      }
+      return copy;
+    });
+  };
+
+  const handleBulkSubmit = async (e) => {
+    e.preventDefault();
+    setBulkError('');
+
+    const validRows = bulkRows.filter((r) => r.locationName.trim() && r.address.trim() && r.pincode.trim());
+    if (validRows.length === 0) {
+      setBulkError('Please fill in at least one delivery address with Location Name, Address, and PIN code.');
+      return;
+    }
+
+    setBulkSubmitting(true);
+    try {
+      const res = await deliveryService.bulkCreateLocations(validRows);
+      if (res.success) {
+        toast?.success?.(`Successfully added ${res.createdCount} delivery locations!`);
+        setBulkModalOpen(false);
+        fetchLocations();
+        fetchAnalytics();
+      }
+    } catch (err) {
+      console.error('Bulk add error:', err);
+      setBulkError(err.response?.data?.message || 'Failed to create multiple delivery locations.');
+    } finally {
+      setBulkSubmitting(false);
     }
   };
 
@@ -351,8 +493,8 @@ const DeliveryLocations = () => {
   return (
     <div className="py-8 text-left space-y-8 max-w-7xl mx-auto font-sans px-4 sm:px-6 lg:px-8">
       
-      {/* 1. Header with Title & Add Location CTA */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5">
+      {/* 1. Header with Title & Multi-Location Action CTAs */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex items-center space-x-2 text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
             <span>Admin Control Panel</span>
@@ -364,17 +506,40 @@ const DeliveryLocations = () => {
             <span>Serviceable Delivery Hubs & Locations</span>
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
-            Add multiple fulfillment centers across Delhi, Noida, Bangalore, or any city. Delivery is calculated within a 10 KM radius of each configured center.
+            Provide multiple delivery addresses and fulfillment hubs across Delhi NCR, Bangalore, Mumbai, or any Indian city. Deliveries are serviced within each location's radius.
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAddModal}
-          className="bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-2 cursor-pointer shrink-0 active:scale-95"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Add Service Location</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            onClick={handleSeedDefaults}
+            disabled={seeding}
+            className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+            title="Automatically populate 8 major Indian metro hubs"
+          >
+            {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5 text-amber-600" />}
+            <span>Auto-Seed 8 Metro Hubs</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setBulkError('');
+              setBulkModalOpen(true);
+            }}
+            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Bulk Add Addresses</span>
+          </button>
+
+          <button
+            onClick={handleOpenAddModal}
+            className="bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-2 cursor-pointer active:scale-95"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Add Single Address</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Delivery Availability Analytics Cards */}
@@ -501,13 +666,23 @@ const DeliveryLocations = () => {
             <p className="text-xs text-slate-500 leading-relaxed">
               Add multiple locations across Bangalore, Delhi, Noida, or any city. Delivery will automatically be available within a 10 KM radius of each active center.
             </p>
-            <button
-              onClick={handleOpenAddModal}
-              className="bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer inline-flex items-center space-x-2"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Add First Location</span>
-            </button>
+            <div className="flex justify-center gap-3 pt-2">
+              <button
+                onClick={handleSeedDefaults}
+                disabled={seeding}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer inline-flex items-center space-x-2"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Auto-Seed 8 Hubs</span>
+              </button>
+              <button
+                onClick={handleOpenAddModal}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-black text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer inline-flex items-center space-x-2"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Add Single Location</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -615,7 +790,7 @@ const DeliveryLocations = () => {
         )}
       </div>
 
-      {/* 5. Add / Edit Location Modal */}
+      {/* 5. Add / Edit Single Location Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl border border-slate-200/90 space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
@@ -653,14 +828,16 @@ const DeliveryLocations = () => {
                   <span>Quick Autofill from Major City Presets:</span>
                 </div>
                 <select
+                  defaultValue=""
                   onChange={(e) => {
                     const preset = CITY_PRESETS.find((p) => p.name === e.target.value);
                     if (preset) handleSelectPreset(preset);
                   }}
-                  className="w-full bg-white border border-amber-200 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-amber-500 cursor-pointer"
+                  className="w-full bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:border-amber-500 cursor-pointer text-slate-800"
                 >
+                  <option value="">-- Choose a city preset to autofill or type manually --</option>
                   {CITY_PRESETS.map((p) => (
-                    <option key={p.name} value={p.name}>{p.name}</option>
+                    <option key={p.name} value={p.name}>{p.name} ({p.pincode})</option>
                   ))}
                 </select>
               </div>
@@ -676,7 +853,7 @@ const DeliveryLocations = () => {
                   placeholder="e.g. Bangalore - Indiranagar Tech Hub"
                   value={form.locationName}
                   onChange={(e) => setForm({ ...form, locationName: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 font-medium text-slate-900"
                   required
                 />
               </div>
@@ -691,7 +868,7 @@ const DeliveryLocations = () => {
                     placeholder="e.g. Bengaluru / Delhi / Noida"
                     value={form.city}
                     onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
+                    className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 font-medium text-slate-900"
                     required
                   />
                 </div>
@@ -704,7 +881,7 @@ const DeliveryLocations = () => {
                     placeholder="e.g. Karnataka / Delhi / UP"
                     value={form.state}
                     onChange={(e) => setForm({ ...form, state: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
+                    className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 font-medium text-slate-900"
                   />
                 </div>
               </div>
@@ -718,7 +895,7 @@ const DeliveryLocations = () => {
                   placeholder="e.g. 100 Feet Road, Indiranagar, Bengaluru, Karnataka"
                   value={form.address}
                   onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 font-medium text-slate-900"
                   required
                 />
               </div>
@@ -733,10 +910,11 @@ const DeliveryLocations = () => {
                     maxLength={6}
                     placeholder="e.g. 560038"
                     value={form.pincode}
-                    onChange={(e) => setForm({ ...form, pincode: e.target.value.replace(/\D/g, '') })}
-                    className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl font-mono focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
+                    onChange={handlePincodeChange}
+                    className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl font-mono focus:bg-white focus:outline-none focus:border-amber-500 font-medium text-slate-900"
                     required
                   />
+                  <p className="text-[10px] text-slate-400 mt-0.5">Typing PIN auto-populates coordinates</p>
                 </div>
 
                 <div>
@@ -751,7 +929,7 @@ const DeliveryLocations = () => {
                     placeholder="10"
                     value={form.deliveryRadius}
                     onChange={(e) => setForm({ ...form, deliveryRadius: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl font-mono focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
+                    className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl font-mono focus:bg-white focus:outline-none focus:border-amber-500 font-medium text-slate-900"
                     required
                   />
                 </div>
@@ -760,7 +938,7 @@ const DeliveryLocations = () => {
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="block font-bold text-slate-700">
-                    Geographical Coordinates <span className="text-rose-500">*</span>
+                    Geographical Coordinates (Optional / Auto-resolved)
                   </label>
                   <button
                     type="button"
@@ -780,8 +958,7 @@ const DeliveryLocations = () => {
                       placeholder="Latitude (e.g. 12.9784)"
                       value={form.latitude}
                       onChange={(e) => setForm({ ...form, latitude: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl font-mono text-[11px] focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
-                      required
+                      className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl font-mono text-[11px] focus:bg-white focus:outline-none focus:border-amber-500 font-medium text-slate-900"
                     />
                   </div>
                   <div>
@@ -791,8 +968,7 @@ const DeliveryLocations = () => {
                       placeholder="Longitude (e.g. 77.6408)"
                       value={form.longitude}
                       onChange={(e) => setForm({ ...form, longitude: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl font-mono text-[11px] focus:bg-white focus:outline-none focus:border-amber-500 font-medium"
-                      required
+                      className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl font-mono text-[11px] focus:bg-white focus:outline-none focus:border-amber-500 font-medium text-slate-900"
                     />
                   </div>
                 </div>
@@ -831,6 +1007,140 @@ const DeliveryLocations = () => {
           </div>
         </div>
       )}
+
+      {/* 6. Bulk Add Multiple Locations Modal */}
+      {bulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 md:p-8 shadow-2xl border border-slate-200/90 space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/80 flex items-center justify-center">
+                  <PlusCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Bulk Add Multiple Delivery Locations
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Configure multiple delivery hubs across different cities in one go</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setBulkModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {bulkError && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold p-3 rounded-xl">
+                {bulkError}
+              </div>
+            )}
+
+            <form onSubmit={handleBulkSubmit} className="space-y-4 text-xs">
+              <div className="space-y-3">
+                {bulkRows.map((row, idx) => (
+                  <div key={idx} className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-3 relative">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Hub #{idx + 1}</span>
+                      </span>
+                      {bulkRows.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBulkRow(idx)}
+                          className="text-rose-500 hover:text-rose-700 font-bold text-[11px] cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Hub Name *</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. South Delhi Hub"
+                          value={row.locationName}
+                          onChange={(e) => handleBulkRowChange(idx, 'locationName', e.target.value)}
+                          className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:border-amber-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">PIN Code *</label>
+                        <input
+                          type="text"
+                          maxLength={6}
+                          placeholder="e.g. 110001"
+                          value={row.pincode}
+                          onChange={(e) => handleBulkRowChange(idx, 'pincode', e.target.value)}
+                          className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg font-mono text-xs font-medium focus:outline-none focus:border-amber-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">City / State</label>
+                        <input
+                          type="text"
+                          placeholder="City"
+                          value={row.city}
+                          onChange={(e) => handleBulkRowChange(idx, 'city', e.target.value)}
+                          className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Street Address *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Outer Ring Road, Near Metro Station"
+                        value={row.address}
+                        onChange={(e) => handleBulkRowChange(idx, 'address', e.target.value)}
+                        className="w-full bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:border-amber-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  type="button"
+                  onClick={handleAddBulkRow}
+                  className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center space-x-1.5 cursor-pointer bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Another Hub Row</span>
+                </button>
+
+                <div className="flex items-center space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setBulkModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-slate-700 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={bulkSubmitting}
+                    className="bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 font-black px-6 py-2 rounded-xl transition-all shadow-md cursor-pointer disabled:opacity-50"
+                  >
+                    {bulkSubmitting ? 'Processing Hubs...' : 'Save All Delivery Locations'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
