@@ -424,7 +424,7 @@ const DeliveryLocations = () => {
           className="bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-2 cursor-pointer shrink-0 active:scale-95"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Add Service Location</span>
+          <span>Delivery Address</span>
         </button>
       </div>
 
@@ -558,7 +558,7 @@ const DeliveryLocations = () => {
                 className="bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer inline-flex items-center space-x-2"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Add Service Location</span>
+                <span>Delivery Address</span>
               </button>
             </div>
           </div>
