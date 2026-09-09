@@ -41,12 +41,12 @@ export const AuthProvider = ({ children }) => {
   const syncedClerkIdRef = useRef(null);
 
   // Synchronize Clerk user state with KAIA backend session
-  const syncClerkSession = useCallback(async (clerkUser) => {
+  const syncClerkSession = useCallback(async (clerkUser, force = false) => {
     if (!clerkUser) return;
     const email = clerkUser.primaryEmailAddress?.emailAddress;
     const clerkId = clerkUser.id;
 
-    if (syncedClerkIdRef.current !== clerkId && email) {
+    if ((force || syncedClerkIdRef.current !== clerkId) && email) {
       syncedClerkIdRef.current = clerkId;
       const storedRole = sessionStorage.getItem('kaia_auth_intent_role') || 'USER';
       sessionStorage.removeItem('kaia_auth_intent_role');
@@ -71,6 +71,7 @@ export const AuthProvider = ({ children }) => {
           if (meRes?.success) {
             setBrand(meRes.brand);
           }
+          return res;
         }
       } catch (err) {
         console.warn('[Clerk Auth Sync Error]:', err.message);
@@ -253,6 +254,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('[KAIA Auth] Logout error:', err.message);
     } finally {
+      syncedClerkIdRef.current = null;
       setUser(null);
       setBrand(null);
       localStorage.removeItem('kaia_token');
