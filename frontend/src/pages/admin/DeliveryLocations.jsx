@@ -14,7 +14,6 @@ const CITY_PRESETS = [
     city: '',
     state: '',
     pincode: '',
-    serviceablePincodes: [],
     latitude: '',
     longitude: '',
     radius: 10,
@@ -24,7 +23,6 @@ const CITY_PRESETS = [
     city: 'Delhi',
     state: 'Delhi',
     pincode: '110091',
-    serviceablePincodes: ['110092', '110096', '110095', '110090', '110024'],
     latitude: 28.6056,
     longitude: 77.2917,
     radius: 10,
@@ -35,7 +33,6 @@ const CITY_PRESETS = [
     city: 'Delhi',
     state: 'Delhi',
     pincode: '110001',
-    serviceablePincodes: ['110002', '110005', '110006', '110055', '110011'],
     latitude: 28.6315,
     longitude: 77.2167,
     radius: 10,
@@ -46,7 +43,6 @@ const CITY_PRESETS = [
     city: 'Noida',
     state: 'Uttar Pradesh',
     pincode: '201309',
-    serviceablePincodes: ['201301', '201307', '201304', '201305'],
     latitude: 28.6280,
     longitude: 77.3649,
     radius: 10,
@@ -57,7 +53,6 @@ const CITY_PRESETS = [
     city: 'Bengaluru',
     state: 'Karnataka',
     pincode: '560038',
-    serviceablePincodes: ['560008', '560075', '560017', '560001', '560025'],
     latitude: 12.9784,
     longitude: 77.6408,
     radius: 10,
@@ -68,7 +63,6 @@ const CITY_PRESETS = [
     city: 'Bengaluru',
     state: 'Karnataka',
     pincode: '560100',
-    serviceablePincodes: ['560068', '560099', '560102', '560105'],
     latitude: 12.8399,
     longitude: 77.6770,
     radius: 10,
@@ -79,7 +73,6 @@ const CITY_PRESETS = [
     city: 'Mumbai',
     state: 'Maharashtra',
     pincode: '400051',
-    serviceablePincodes: ['400050', '400055', '400070', '400098'],
     latitude: 19.0657,
     longitude: 72.8687,
     radius: 10,
@@ -90,7 +83,6 @@ const CITY_PRESETS = [
     city: 'Gurgaon',
     state: 'Haryana',
     pincode: '122002',
-    serviceablePincodes: ['122001', '122003', '122008', '122018'],
     latitude: 28.4950,
     longitude: 77.0895,
     radius: 10,
@@ -126,7 +118,6 @@ const DeliveryLocations = () => {
     city: '',
     state: '',
     pincode: '',
-    serviceablePincodes: '',
     latitude: '',
     longitude: '',
     deliveryRadius: 10,
@@ -191,7 +182,6 @@ const DeliveryLocations = () => {
       city: '',
       state: '',
       pincode: '',
-      serviceablePincodes: '',
       latitude: '',
       longitude: '',
       deliveryRadius: 10,
@@ -210,7 +200,6 @@ const DeliveryLocations = () => {
       city: loc.city || '',
       state: loc.state || '',
       pincode: loc.pincode || '',
-      serviceablePincodes: (loc.serviceablePincodes || []).join(', '),
       latitude: loc.coordinates?.latitude ?? '',
       longitude: loc.coordinates?.longitude ?? '',
       deliveryRadius: loc.deliveryRadius || 10,
@@ -229,7 +218,6 @@ const DeliveryLocations = () => {
       city: preset.city,
       state: preset.state,
       pincode: preset.pincode,
-      serviceablePincodes: (preset.serviceablePincodes || []).join(', '),
       latitude: preset.latitude,
       longitude: preset.longitude,
       deliveryRadius: preset.radius || 10,
@@ -551,32 +539,7 @@ const DeliveryLocations = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4 font-mono font-bold text-slate-900">
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="bg-slate-900 text-white px-2 py-0.5 rounded text-[11px] font-mono shadow-xs">
-                            {loc.pincode}
-                          </span>
-                          {loc.serviceablePincodes && loc.serviceablePincodes.length > 0 && (
-                            <span className="bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                              +{loc.serviceablePincodes.length} PINs
-                            </span>
-                          )}
-                        </div>
-                        {loc.serviceablePincodes && loc.serviceablePincodes.length > 0 && (
-                          <div className="flex flex-wrap gap-1 max-w-[200px]" title={loc.serviceablePincodes.join(', ')}>
-                            {loc.serviceablePincodes.slice(0, 3).map((p) => (
-                              <span key={p} className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono font-medium">
-                                {p}
-                              </span>
-                            ))}
-                            {loc.serviceablePincodes.length > 3 && (
-                              <span className="text-[10px] text-amber-700 font-bold self-center">
-                                +{loc.serviceablePincodes.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      {loc.pincode}
                     </td>
                     <td className="py-4 px-4 text-slate-500 max-w-[200px] truncate" title={loc.address}>
                       {loc.address}
@@ -763,7 +726,7 @@ const DeliveryLocations = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    Primary Hub PIN Code <span className="text-rose-500">*</span>
+                    PIN Code <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -792,52 +755,6 @@ const DeliveryLocations = () => {
                     required
                   />
                 </div>
-              </div>
-
-              {/* Multiple PIN Codes / Covered Areas Input */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block font-bold text-slate-800">
-                    Additional Serviceable PIN Codes <span className="text-slate-400 font-normal">(Multiple Addresses)</span>
-                  </label>
-                  <span className="text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300/80 px-2 py-0.5 rounded-full">
-                    Multi-PIN Enabled
-                  </span>
-                </div>
-                <textarea
-                  rows={2}
-                  placeholder="Enter multiple 6-digit PIN codes separated by commas or spaces (e.g. 560001, 560008, 560025, 560075, 560100)"
-                  value={form.serviceablePincodes}
-                  onChange={(e) => setForm({ ...form, serviceablePincodes: e.target.value })}
-                  className="w-full bg-white border border-slate-200 px-3.5 py-2 rounded-xl font-mono text-xs focus:outline-none focus:border-amber-500 font-medium"
-                />
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Customers with any of these PIN codes or within a <strong className="text-slate-800">{form.deliveryRadius || 10} KM radius</strong> of this hub will automatically be eligible for live delivery.
-                </p>
-
-                {/* Live parsed PIN chips preview */}
-                {(() => {
-                  const chips = (form.serviceablePincodes || '')
-                    .split(/[\s,;\n]+/)
-                    .map((p) => p.trim().replace(/\D/g, ''))
-                    .filter((p) => /^[1-9][0-9]{5}$/.test(p) && p !== form.pincode);
-                  if (chips.length === 0) return null;
-                  return (
-                    <div className="pt-1 border-t border-slate-200/80 flex flex-wrap gap-1.5 items-center">
-                      <span className="text-[10px] font-bold text-slate-600">Active Covered PINs ({chips.length + (form.pincode ? 1 : 0)}):</span>
-                      {form.pincode && (
-                        <span className="bg-slate-900 text-white font-mono text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs">
-                          {form.pincode} (Primary)
-                        </span>
-                      )}
-                      {chips.map((pin) => (
-                        <span key={pin} className="bg-amber-100 text-amber-900 border border-amber-300 font-mono text-[10px] font-bold px-2 py-0.5 rounded-md">
-                          {pin}
-                        </span>
-                      ))}
-                    </div>
-                  );
-                })()}
               </div>
 
               <div className="space-y-1">

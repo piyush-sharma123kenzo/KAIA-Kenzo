@@ -111,9 +111,7 @@ export const checkDeliveryAvailability = async (req, res) => {
 
     // CASE 2: Only PIN code provided (PIN Match + Geocoded Radius Check)
     const cleanPin = String(pincode).trim();
-    const pinMatches = activeLocations.filter(
-      (l) => l.pincode === cleanPin || (Array.isArray(l.serviceablePincodes) && l.serviceablePincodes.includes(cleanPin))
-    );
+    const pinMatches = activeLocations.filter((l) => l.pincode === cleanPin);
 
     if (pinMatches.length > 0) {
       const matchedLoc = pinMatches[0];
@@ -233,7 +231,7 @@ export const checkDeliveryAvailability = async (req, res) => {
 export const getActiveLocations = async (req, res) => {
   try {
     const locations = await DeliveryLocation.find({ isActive: true })
-      .select('locationName address city state pincode serviceablePincodes coordinates deliveryRadius')
+      .select('locationName address pincode coordinates deliveryRadius')
       .sort({ locationName: 1 });
 
     return res.json({
@@ -328,9 +326,7 @@ export const validateOrderDelivery = async (shippingAddress) => {
 
   // Fallback to PIN code validation (PIN match or geocoded circle radius check)
   const postalCode = String(shippingAddress.postalCode || shippingAddress.pincode || '').trim();
-  const pinMatch = activeLocations.find(
-    (l) => l.pincode === postalCode || (Array.isArray(l.serviceablePincodes) && l.serviceablePincodes.includes(postalCode))
-  );
+  const pinMatch = activeLocations.find((l) => l.pincode === postalCode);
 
   if (pinMatch) {
     return {
@@ -387,32 +383,17 @@ export const validateOrderDelivery = async (shippingAddress) => {
 
   return {
     isValid: false,
-    error: `Sorry, KAIA delivery is unavailable for postal code "${postalCode}". Address is outside all active delivery hub ranges (Maximum delivery radius: 10 KM).`,
+    error: `Sorry, delivery is currently unavailable for PIN ${postalCode}. We deliver within a 10 KM radius of our authorized hubs.`,
     validationSnapshot: {
       isServiceable: false,
-      calculatedDistance: null,
+      deliveryLocationId: null,
+      nearestLocationName: activeLocations[0]?.locationName || '',
+      calculatedDistance: 0,
       deliveryRadius: 10,
       validatedAt: new Date(),
+      coordinates: { latitude: null, longitude: null },
     },
   };
-};
-
-/**
- * Helper: Clean and sanitize array / string of 6-digit Indian PIN codes
- */
-const sanitizePincodeList = (primaryPin, list) => {
-  if (!list) return [];
-  let rawList = [];
-  if (Array.isArray(list)) {
-    rawList = list;
-  } else if (typeof list === 'string') {
-    rawList = list.split(/[\s,;\n]+/);
-  }
-  const cleanPrimary = String(primaryPin || '').trim();
-  const validPins = rawList
-    .map((p) => String(p).trim().replace(/\D/g, ''))
-    .filter((p) => /^[1-9][0-9]{5}$/.test(p) && p !== cleanPrimary);
-  return [...new Set(validPins)];
 };
 
 // ============================================================================
@@ -420,7 +401,7 @@ const sanitizePincodeList = (primaryPin, list) => {
 // ============================================================================
 
 /**
- * Admin: Get paginated list of all delivery locations with filters
+ * Admin: Get all delivery locations with pagination & filters
  * GET /api/admin/delivery-locations
  */
 export const getAdminDeliveryLocations = async (req, res) => {
@@ -442,7 +423,6 @@ export const getAdminDeliveryLocations = async (req, res) => {
         { address: { $regex: s, $options: 'i' } },
         { city: { $regex: s, $options: 'i' } },
         { state: { $regex: s, $options: 'i' } },
-        { serviceablePincodes: { $regex: s, $options: 'i' } },
       ];
     }
 
@@ -481,7 +461,7 @@ export const getAdminDeliveryLocations = async (req, res) => {
  */
 export const createDeliveryLocation = async (req, res) => {
   try {
-    const { locationName, address, city, state, pincode, serviceablePincodes, latitude, longitude, deliveryRadius, isActive, notes } = req.body;
+    const { locationName, address, city, state, pincode, latitude, longitude, deliveryRadius, isActive, notes } = req.body;
 
     if (!locationName || !address || !pincode) {
       return res.status(400).json({
@@ -525,15 +505,12 @@ export const createDeliveryLocation = async (req, res) => {
       });
     }
 
-    const parsedServiceablePins = sanitizePincodeList(pincode, serviceablePincodes);
-
     const location = await DeliveryLocation.create({
       locationName: locationName.trim(),
       address: address.trim(),
       city: (city || 'Delhi').trim(),
       state: (state || 'Delhi').trim(),
       pincode: String(pincode).trim(),
-      serviceablePincodes: parsedServiceablePins,
       coordinates: {
         latitude: Number(latitude),
         longitude: Number(longitude),
@@ -546,7 +523,7 @@ export const createDeliveryLocation = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: `Service location "${location.locationName}" created successfully with a ${location.deliveryRadius} KM delivery radius and ${parsedServiceablePins.length + 1} covered PIN code(s).`,
+      message: `Service location "${location.locationName}" created successfully with a ${location.deliveryRadius} KM delivery radius.`,
       location,
     });
   } catch (error) {
@@ -566,7 +543,7 @@ export const createDeliveryLocation = async (req, res) => {
 export const updateDeliveryLocation = async (req, res) => {
   try {
     const { id } = req.params;
-    const { locationName, address, city, state, pincode, serviceablePincodes, latitude, longitude, deliveryRadius, isActive, notes } = req.body;
+    const { locationName, address, city, state, pincode, latitude, longitude, deliveryRadius, isActive, notes } = req.body;
 
     const location = await DeliveryLocation.findById(id);
     if (!location) {
@@ -601,9 +578,6 @@ export const updateDeliveryLocation = async (req, res) => {
     if (city) location.city = city.trim();
     if (state) location.state = state.trim();
     if (pincode) location.pincode = String(pincode).trim();
-    if (serviceablePincodes !== undefined) {
-      location.serviceablePincodes = sanitizePincodeList(pincode || location.pincode, serviceablePincodes);
-    }
     if (deliveryRadius !== undefined) location.deliveryRadius = Number(deliveryRadius) || 10;
     if (isActive !== undefined) location.isActive = Boolean(isActive);
     if (notes !== undefined) location.notes = notes.trim();
@@ -612,7 +586,7 @@ export const updateDeliveryLocation = async (req, res) => {
 
     return res.json({
       success: true,
-      message: `Delivery location "${location.locationName}" updated successfully (${(location.serviceablePincodes?.length || 0) + 1} covered PINs).`,
+      message: `Delivery location "${location.locationName}" updated successfully.`,
       location,
     });
   } catch (error) {

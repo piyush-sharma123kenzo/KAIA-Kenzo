@@ -67,26 +67,22 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50/60">
-      <div className="max-w-md w-full bg-white p-8 sm:p-9 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.06)] border border-slate-200/90 text-left space-y-7">
+    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-left space-y-7">
         
         {/* Header */}
-        <div className="text-center space-y-2.5 flex flex-col items-center">
+        <div className="text-center space-y-3 flex flex-col items-center">
           <KaiaLogo to="/" variant="full" theme="light" size="lg" />
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight pt-1">
-            Sign In to Your Account
-          </h1>
-          <p className="text-xs text-slate-500">
-            Select your account type and enter your credentials to continue
-          </p>
+          <h2 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">Sign In to Your Workspace</h2>
+          <p className="text-xs text-brand-gray-500">Select your account role to continue</p>
         </div>
 
         {/* Role Selector Tabs */}
-        <div className="grid grid-cols-3 gap-1 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200">
+        <div className="grid grid-cols-3 gap-1 bg-brand-light p-1 rounded-sm border border-brand-gray-200">
           {[
-            { id: 'USER', label: 'Customer', sub: 'Shopper' },
-            { id: 'VENDOR', label: 'Partner', sub: 'Brand' },
-            { id: 'ADMIN', label: 'Admin', sub: 'Control' },
+            { id: 'USER', label: 'Customer', badge: 'USER' },
+            { id: 'VENDOR', label: 'Vendor', badge: 'BRAND' },
+            { id: 'ADMIN', label: 'Admin', badge: 'ROOT' },
           ].map((r) => {
             const isSelected = selectedRole === r.id;
             return (
@@ -97,15 +93,15 @@ const Login = () => {
                   setSelectedRole(r.id);
                   if (error) clearError();
                 }}
-                className={`py-2 px-1 text-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`py-2 px-1 text-center rounded-sm text-xs font-bold transition-all ${
                   isSelected
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    ? 'bg-brand-dark text-white shadow-sm'
+                    : 'text-brand-gray-600 hover:text-brand-gray-900 hover:bg-white/60'
                 }`}
               >
                 <div>{r.label}</div>
-                <div className={`text-[10px] ${isSelected ? 'text-amber-400 font-medium' : 'text-slate-400 font-normal'}`}>
-                  {r.sub}
+                <div className={`text-[9px] font-mono tracking-wider opacity-80 ${isSelected ? 'text-brand-accent' : 'text-brand-gray-400'}`}>
+                  {r.badge}
                 </div>
               </button>
             );
@@ -114,37 +110,45 @@ const Login = () => {
 
         {/* Error notification */}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start space-x-2">
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-sm flex items-start space-x-2">
             <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
             <span className="font-semibold">{error}</span>
           </div>
         )}
 
-        {/* Social / SSO Auth Options */}
-        <div className="space-y-2.5">
-          <GoogleAuthButton
-            text="Continue with Google"
-            mode="login"
-          />
+        {/* Social / SSO Auth Options (for Admin, Vendor, and Customer) */}
+        <div className="space-y-3">
           <ClerkAuthButton
             mode="signIn"
             role={selectedRole}
-            text="Continue with Clerk"
+            text={
+              selectedRole === 'ADMIN'
+                ? 'Sign in with Clerk as Admin'
+                : selectedRole === 'VENDOR'
+                  ? 'Sign in with Clerk as Vendor'
+                  : 'Sign in with Clerk'
+            }
           />
+          {selectedRole !== 'ADMIN' && (
+            <GoogleAuthButton
+              text={selectedRole === 'VENDOR' ? 'Continue with Google as Vendor' : 'Continue with Google'}
+              mode="login"
+            />
+          )}
 
           <div className="relative flex py-1 items-center">
             <div className="flex-grow border-t border-slate-200" />
-            <span className="flex-shrink mx-3 text-[11px] font-semibold text-slate-400 lowercase">
-              or sign in with email
+            <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Or with email & password
             </span>
             <div className="flex-grow border-t border-slate-200" />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4.5">
-          <div className="space-y-3.5">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Email Address</label>
+              <label className="text-xs font-semibold text-brand-gray-650">Email Address:</label>
               <div className="relative">
                 <input
                   type="email"
@@ -152,18 +156,16 @@ const Login = () => {
                   placeholder={selectedRole === 'ADMIN' ? 'admin@kaia.tech' : selectedRole === 'VENDOR' ? 'brand@company.com' : 'name@company.com'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B400] focus:border-[#F5B400] transition-all text-slate-900"
+                  className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
                 />
-                <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                <Mail className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-semibold text-slate-700">Password</label>
-                <Link to="/forgot-password" className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline">
-                  Forgot?
-                </Link>
+                <label className="text-xs font-semibold text-brand-gray-650">Security Password:</label>
+                <Link to="/forgot-password" className="text-xs text-brand-accent hover:underline">Forgot?</Link>
               </div>
               <div className="relative">
                 <input
@@ -172,14 +174,14 @@ const Login = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 pl-10 pr-12 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F5B400] focus:border-[#F5B400] transition-all text-slate-900"
+                  className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-10 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
                 />
-                <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                <Lock className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3.5 top-2.5 text-slate-400 hover:text-slate-700 focus:outline-none cursor-pointer"
+                  className="absolute right-3 top-2.5 text-brand-gray-400 hover:text-brand-gray-700 focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -190,24 +192,24 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#F5B400] hover:bg-[#e0a400] text-slate-950 font-extrabold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 transition-all duration-150 disabled:opacity-50 cursor-pointer shadow-xs hover:shadow-md active:scale-[0.99]"
+            className="w-full bg-brand-dark hover:bg-brand-gray-850 text-white font-semibold py-3 rounded-sm text-sm transition-colors flex items-center justify-center space-x-2"
           >
-            <span>{loading ? 'Signing in...' : `Sign In`}</span>
+            <span>{loading ? 'Authenticating...' : `Sign In as ${selectedRole}`}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <div className="text-center pt-3 border-t border-slate-100 flex flex-col space-y-2 text-xs text-slate-500">
+        <div className="text-center pt-2 border-t border-brand-gray-100 flex flex-col space-y-2 text-xs text-brand-gray-500">
           <p>
-            New to KAIA?{' '}
-            <Link to="/register" className="text-amber-600 font-bold hover:text-amber-700 hover:underline">
-              Create an account
+            New customer?{' '}
+            <Link to="/register" className="text-brand-accent font-semibold hover:underline">
+              Create customer account
             </Link>
           </p>
           <p>
-            Brand Seller?{' '}
-            <Link to="/brand/register" className="text-amber-600 font-bold hover:text-amber-700 hover:underline">
-              Join as a Brand Partner
+            Brand Operator?{' '}
+            <Link to="/brand/register" className="text-brand-accent font-semibold hover:underline">
+              Register as Vendor
             </Link>
           </p>
         </div>

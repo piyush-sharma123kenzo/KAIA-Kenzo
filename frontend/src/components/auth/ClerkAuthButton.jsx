@@ -1,7 +1,6 @@
-import React, { useState, useContext } from 'react';
-import { SignInButton, SignUpButton, SignedIn, SignedOut, useUser, useClerk } from '@clerk/clerk-react';
-import { ArrowRight, Loader2 } from 'lucide-react';
-import { AuthContext } from '../../context/AuthContext';
+import React, { useState } from 'react';
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+import { Sparkles, ShieldCheck, ShieldAlert, KeyRound, ArrowRight } from 'lucide-react';
 
 const ClerkLogoIcon = () => (
   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -9,108 +8,23 @@ const ClerkLogoIcon = () => (
   </svg>
 );
 
-const ClerkSignedInCard = ({ role, mode = 'signIn', onAuthIntent }) => {
-  const { user: clerkUser } = useUser();
-  const { syncClerkSession } = useContext(AuthContext) || {};
-  const { openSignIn, openSignUp } = useClerk() || {};
-  const [loggingIn, setLoggingIn] = useState(false);
-
-  const displayName = clerkUser?.fullName || clerkUser?.firstName || clerkUser?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User';
-
-  const handleContinue = async () => {
-    if (onAuthIntent) onAuthIntent();
-    if (syncClerkSession && clerkUser) {
-      setLoggingIn(true);
-      try {
-        await syncClerkSession(clerkUser, true);
-      } finally {
-        setLoggingIn(false);
-      }
-    }
-  };
-
-  const handleSwitchAccount = (e) => {
-    e.stopPropagation();
-    if (mode === 'signUp' && openSignUp) {
-      openSignUp();
-    } else if (openSignIn) {
-      openSignIn();
-    }
-  };
-
-  const isSignUp = mode === 'signUp';
-
-  return (
-    <div className="w-full space-y-2">
-      <button
-        type="button"
-        onClick={handleContinue}
-        disabled={loggingIn}
-        className="w-full flex items-center justify-between p-2.5 px-3 bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border border-purple-200 text-purple-950 rounded-xl shadow-2xs hover:shadow-xs transition-all cursor-pointer text-left group disabled:opacity-60"
-      >
-        <div className="flex items-center space-x-2.5 min-w-0">
-          {clerkUser?.imageUrl ? (
-            <img
-              src={clerkUser.imageUrl}
-              alt={displayName}
-              className="w-7 h-7 rounded-full object-cover border border-purple-300 shrink-0"
-            />
-          ) : (
-            <div className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-              {displayName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-900 truncate">
-              {isSignUp ? `Register as ${displayName}` : `Continue as ${displayName}`}
-            </p>
-            <p className="text-[10px] text-purple-700 truncate">
-              {clerkUser?.primaryEmailAddress?.emailAddress}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-1.5 pl-2 text-purple-700 group-hover:text-purple-900 group-hover:translate-x-0.5 transition-all shrink-0">
-          {loggingIn ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              <span className="text-xs font-bold hidden sm:inline">
-                {isSignUp ? 'Create Account' : 'Sign In'}
-              </span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </>
-          )}
-        </div>
-      </button>
-
-      <div className="flex justify-between items-center px-1 text-[11px]">
-        <span className="text-slate-400">
-          {isSignUp ? 'Active Clerk Session' : 'Signed in via Clerk'}
-        </span>
-        <button
-          type="button"
-          onClick={handleSwitchAccount}
-          className="text-purple-700 hover:text-purple-900 font-bold hover:underline cursor-pointer"
-        >
-          {isSignUp ? 'Sign up with another Clerk account' : 'Switch account'}
-        </button>
-      </div>
-    </div>
-  );
-};
-
 const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' }) => {
-  const isPublishableKeySet = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
-
-  if (!isPublishableKeySet) {
-    return null;
-  }
+  const isPublishableKeySet = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  const [showConfigNotice, setShowConfigNotice] = useState(false);
 
   const normalizedRole = (role || 'USER').toUpperCase();
 
   const defaultText = mode === 'signUp'
-    ? 'Sign up with Clerk'
-    : 'Sign in with Clerk';
+    ? (normalizedRole === 'ADMIN'
+        ? 'Sign up with Clerk as Admin'
+        : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND'
+          ? 'Sign up with Clerk as Vendor'
+          : 'Sign up with Clerk')
+    : (normalizedRole === 'ADMIN'
+        ? 'Sign in with Clerk as Admin'
+        : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND'
+          ? 'Sign in with Clerk as Vendor'
+          : 'Sign in with Clerk');
 
   const label = text || defaultText;
 
@@ -122,6 +36,49 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
     }
   };
 
+  if (!isPublishableKeySet) {
+    return (
+      <div className={`w-full ${className}`}>
+        <button
+          type="button"
+          onClick={() => setShowConfigNotice(!showConfigNotice)}
+          className="w-full flex items-center justify-between px-3.5 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-bold text-xs md:text-sm rounded-lg shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer"
+          title="Clerk configuration key required"
+        >
+          <div className="flex items-center space-x-2">
+            <ClerkLogoIcon />
+            <span>{label}</span>
+          </div>
+          <span className="text-[10px] bg-white/20 text-purple-100 uppercase tracking-widest px-2 py-0.5 rounded font-mono font-bold">
+            {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' ? 'BRAND' : 'SSO'}
+          </span>
+        </button>
+
+        {showConfigNotice && (
+          <div className="mt-2 p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs space-y-1 text-left animate-in fade-in duration-150">
+            <div className="flex items-center space-x-1.5 font-bold text-amber-800">
+              <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+              <span>Clerk Key Setup Required</span>
+            </div>
+            <p className="text-[11px] text-amber-700">
+              Add your publishable key to <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold text-amber-950">frontend/.env</code> as:
+            </p>
+            <p className="font-mono text-[10px] bg-white p-1.5 rounded border border-amber-200 text-slate-800 break-all select-all font-bold">
+              VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Button styling based on role
+  const buttonTheme = normalizedRole === 'ADMIN'
+    ? 'bg-slate-900 hover:bg-slate-850 active:bg-slate-950 border border-purple-500/40'
+    : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND'
+      ? 'bg-[#6C47FF] hover:bg-[#5835ea] active:bg-[#4927d8]'
+      : 'bg-[#6C47FF] hover:bg-[#5835ea] active:bg-[#4927d8]';
+
   return (
     <div className={`w-full ${className}`}>
       <SignedOut>
@@ -130,12 +87,18 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
             <button
               type="button"
               onClick={handleClerkClick}
-              className="w-full flex items-center justify-center space-x-2.5 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs hover:shadow-sm transition-all active:scale-[0.99] cursor-pointer"
+              className={`w-full flex items-center justify-between px-4 py-2.5 ${buttonTheme} text-white font-bold text-xs md:text-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-150 cursor-pointer`}
             >
-              <div className="w-4 h-4 text-[#6C47FF] flex items-center justify-center">
+              <div className="flex items-center space-x-2.5">
                 <ClerkLogoIcon />
+                <span>{label}</span>
               </div>
-              <span>{label}</span>
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[9px] font-mono tracking-wider px-1.5 py-0.5 rounded bg-white/15 text-white">
+                  {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' ? 'BRAND' : 'BUYER'}
+                </span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              </div>
             </button>
           </SignUpButton>
         ) : (
@@ -143,22 +106,42 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
             <button
               type="button"
               onClick={handleClerkClick}
-              className="w-full flex items-center justify-center space-x-2.5 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs hover:shadow-sm transition-all active:scale-[0.99] cursor-pointer"
+              className={`w-full flex items-center justify-between px-4 py-2.5 ${buttonTheme} text-white font-bold text-xs md:text-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-150 cursor-pointer`}
             >
-              <div className="w-4 h-4 text-[#6C47FF] flex items-center justify-center">
+              <div className="flex items-center space-x-2.5">
                 <ClerkLogoIcon />
+                <span>{label}</span>
               </div>
-              <span>{label}</span>
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[9px] font-mono tracking-wider px-1.5 py-0.5 rounded bg-white/15 text-white">
+                  {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' ? 'BRAND' : 'BUYER'}
+                </span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              </div>
             </button>
           </SignInButton>
         )}
       </SignedOut>
 
       <SignedIn>
-        <ClerkSignedInCard mode={mode} role={normalizedRole} onAuthIntent={handleClerkClick} />
+        <div className="flex items-center justify-between p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl">
+          <div className="flex items-center space-x-3">
+            <UserButton />
+            <div className="text-left">
+              <p className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                <span>Authenticated with Clerk</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Active role: <span className="font-bold text-indigo-700">{normalizedRole}</span>
+              </p>
+            </div>
+          </div>
+        </div>
       </SignedIn>
     </div>
   );
 };
 
 export default ClerkAuthButton;
+

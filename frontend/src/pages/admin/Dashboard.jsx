@@ -4,7 +4,7 @@ import {
   Landmark, RotateCcw, AlertTriangle, ArrowUpRight, 
   Layers, CreditCard, Clock, ShieldCheck, Download, ChevronRight, Eye,
   RefreshCw, CheckCircle2, AlertCircle, Sparkles, Filter, Store, DollarSign,
-  ArrowDownRight, HelpCircle, MapPin
+  ArrowDownRight, HelpCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import brandSellerService from '../../services/brandSellerService';
