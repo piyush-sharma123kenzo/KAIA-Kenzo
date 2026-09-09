@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   Package, CheckCircle2, AlertTriangle, Clock, Truck, CheckCheck, 
   IndianRupee, TrendingUp, Calendar, ArrowRight, Eye, PlusCircle, 
@@ -12,6 +12,8 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import Button from '../../components/ui/Button';
 
 const Dashboard = () => {
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/vendor') ? '/vendor' : '/brand';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -72,9 +74,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  const location = useLocation();
-  const basePath = location.pathname.startsWith('/vendor') ? '/vendor' : '/brand';
 
   const metrics = data?.metrics || {};
   const salesChart = data?.salesChart || [];
