@@ -79,10 +79,10 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [accountDropdown, setAccountDropdown] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const categoryDropdownRef = useRef(null);
+  const accountDropdownRef = useRef(null);
 
   // Close category dropdown on outside click
   useEffect(() => {
@@ -92,8 +92,34 @@ const Header = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
+
+  // Close account dropdown on outside click
+  useEffect(() => {
+    const handleAccountClickOutside = (event) => {
+      if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target)) {
+        setAccountDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleAccountClickOutside);
+    document.addEventListener('touchstart', handleAccountClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleAccountClickOutside);
+      document.removeEventListener('touchstart', handleAccountClickOutside);
+    };
+  }, []);
+
+  // Close all popups and dropdowns automatically on route navigation
+  useEffect(() => {
+    setAccountDropdown(false);
+    setMobileOpen(false);
+    setCategoryDropdownOpen(false);
+  }, [location.pathname, location.search]);
 
   // Fetch live autocomplete suggestions
   useEffect(() => {
@@ -364,11 +390,16 @@ const Header = () => {
 
             {/* Account / User */}
             <div
+              ref={accountDropdownRef}
               className="relative group text-left py-1"
               onMouseEnter={() => setAccountDropdown(true)}
               onMouseLeave={() => setAccountDropdown(false)}
             >
-              <Link to={user ? '/account' : '/login'} className="flex items-center space-x-2 hover:text-[#F5B400] transition-colors py-1">
+              <Link 
+                to={user ? '/account' : '/login'} 
+                onClick={() => setAccountDropdown(false)}
+                className="flex items-center space-x-2 hover:text-[#F5B400] transition-colors py-1 cursor-pointer"
+              >
                 {user ? (
                   <ProfileAvatar
                     user={user}
@@ -499,6 +530,7 @@ const Header = () => {
 
                         <Link
                           to="/account"
+                          onClick={() => setAccountDropdown(false)}
                           className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
                           <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
@@ -510,6 +542,7 @@ const Header = () => {
 
                         <Link
                           to="/orders"
+                          onClick={() => setAccountDropdown(false)}
                           className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
                           <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
@@ -521,6 +554,7 @@ const Header = () => {
 
                         <Link
                           to="/account/wishlist"
+                          onClick={() => setAccountDropdown(false)}
                           className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
                           <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-rose-600 group-hover:border-rose-600 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
@@ -532,6 +566,7 @@ const Header = () => {
 
                         <Link
                           to="/compare"
+                          onClick={() => setAccountDropdown(false)}
                           className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
                           <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
@@ -549,6 +584,7 @@ const Header = () => {
 
                         <Link
                           to="/account?tab=warranties"
+                          onClick={() => setAccountDropdown(false)}
                           className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
                           <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
@@ -560,6 +596,7 @@ const Header = () => {
 
                         <Link
                           to="/account?tab=addresses"
+                          onClick={() => setAccountDropdown(false)}
                           className="flex items-center space-x-3 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100/80 transition-all group font-semibold"
                         >
                           <div className="w-8 h-8 rounded-xl bg-slate-100/80 border border-slate-200/60 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
@@ -580,6 +617,7 @@ const Header = () => {
                           {user?.role === 'ADMIN' && (
                             <Link
                               to="/admin/dashboard"
+                              onClick={() => setAccountDropdown(false)}
                               className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-indigo-700 hover:text-indigo-950 bg-indigo-50/70 hover:bg-indigo-100/70 transition-colors group font-bold text-xs"
                             >
                               <ShieldCheck className="w-4 h-4 text-indigo-600" />
@@ -591,6 +629,7 @@ const Header = () => {
                           {user?.role === 'BRAND' && (
                             <Link
                               to="/brand/dashboard"
+                              onClick={() => setAccountDropdown(false)}
                               className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100/70 transition-colors group font-bold text-xs"
                             >
                               <Building2 className="w-4 h-4 text-amber-700" />

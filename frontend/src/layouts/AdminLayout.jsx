@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Building2, PackageOpen, LayoutDashboard, Truck, Layers, 
@@ -7,12 +7,13 @@ import {
   Activity, Radio, BarChart3, Menu, X, ExternalLink, QrCode,
   Search, ChevronRight, PlusCircle, Bell, ChevronLeft, Store,
   Zap, ArrowUpRight, Cpu, Headphones, MessageSquare, MapPin,
-  Sliders, SlidersHorizontal
+  Sliders, SlidersHorizontal, User, Eye
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import KaiaIcon from '../components/common/KaiaIcon';
 import ProfileAvatar from '../components/profile/ProfileAvatar';
+import ProfileImageViewer from '../components/profile/ProfileImageViewer';
 
 const AdminLayout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -21,6 +22,30 @@ const AdminLayout = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const adminMenuRef = useRef(null);
+
+  // Close admin dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (adminMenuRef.current && !adminMenuRef.current.contains(event.target)) {
+        setAdminMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  // Close mobile drawer and admin menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+    setAdminMenuOpen(false);
+  }, [location.pathname]);
 
   const isActive = (path) => {
     if (path === '/admin/dashboard' && (location.pathname === '/admin' || location.pathname === '/admin/dashboard')) {
@@ -28,11 +53,6 @@ const AdminLayout = () => {
     }
     return location.pathname === path;
   };
-
-  // Close mobile drawer on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
 
   const navSections = [
     {
@@ -384,16 +404,120 @@ const AdminLayout = () => {
               <Activity className="w-4 h-4" />
             </Link>
 
-            {/* Admin Avatar */}
-            <ProfileAvatar 
-              user={user} 
-              size="sm" 
-              shape="rounded" 
-              ring={true}
-              ringColor="ring-slate-300/80"
-              allowPreview={Boolean(user?.profileImage?.url || user?.avatar)}
-              className="shadow-xs cursor-pointer"
-            />
+            {/* Admin Profile Dropdown */}
+            <div ref={adminMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setAdminMenuOpen((prev) => !prev)}
+                className="flex items-center space-x-2 p-0.5 rounded-xl hover:bg-slate-100 transition-all cursor-pointer focus:outline-none"
+                title="Admin Account & Menu"
+              >
+                <ProfileAvatar 
+                  user={user} 
+                  size="sm" 
+                  shape="rounded" 
+                  ring={true}
+                  ringColor="ring-slate-300/80"
+                  allowPreview={false}
+                  className="shadow-xs pointer-events-none"
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {adminMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] border border-slate-200/90 overflow-hidden ring-1 ring-black/5 z-50 animate-in fade-in slide-in-from-top-1 duration-150 text-left">
+                  {/* Header */}
+                  <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center space-x-3">
+                    <ProfileAvatar 
+                      user={user} 
+                      size="md" 
+                      shape="rounded" 
+                      ring={true}
+                      ringColor="ring-purple-400/40"
+                      allowPreview={false}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-slate-900 truncate">{user?.name || 'Administrator'}</p>
+                      <p className="text-[11px] text-slate-500 truncate font-mono">{user?.email}</p>
+                      <span className="inline-flex items-center space-x-1 mt-1 bg-purple-100 text-purple-800 text-[9px] font-black uppercase px-2 py-0.5 rounded-md">
+                        <ShieldCheck className="w-2.5 h-2.5" />
+                        <span>Root Administrator</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Links */}
+                  <div className="p-2 space-y-1 text-xs">
+                    {(user?.profileImage?.url || user?.avatar) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdminMenuOpen(false);
+                          setImageViewerOpen(true);
+                        }}
+                        className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-medium cursor-pointer text-left"
+                      >
+                        <Eye className="w-4 h-4 text-slate-500" />
+                        <span className="flex-1">View Profile Photo</span>
+                      </button>
+                    )}
+
+                    <Link
+                      to="/admin/settings"
+                      onClick={() => setAdminMenuOpen(false)}
+                      className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-medium text-left"
+                    >
+                      <SlidersHorizontal className="w-4 h-4 text-slate-500" />
+                      <span className="flex-1">System Settings</span>
+                    </Link>
+
+                    <Link
+                      to="/admin/system-health"
+                      onClick={() => setAdminMenuOpen(false)}
+                      className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-medium text-left"
+                    >
+                      <Activity className="w-4 h-4 text-slate-500" />
+                      <span className="flex-1">System Diagnostics</span>
+                    </Link>
+
+                    <Link
+                      to="/account"
+                      onClick={() => setAdminMenuOpen(false)}
+                      className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-medium text-left"
+                    >
+                      <Building2 className="w-4 h-4 text-slate-500" />
+                      <span className="flex-1">Store / Account Hub</span>
+                    </Link>
+                  </div>
+
+                  {/* Sign Out */}
+                  <div className="p-2 border-t border-slate-100 bg-slate-50/50">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminMenuOpen(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-all font-bold cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Profile Image Viewer Modal */}
+            {imageViewerOpen && (
+              <ProfileImageViewer
+                isOpen={imageViewerOpen}
+                onClose={() => setImageViewerOpen(false)}
+                user={user}
+                userName={user?.name || 'Administrator'}
+                userRole="ADMIN"
+              />
+            )}
           </div>
         </header>
 
