@@ -77,10 +77,6 @@ const AdminDashboard = () => {
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 Live Production
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/10 text-slate-300 border border-white/10">
-                <Activity className="w-3.5 h-3.5 text-amber-400" />
-                Central Telemetry
-              </span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase flex items-center gap-3">
@@ -135,7 +131,7 @@ const AdminDashboard = () => {
         <div className="relative z-10 mt-6 pt-5 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
           <div className="flex items-center gap-2 text-slate-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Telemetry:</span>
+            <span>Platform:</span>
             <strong className="text-emerald-400 font-bold">100% Online</strong>
           </div>
           <div className="flex items-center gap-2 text-slate-400">
