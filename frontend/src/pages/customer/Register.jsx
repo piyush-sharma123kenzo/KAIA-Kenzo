@@ -178,9 +178,7 @@ const Register = () => {
         <div className="text-center space-y-3 flex flex-col items-center">
           <KaiaLogo to="/" variant="full" theme="light" size="lg" />
           <h1 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">
-            {selectedRole === 'VENDOR'
-              ? 'Create Vendor / Brand Account'
-              : 'Create Customer Account'}
+            Create Account
           </h1>
           <p className="text-xs text-brand-gray-500">
             {selectedRole === 'VENDOR'
