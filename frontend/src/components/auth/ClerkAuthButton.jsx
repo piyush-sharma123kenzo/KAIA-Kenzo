@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
-import { Sparkles, ShieldCheck, ShieldAlert, KeyRound, ArrowRight } from 'lucide-react';
+import { SignInButton, SignUpButton, SignedOut, SignedIn, UserButton } from '@clerk/clerk-react';
+import { ShieldCheck, KeyRound } from 'lucide-react';
 
 const ClerkLogoIcon = () => (
   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -13,16 +13,21 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
   const [showConfigNotice, setShowConfigNotice] = useState(false);
 
   const normalizedRole = (role || 'USER').toUpperCase();
+  const roleBadge = normalizedRole === 'ADMIN'
+    ? 'ADMIN'
+    : (normalizedRole === 'VENDOR' || normalizedRole === 'BRAND')
+      ? 'VENDOR'
+      : 'USER';
 
   const defaultText = mode === 'signUp'
-    ? (normalizedRole === 'ADMIN'
+    ? (roleBadge === 'ADMIN'
         ? 'Sign up with Clerk as Admin'
-        : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND'
+        : roleBadge === 'VENDOR'
           ? 'Sign up with Clerk as Vendor'
           : 'Sign up with Clerk')
-    : (normalizedRole === 'ADMIN'
+    : (roleBadge === 'ADMIN'
         ? 'Sign in with Clerk as Admin'
-        : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND'
+        : roleBadge === 'VENDOR'
           ? 'Sign in with Clerk as Vendor'
           : 'Sign in with Clerk');
 
@@ -30,11 +35,14 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
 
   const handleClerkClick = () => {
     try {
-      sessionStorage.setItem('kaia_auth_intent_role', normalizedRole);
+      sessionStorage.setItem('kaia_auth_intent_role', roleBadge);
     } catch (e) {
       console.warn('Could not store auth intent role:', e.message);
     }
   };
+
+  // Button styling matching project palette (slate-900 / dark brand theme)
+  const buttonTheme = 'bg-slate-900 hover:bg-slate-850 active:bg-slate-950 text-white border border-slate-700/60';
 
   if (!isPublishableKeySet) {
     return (
@@ -42,15 +50,15 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
         <button
           type="button"
           onClick={() => setShowConfigNotice(!showConfigNotice)}
-          className="w-full flex items-center justify-between px-3.5 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-bold text-xs md:text-sm rounded-lg shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer"
+          className={`w-full flex items-center justify-between px-4 py-2.5 ${buttonTheme} font-bold text-xs md:text-sm rounded-xl shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer`}
           title="Clerk configuration key required"
         >
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2.5">
             <ClerkLogoIcon />
             <span>{label}</span>
           </div>
-          <span className="text-[10px] bg-white/20 text-purple-100 uppercase tracking-widest px-2 py-0.5 rounded font-mono font-bold">
-            {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND' ? 'VENDOR' : 'SSO'}
+          <span className="text-[10px] bg-white/15 text-slate-200 uppercase tracking-wider px-2 py-0.5 rounded font-mono font-bold">
+            {roleBadge}
           </span>
         </button>
 
@@ -72,13 +80,6 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
     );
   }
 
-  // Button styling based on role
-  const buttonTheme = normalizedRole === 'ADMIN'
-    ? 'bg-slate-900 hover:bg-slate-850 active:bg-slate-950 border border-purple-500/40'
-    : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND'
-      ? 'bg-[#6C47FF] hover:bg-[#5835ea] active:bg-[#4927d8]'
-      : 'bg-[#6C47FF] hover:bg-[#5835ea] active:bg-[#4927d8]';
-
   return (
     <div className={`w-full ${className}`}>
       <SignedOut>
@@ -87,18 +88,15 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
             <button
               type="button"
               onClick={handleClerkClick}
-              className={`w-full flex items-center justify-between px-4 py-2.5 ${buttonTheme} text-white font-bold text-xs md:text-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-150 cursor-pointer`}
+              className={`w-full flex items-center justify-between px-4 py-2.5 ${buttonTheme} font-bold text-xs md:text-sm rounded-xl shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer`}
             >
               <div className="flex items-center space-x-2.5">
                 <ClerkLogoIcon />
                 <span>{label}</span>
               </div>
-              <div className="flex items-center space-x-1.5">
-                <span className="text-[9px] font-mono tracking-wider px-1.5 py-0.5 rounded bg-white/15 text-white">
-                  {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND' ? 'VENDOR' : 'BUYER'}
-                </span>
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              </div>
+              <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded bg-white/15 text-slate-200 uppercase">
+                {roleBadge}
+              </span>
             </button>
           </SignUpButton>
         ) : (
@@ -106,25 +104,22 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
             <button
               type="button"
               onClick={handleClerkClick}
-              className={`w-full flex items-center justify-between px-4 py-2.5 ${buttonTheme} text-white font-bold text-xs md:text-sm rounded-lg shadow-sm hover:shadow-md transition-all duration-150 cursor-pointer`}
+              className={`w-full flex items-center justify-between px-4 py-2.5 ${buttonTheme} font-bold text-xs md:text-sm rounded-xl shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer`}
             >
               <div className="flex items-center space-x-2.5">
                 <ClerkLogoIcon />
                 <span>{label}</span>
               </div>
-              <div className="flex items-center space-x-1.5">
-                <span className="text-[9px] font-mono tracking-wider px-1.5 py-0.5 rounded bg-white/15 text-white">
-                  {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND' ? 'VENDOR' : 'BUYER'}
-                </span>
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              </div>
+              <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded bg-white/15 text-slate-200 uppercase">
+                {roleBadge}
+              </span>
             </button>
           </SignInButton>
         )}
       </SignedOut>
 
       <SignedIn>
-        <div className="flex items-center justify-between p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl">
+        <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
           <div className="flex items-center space-x-3">
             <UserButton />
             <div className="text-left">
@@ -133,7 +128,7 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
               </p>
               <p className="text-[11px] text-slate-500">
-                Active role: <span className="font-bold text-indigo-700">{normalizedRole}</span>
+                Active role: <span className="font-bold text-slate-900">{roleBadge}</span>
               </p>
             </div>
           </div>

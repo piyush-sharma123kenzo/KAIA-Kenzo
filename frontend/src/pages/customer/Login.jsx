@@ -81,8 +81,8 @@ const Login = () => {
         <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80">
           {[
             { id: 'USER', label: 'Customer', badge: 'USER' },
-            { id: 'VENDOR', label: 'Vendor', badge: 'BRAND' },
-            { id: 'ADMIN', label: 'Admin', badge: 'ROOT' },
+            { id: 'VENDOR', label: 'Vendor', badge: 'VENDOR' },
+            { id: 'ADMIN', label: 'Admin', badge: 'ADMIN' },
           ].map((r) => {
             const isSelected = selectedRole === r.id;
             return (
