@@ -194,28 +194,22 @@ export const removeFromWishlist = async (req, res) => {
     }
 
     const targetIdStr = String(rawTargetId).trim();
-    const objId = new mongoose.Types.ObjectId(targetIdStr);
 
-    // Atomic MongoDB removal targeting product ObjectId, product string, or subdocument _id
-    await Wishlist.updateOne(
-      { user: req.user._id },
-      {
-        $pull: {
-          products: {
-            $or: [
-              { product: objId },
-              { product: targetIdStr },
-              { _id: objId },
-            ],
-          },
-        },
+    // Deterministic MongoDB removal
+    const wishlist = await Wishlist.findOne({ user: req.user._id });
+    if (wishlist) {
+      wishlist.products = wishlist.products.filter((item) => {
+        const itemProdId = item.product ? (item.product._id ? item.product._id.toString() : item.product.toString()) : '';
+        const itemSubId = item._id ? item._id.toString() : '';
+        return itemProdId !== targetIdStr && itemSubId !== targetIdStr;
+      });
+
+      if (wishlist.products.length === 0) {
+        await Wishlist.findByIdAndDelete(wishlist._id);
+      } else {
+        wishlist.markModified('products');
+        await wishlist.save();
       }
-    );
-
-    // Clean up empty wishlist document from MongoDB
-    const checkWishlist = await Wishlist.findOne({ user: req.user._id });
-    if (checkWishlist && checkWishlist.products.length === 0) {
-      await Wishlist.findByIdAndDelete(checkWishlist._id);
     }
 
     const populated = await getPopulatedWishlist(req.user._id);
@@ -271,28 +265,23 @@ export const toggleWishlist = async (req, res) => {
     let message = '';
 
     if (exists) {
-      // Remove via atomic MongoDB $pull
-      await Wishlist.updateOne(
-        { user: req.user._id },
-        {
-          $pull: {
-            products: {
-              $or: [
-                { product: objId },
-                { product: targetIdStr },
-                { _id: objId },
-              ],
-            },
-          },
+      // Deterministic MongoDB removal
+      if (wishlist) {
+        wishlist.products = wishlist.products.filter((item) => {
+          const pId = item.product ? (item.product._id ? item.product._id.toString() : item.product.toString()) : '';
+          const subId = item._id ? item._id.toString() : '';
+          return pId !== targetIdStr && subId !== targetIdStr;
+        });
+
+        if (wishlist.products.length === 0) {
+          await Wishlist.findByIdAndDelete(wishlist._id);
+        } else {
+          wishlist.markModified('products');
+          await wishlist.save();
         }
-      );
+      }
       isWishlisted = false;
       message = 'Removed from wishlist.';
-
-      const checkWishlist = await Wishlist.findOne({ user: req.user._id });
-      if (checkWishlist && checkWishlist.products.length === 0) {
-        await Wishlist.findByIdAndDelete(checkWishlist._id);
-      }
     } else {
       if (!wishlist) {
         wishlist = await Wishlist.create({

@@ -288,25 +288,12 @@ export const updateCartItem = async (req, res) => {
 
     // If quantity is 0 or negative, remove the item atomically
     if (requestedQty <= 0) {
-      const objId = new mongoose.Types.ObjectId(targetProductId);
-      await Cart.updateOne(
-        { user: req.user._id },
-        {
-          $pull: {
-            items: {
-              $or: [
-                { product: objId },
-                { product: targetProductId.toString() },
-                { _id: objId },
-              ],
-            },
-          },
-        }
-      );
-
-      const checkCart = await Cart.findOne({ user: req.user._id });
-      if (checkCart && checkCart.items.length === 0) {
-        await Cart.findByIdAndDelete(checkCart._id);
+      cart.items.splice(itemIndex, 1);
+      if (cart.items.length === 0) {
+        await Cart.findByIdAndDelete(cart._id);
+      } else {
+        cart.markModified('items');
+        await cart.save();
       }
 
       const populated = await getPopulatedCart(req.user._id);
@@ -383,28 +370,22 @@ export const removeCartItem = async (req, res) => {
     }
 
     const targetIdStr = String(rawTargetId).trim();
-    const objId = new mongoose.Types.ObjectId(targetIdStr);
 
-    // Atomic MongoDB removal targeting product ObjectId, product string, or subdocument _id
-    await Cart.updateOne(
-      { user: req.user._id },
-      {
-        $pull: {
-          items: {
-            $or: [
-              { product: objId },
-              { product: targetIdStr },
-              { _id: objId },
-            ],
-          },
-        },
+    // Deterministic MongoDB cart item removal
+    const cart = await Cart.findOne({ user: req.user._id });
+    if (cart) {
+      cart.items = cart.items.filter((item) => {
+        const itemProdId = item.product ? (item.product._id ? item.product._id.toString() : item.product.toString()) : '';
+        const itemSubId = item._id ? item._id.toString() : '';
+        return itemProdId !== targetIdStr && itemSubId !== targetIdStr;
+      });
+
+      if (cart.items.length === 0) {
+        await Cart.findByIdAndDelete(cart._id);
+      } else {
+        cart.markModified('items');
+        await cart.save();
       }
-    );
-
-    // Clean up empty cart document from MongoDB
-    const checkCart = await Cart.findOne({ user: req.user._id });
-    if (checkCart && checkCart.items.length === 0) {
-      await Cart.findByIdAndDelete(checkCart._id);
     }
 
     const populated = await getPopulatedCart(req.user._id);
