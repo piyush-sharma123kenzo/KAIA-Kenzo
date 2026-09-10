@@ -347,7 +347,6 @@ const Register = () => {
                 type="text"
                 required
                 autoComplete="name"
-                placeholder={selectedRole === 'VENDOR' ? 'e.g. John Doe (Brand Manager)' : 'Your Full Name'}
                 value={name}
                 onChange={handleInputChange(setName)}
                 className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
@@ -365,7 +364,6 @@ const Register = () => {
                 type="email"
                 required
                 autoComplete="email"
-                placeholder="name@company.com or name@gmail.com"
                 value={email}
                 onChange={handleInputChange(setEmail)}
                 className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
@@ -382,7 +380,6 @@ const Register = () => {
                 id="reg-phone"
                 type="tel"
                 autoComplete="tel"
-                placeholder="9876543210"
                 value={phone}
                 onChange={handleInputChange(setPhone)}
                 className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
@@ -400,7 +397,6 @@ const Register = () => {
                 type={showPassword ? 'text' : 'password'}
                 required
                 autoComplete="new-password"
-                placeholder="••••••••"
                 value={password}
                 onChange={handleInputChange(setPassword)}
                 className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-14 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
@@ -427,7 +423,6 @@ const Register = () => {
                 type={showConfirmPassword ? 'text' : 'password'}
                 required
                 autoComplete="new-password"
-                placeholder="••••••••"
                 value={confirmPassword}
                 onChange={handleInputChange(setConfirmPassword)}
                 className={`w-full bg-brand-light border pl-10 pr-14 py-2.5 rounded-sm text-sm focus:outline-none ${
