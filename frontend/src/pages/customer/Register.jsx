@@ -302,11 +302,6 @@ const Register = () => {
               </div>
             </button>
           </div>
-          <p className="text-[11px] text-slate-500 font-medium px-1">
-            {selectedRole === 'USER'
-              ? '📦 Customer account: Shop premium electronics, track orders, and register warranties.'
-              : '🏢 Vendor account: Manage hardware listings, logistics, warehouse inventory, and payouts.'}
-          </p>
         </div>
 
         {/* Social / SSO Auth Options with Selected Role */}
