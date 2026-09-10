@@ -29,9 +29,10 @@ const ProductCard = ({
   const isWishlisted = isInWishlist ? isInWishlist(_id) : false;
   const name = product.name || 'Electronics Product';
   const slug = product.slug || _id || '';
-  const brandName = typeof product.brand === 'string' 
+  const rawBrand = typeof product.brand === 'string' 
     ? product.brand 
-    : product.brand?.name || 'KAIA';
+    : product.brand?.name || '';
+  const brandName = (rawBrand && rawBrand.trim().toUpperCase() !== 'KAIA') ? rawBrand.trim() : '';
   
   const sellingPrice = Number(product.sellingPrice ?? product.price ?? 0);
   const mrp = Number(product.mrp ?? sellingPrice);
@@ -138,9 +139,11 @@ const ProductCard = ({
         {/* Middle: Content & Specs */}
         <div className="flex-1 space-y-2 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-md">
-              {brandName}
-            </span>
+            {brandName ? (
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-md">
+                {brandName}
+              </span>
+            ) : null}
             {reviewCount > 0 ? (
               <>
                 <div className="inline-flex items-center space-x-1 bg-amber-50/80 text-amber-900 border border-amber-200/60 font-black px-1.5 py-0.5 rounded text-[10px]">
@@ -259,9 +262,13 @@ const ProductCard = ({
       <div>
         {/* Top Badges & Action Bar */}
         <div className="flex items-center justify-between gap-1 mb-2 z-10 relative">
-          <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">
-            {brandName}
-          </span>
+          {brandName ? (
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">
+              {brandName}
+            </span>
+          ) : (
+            <span />
+          )}
 
           <div className="flex items-center space-x-1">
             {/* Compare Button */}

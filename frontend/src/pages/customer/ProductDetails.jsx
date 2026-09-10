@@ -455,9 +455,9 @@ const ProductDetails = () => {
         {/* Right Column: Info, Pricing, Pincode & Action Strip */}
         <div className="space-y-6">
           <div className="space-y-2 border-b border-brand-gray-200 pb-4">
-            {product.brand && (
+            {product.brand?.name && product.brand.name.trim().toUpperCase() !== 'KAIA' && (
               <Link
-                to={`/brand/${product.brand.slug}`}
+                to={`/brand/${product.brand.slug || ''}`}
                 className="text-xs font-black tracking-widest text-brand-accent uppercase hover:underline inline-flex items-center space-x-1"
               >
                 <span>{product.brand.name}</span>
