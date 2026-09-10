@@ -81,7 +81,6 @@ const topBrandNames = [
 ];
 
 const Home = () => {
-  const [activeSlide, setActiveSlide] = useState(0);
   const brandsScrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -182,36 +181,6 @@ const Home = () => {
                 </button>
               </Link>
             </div>
-          </div>
-
-          {/* Carousel Chevrons */}
-          <button 
-            onClick={() => setActiveSlide((prev) => (prev === 0 ? 4 : prev - 1))}
-            className="absolute left-4 sm:left-6 lg:left-10 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black text-white flex items-center justify-center transition-all border border-white/10 cursor-pointer"
-            title="Previous Slide"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          
-          <button 
-            onClick={() => setActiveSlide((prev) => (prev === 4 ? 0 : prev + 1))}
-            className="absolute right-4 sm:right-6 lg:right-10 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black text-white flex items-center justify-center transition-all border border-white/10 cursor-pointer"
-            title="Next Slide"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-
-          {/* Carousel Pagination Dots */}
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center space-x-2">
-            {[0, 1, 2, 3, 4].map((dot) => (
-              <button
-                key={dot}
-                onClick={() => setActiveSlide(dot)}
-                className={`h-2 rounded-full transition-all cursor-pointer ${
-                  activeSlide === dot ? 'w-7 bg-[#F5B400]' : 'w-2 bg-white/40 hover:bg-white/70'
-                }`}
-              />
-            ))}
           </div>
 
         </div>
