@@ -50,7 +50,7 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
             <span>{label}</span>
           </div>
           <span className="text-[10px] bg-white/20 text-purple-100 uppercase tracking-widest px-2 py-0.5 rounded font-mono font-bold">
-            {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' ? 'BRAND' : 'SSO'}
+            {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND' ? 'VENDOR' : 'SSO'}
           </span>
         </button>
 
@@ -95,7 +95,7 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
               </div>
               <div className="flex items-center space-x-1.5">
                 <span className="text-[9px] font-mono tracking-wider px-1.5 py-0.5 rounded bg-white/15 text-white">
-                  {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' ? 'BRAND' : 'BUYER'}
+                  {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND' ? 'VENDOR' : 'BUYER'}
                 </span>
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               </div>
@@ -114,7 +114,7 @@ const ClerkAuthButton = ({ mode = 'signIn', text, role = 'USER', className = '' 
               </div>
               <div className="flex items-center space-x-1.5">
                 <span className="text-[9px] font-mono tracking-wider px-1.5 py-0.5 rounded bg-white/15 text-white">
-                  {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' ? 'BRAND' : 'BUYER'}
+                  {normalizedRole === 'ADMIN' ? 'ROOT' : normalizedRole === 'VENDOR' || normalizedRole === 'BRAND' ? 'VENDOR' : 'BUYER'}
                 </span>
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               </div>
