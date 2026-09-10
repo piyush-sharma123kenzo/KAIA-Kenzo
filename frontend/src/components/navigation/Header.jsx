@@ -195,7 +195,8 @@ const Header = () => {
         {/* ========================================================================= */}
         {/* TIER 1: MAIN SEARCH & COMMERCE BAR (Pure Black #000000)                   */}
         {/* ========================================================================= */}
-        <div className="bg-black px-4 md:px-8 py-3 flex items-center justify-between gap-3 md:gap-6 h-[74px]">
+        <div className="bg-black py-2.5 sm:py-3 border-b border-white/5">
+          <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 flex items-center justify-between gap-3 md:gap-6 min-h-[58px]">
           
           {/* 1. Brand Logo */}
           <KaiaLogo 
@@ -762,7 +763,7 @@ const Header = () => {
                       <div className="p-3 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
                         <button
                           onClick={logout}
-                          className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-xl transition-all font-bold group"
+                          className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-xl transition-all font-bold group cursor-pointer"
                         >
                           <LogOut className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
                           <span>Sign Out of Account</span>
@@ -777,11 +778,13 @@ const Header = () => {
           </div>
         </div>
       </div>
+    </div>
 
         {/* ========================================================================= */}
         {/* TIER 2: SECONDARY CATEGORY BAR (Modern High-End Pill Navigation)           */}
         {/* ========================================================================= */}
-        <div className="bg-white/95 backdrop-blur-md text-slate-800 border-b border-slate-200/90 px-4 md:px-8 py-2 flex items-center text-xs font-semibold overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] gap-2 md:gap-2.5 select-none shadow-2xs">
+        <div className="bg-white/95 backdrop-blur-md text-slate-800 border-b border-slate-200/90 py-2 select-none shadow-2xs">
+          <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 flex items-center text-xs font-semibold overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] gap-2 md:gap-2.5">
           
           {/* Shop by Category Pill */}
           <button
@@ -832,6 +835,7 @@ const Header = () => {
               </Link>
             );
           })}
+          </div>
         </div>
 
       </header>

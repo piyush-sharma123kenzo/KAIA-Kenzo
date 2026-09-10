@@ -101,8 +101,8 @@ const Footer = ({ mode = 'full' }) => {
       </button>
 
       {/* 2. UNIQUE SPOTLIGHT: BECOME A SELLER / PARTNER CTA STRIP */}
-      <div className="bg-[#0F172A] border-b border-slate-800 py-8 px-6 md:px-12 lg:px-20 text-left">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/70 rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+      <div className="bg-[#0F172A] border-b border-slate-800 py-8 px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 text-left">
+        <div className="w-full max-w-[1720px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/70 rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden">
           <div className="space-y-2 z-10 max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-amber-400/15 text-amber-400 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border border-amber-400/30">
               <Building2 className="w-3.5 h-3.5 text-[#F5B400]" />
@@ -126,8 +126,8 @@ const Footer = ({ mode = 'full' }) => {
       </div>
 
       {/* 3. CORPORATE DIRECTORY & VERIFIED OFFICE LOCATION */}
-      <div className="bg-amz-navy2 text-white border-b border-brand-gray-800 py-14 px-6 md:px-12 lg:px-20">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 text-left">
+      <div className="bg-amz-navy2 text-white border-b border-brand-gray-800 py-14 px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
+        <div className="w-full max-w-[1720px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 text-left">
           
           {/* Col 1: Get to Know Us */}
           <div className="space-y-3">

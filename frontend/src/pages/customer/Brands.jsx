@@ -94,8 +94,8 @@ const Brands = () => {
 
       {/* Brands Grid */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6">
-          {Array(8).fill(0).map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
+          {Array(12).fill(0).map((_, i) => (
             <div key={i} className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 shadow-sm animate-pulse h-56">
               <Skeleton className="w-20 h-20 rounded-xl mx-auto" />
               <Skeleton className="h-4 w-3/4 mx-auto" />
@@ -108,7 +108,7 @@ const Brands = () => {
           No brand found matching "{search}".
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6">
           {filteredBrands.map((brand, idx) => {
             const logo = getBrandLogo(brand);
             const brandSlug = brand.slug || brand.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');

@@ -495,7 +495,7 @@ const Products = () => {
   const activeBrandName = activeBrandObj?.name || (selectedBrand ? selectedBrand.charAt(0).toUpperCase() + selectedBrand.slice(1) : '');
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left space-y-6 font-sans">
+    <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-8 text-left space-y-6 font-sans">
       
       {/* 1. Header with Breadcrumb & Summary */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-brand-gray-200 pb-4">
@@ -550,7 +550,7 @@ const Products = () => {
       </div>
 
       {/* 2. Main Two-Column Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-6 lg:gap-8">
         
         {/* Left Filter Sidebar (Desktop) */}
         <div className="hidden md:block md:col-span-1 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm h-fit sticky top-24">
@@ -582,12 +582,12 @@ const Products = () => {
         </Drawer>
 
         {/* Right Product Grid/List Area */}
-        <div className="md:col-span-3 space-y-8">
+        <div className="md:col-span-3 lg:col-span-4 2xl:col-span-5 space-y-8">
           
           {/* Loading State */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array(6).fill(0).map((_, i) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5">
+              {Array(8).fill(0).map((_, i) => (
                 <ProductSkeleton key={i} />
               ))}
             </div>
@@ -630,7 +630,7 @@ const Products = () => {
             </div>
           ) : (
             /* Products Listing */
-            <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'grid-cols-1 gap-4'}`}>
+            <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5' : 'grid-cols-1 gap-4'}`}>
               {products.map((p) => (
                 <ProductCard key={p._id} product={p} viewMode={viewMode} />
               ))}

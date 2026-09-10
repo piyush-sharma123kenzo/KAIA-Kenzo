@@ -196,12 +196,47 @@ select option {
   will-change: transform;
 }
 
+/* Uniform Responsive Storefront Container (Expands gracefully on wide displays up to 1720px) */
+.store-container {
+  width: 100%;
+  max-width: 1720px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .store-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .store-container {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .store-container {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .store-container {
+    padding-left: 4rem;
+    padding-right: 4rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-tagline-float {
     animation: none !important;
     transform: none !important;
   }
 }
-
-
-

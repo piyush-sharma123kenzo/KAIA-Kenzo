@@ -43,7 +43,7 @@ const NewArrivals = () => {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left space-y-8 font-sans">
+    <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-8 text-left space-y-8 font-sans">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-brand-gray-200 pb-4">
         <div>
           <div className="flex items-center space-x-2">
@@ -73,8 +73,8 @@ const NewArrivals = () => {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {Array(8).fill(0).map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5">
+          {Array(12).fill(0).map((_, i) => (
             <ProductSkeleton key={i} />
           ))}
         </div>
@@ -84,7 +84,7 @@ const NewArrivals = () => {
           <h2 className="text-lg font-black text-brand-gray-900 uppercase">No new arrivals found</h2>
         </div>
       ) : (
-        <div className={`grid ${viewMode === 'list' ? 'grid-cols-1 gap-4' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'}`}>
+        <div className={`grid ${viewMode === 'list' ? 'grid-cols-1 gap-4' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5'}`}>
           {products.map((p) => (
             <ProductCard key={p._id} product={p} viewMode={viewMode} />
           ))}

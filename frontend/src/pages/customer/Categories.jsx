@@ -59,7 +59,7 @@ const Categories = () => {
   );
 
   return (
-    <Container className="py-12 text-left space-y-10 select-none max-w-7xl font-sans">
+    <Container className="py-12 text-left space-y-10 select-none font-sans">
       
       {/* Breadcrumb */}
       <nav className="text-xs text-brand-gray-400 font-semibold flex items-center space-x-2">
@@ -97,8 +97,8 @@ const Categories = () => {
 
       {/* Category Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array(9).fill(0).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {Array(10).fill(0).map((_, i) => (
             <div key={i} className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs space-y-4">
               <Skeleton className="h-12 w-12 rounded-xl" />
               <Skeleton className="h-5 w-1/2" />
@@ -112,7 +112,7 @@ const Categories = () => {
           No matching departments found for "{search}".
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {filteredCategories.map((cat, idx) => {
             const Icon = getCategoryIcon(cat.slug, cat.name);
             return (

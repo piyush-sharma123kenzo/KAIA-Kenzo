@@ -112,10 +112,10 @@ const Home = () => {
       setLoadingProducts(true);
       try {
         const [dRes, fRes, nRes, bRes] = await Promise.all([
-          productService.getDeals(4).catch(() => ({ products: [] })),
-          productService.getFeaturedProducts(4).catch(() => ({ products: [] })),
-          productService.getNewArrivals(4).catch(() => ({ products: [] })),
-          productService.getBestSellers(4).catch(() => ({ products: [] })),
+          productService.getDeals(12).catch(() => ({ products: [] })),
+          productService.getFeaturedProducts(12).catch(() => ({ products: [] })),
+          productService.getNewArrivals(12).catch(() => ({ products: [] })),
+          productService.getBestSellers(12).catch(() => ({ products: [] })),
         ]);
 
         if (dRes?.products) setDeals(dRes.products);
@@ -146,7 +146,7 @@ const Home = () => {
       {/* 1. HERO CAROUSEL BANNER                                                    */}
       {/* ========================================================================= */}
       <div className="relative w-full bg-black overflow-hidden">
-        <div className="relative max-w-7xl mx-auto h-[420px] md:h-[480px] flex items-center">
+        <div className="relative w-full max-w-[1720px] mx-auto h-[440px] sm:h-[480px] lg:h-[520px] 2xl:h-[560px] flex items-center px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
           
           {/* Background Image Container */}
           <div className="absolute inset-0 z-0">
@@ -156,11 +156,11 @@ const Home = () => {
               className="w-full h-full object-cover object-right md:object-center"
             />
             {/* Dark gradient overlay on the left for maximum text readability */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 md:via-black/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 md:via-black/70 to-transparent" />
           </div>
 
           {/* Left Text Block */}
-          <div className="relative z-10 px-6 md:px-12 max-w-xl space-y-4">
+          <div className="relative z-10 max-w-xl lg:max-w-2xl space-y-4 sm:space-y-5">
             <span className="text-[#F5B400] font-black tracking-widest text-xs uppercase block">
               NEXT LEVEL PERFORMANCE
             </span>
@@ -191,7 +191,7 @@ const Home = () => {
           {/* Carousel Chevrons */}
           <button 
             onClick={() => setActiveSlide((prev) => (prev === 0 ? 4 : prev - 1))}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black text-white flex items-center justify-center transition-all border border-white/10"
+            className="absolute left-4 sm:left-6 lg:left-10 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black text-white flex items-center justify-center transition-all border border-white/10 cursor-pointer"
             title="Previous Slide"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -199,7 +199,7 @@ const Home = () => {
           
           <button 
             onClick={() => setActiveSlide((prev) => (prev === 4 ? 0 : prev + 1))}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black text-white flex items-center justify-center transition-all border border-white/10"
+            className="absolute right-4 sm:right-6 lg:right-10 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black text-white flex items-center justify-center transition-all border border-white/10 cursor-pointer"
             title="Next Slide"
           >
             <ChevronRight className="w-5 h-5" />
@@ -211,7 +211,7 @@ const Home = () => {
               <button
                 key={dot}
                 onClick={() => setActiveSlide(dot)}
-                className={`h-2 rounded-full transition-all ${
+                className={`h-2 rounded-full transition-all cursor-pointer ${
                   activeSlide === dot ? 'w-7 bg-[#F5B400]' : 'w-2 bg-white/40 hover:bg-white/70'
                 }`}
               />
@@ -224,8 +224,8 @@ const Home = () => {
       {/* ========================================================================= */}
       {/* 2. FIVE-PILLAR TRUST STRIP                                                 */}
       {/* ========================================================================= */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-6 relative z-30">
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 md:py-6 md:px-8 grid grid-cols-2 md:grid-cols-5 gap-6 text-left">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 -mt-6 relative z-30">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5 lg:py-6 lg:px-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6 text-left">
           
           {/* Pillar 1 */}
           <div className="flex items-center space-x-3.5">
@@ -264,7 +264,7 @@ const Home = () => {
           </div>
 
           {/* Pillar 5 */}
-          <div className="flex items-center space-x-3.5 col-span-2 md:col-span-1">
+          <div className="flex items-center space-x-3.5 col-span-2 sm:col-span-1 md:col-span-1">
             <Headphones className="w-7 h-7 text-slate-800 shrink-0" strokeWidth={1.75} />
             <div>
               <h4 className="text-xs font-black uppercase text-slate-900 tracking-tight">EXPERT SUPPORT</h4>
@@ -278,18 +278,18 @@ const Home = () => {
       {/* ========================================================================= */}
       {/* 3. HARDWARE CATEGORIES (10 3D Rounded Cards Grid)                         */}
       {/* ========================================================================= */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
-        <div className="grid grid-cols-5 md:grid-cols-10 gap-3 text-center">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 mt-10">
+        <div className="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-10 gap-2.5 sm:gap-3 lg:gap-4 2xl:gap-5 text-center">
           {hardwareCategories.map((cat, idx) => (
             <Link
               key={idx}
               to={cat.isViewAll ? '/categories' : `/products?category=${cat.slug}&q=${cat.query || ''}`}
-              className="bg-white rounded-2xl border border-slate-200/90 p-2.5 flex flex-col items-center justify-between hover:shadow-xl hover:border-amber-400/50 hover:-translate-y-1.5 transition-all duration-300 group shadow-xs"
+              className="bg-white rounded-2xl border border-slate-200/90 p-2 sm:p-2.5 flex flex-col items-center justify-between hover:shadow-xl hover:border-amber-400/50 hover:-translate-y-1.5 transition-all duration-300 group shadow-xs"
             >
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center overflow-hidden mb-1.5 p-1 bg-gradient-to-b from-slate-50/80 to-white border border-slate-100">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center overflow-hidden mb-1.5 p-1 bg-gradient-to-b from-slate-50/80 to-white border border-slate-100">
                 {cat.isViewAll ? (
                   <div className="w-full h-full rounded-lg bg-slate-900 flex items-center justify-center group-hover:bg-[#F5B400] transition-colors shadow-sm">
-                    <LayoutGrid className="w-6 h-6 text-white group-hover:text-slate-950 transition-colors" />
+                    <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:text-slate-950 transition-colors" />
                   </div>
                 ) : (
                   <img
@@ -300,7 +300,7 @@ const Home = () => {
                   />
                 )}
               </div>
-              <span className="text-[11px] font-bold text-slate-800 group-hover:text-amber-600 transition-colors truncate w-full tracking-tight">
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-800 group-hover:text-amber-600 transition-colors truncate w-full tracking-tight">
                 {cat.name}
               </span>
             </Link>
@@ -314,7 +314,7 @@ const Home = () => {
       
       {/* Section A: Best Deals / Flash Offers */}
       {(loadingProducts || deals.length > 0) && (
-        <section className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
+        <section className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 mt-12">
           <div className="flex justify-between items-center mb-5 border-b border-slate-200 pb-3">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-black">
@@ -338,13 +338,13 @@ const Home = () => {
           </div>
 
           {loadingProducts ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((n) => (
-                <ProductSkeleton key={n} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <ProductSkeleton key={i} />
               ))}
             </div>
           ) : deals.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5">
               {deals.map((prod) => (
                 <ProductCard key={prod._id || prod.id} product={prod} />
               ))}
@@ -359,7 +359,7 @@ const Home = () => {
 
       {/* Section B: Featured Hardware */}
       {(loadingProducts || featuredProducts.length > 0) && (
-        <section className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
+        <section className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 mt-12">
           <div className="flex justify-between items-center mb-5 border-b border-slate-200 pb-3">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-xl bg-slate-900 text-[#F5B400] flex items-center justify-center font-black">
@@ -383,13 +383,13 @@ const Home = () => {
           </div>
 
           {loadingProducts ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((n) => (
-                <ProductSkeleton key={n} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <ProductSkeleton key={i} />
               ))}
             </div>
           ) : featuredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5">
               {featuredProducts.map((prod) => (
                 <ProductCard key={prod._id || prod.id} product={prod} />
               ))}
@@ -404,7 +404,7 @@ const Home = () => {
 
       {/* Section C: New Arrivals */}
       {(loadingProducts || newArrivals.length > 0) && (
-        <section className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
+        <section className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 mt-12">
           <div className="flex justify-between items-center mb-5 border-b border-slate-200 pb-3">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-black">
@@ -428,13 +428,13 @@ const Home = () => {
           </div>
 
           {loadingProducts ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((n) => (
-                <ProductSkeleton key={n} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <ProductSkeleton key={i} />
               ))}
             </div>
           ) : newArrivals.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5">
               {newArrivals.map((prod) => (
                 <ProductCard key={prod._id || prod.id} product={prod} />
               ))}
@@ -449,7 +449,7 @@ const Home = () => {
 
       {/* Section D: Popular / Best Sellers */}
       {(loadingProducts || bestSellers.length > 0) && (
-        <section className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
+        <section className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 mt-12">
           <div className="flex justify-between items-center mb-5 border-b border-slate-200 pb-3">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black">
@@ -473,13 +473,13 @@ const Home = () => {
           </div>
 
           {loadingProducts ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((n) => (
-                <ProductSkeleton key={n} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <ProductSkeleton key={i} />
               ))}
             </div>
           ) : bestSellers.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5">
               {bestSellers.map((prod) => (
                 <ProductCard key={prod._id || prod.id} product={prod} />
               ))}
@@ -491,7 +491,11 @@ const Home = () => {
           )}
         </section>
       )}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10 mb-12">
+
+      {/* ========================================================================= */}
+      {/* 5. TOP BRANDS MARQUEE STRIP                                                */}
+      {/* ========================================================================= */}
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 mt-10 mb-12">
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5 md:p-4 flex items-center gap-3 md:gap-4 relative">
           
           {/* Top Brands Pill */}
@@ -554,8 +558,8 @@ const Home = () => {
       {/* ========================================================================= */}
       {/* 6. BOTTOM VALUE PROPOSITION STRIP (Black #000000 with Gold Accents)       */}
       {/* ========================================================================= */}
-      <div className="bg-black text-white border-t border-white/10 py-7 px-4 md:px-8 select-none">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
+      <div className="bg-black text-white border-t border-white/10 py-8 px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 select-none">
+        <div className="w-full max-w-[1720px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
           
           {/* Proposition 1 */}
           <div className="flex items-center space-x-3.5">
