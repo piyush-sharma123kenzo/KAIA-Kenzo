@@ -86,7 +86,7 @@ export const registerNewUser = async ({
     throw error;
   }
 
-  const userRole = (requestedRole === 'BRAND' || requestedRole === 'VENDOR') ? 'BRAND' : 'CUSTOMER';
+  const userRole = (requestedRole === 'VENDOR' || requestedRole === 'BRAND') ? 'VENDOR' : 'CUSTOMER';
 
   // 6. Strict Unique Email Check
   const existingUser = await User.findOne({ email: normalizedEmail });

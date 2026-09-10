@@ -314,7 +314,7 @@ export const googleLogin = async (req, res) => {
     }
 
     const normalizedEmail = String(userEmail).toLowerCase().trim();
-    const targetRole = (role === 'VENDOR' || role === 'BRAND') ? 'BRAND' : 'CUSTOMER';
+    const targetRole = (role === 'VENDOR' || role === 'BRAND') ? 'VENDOR' : 'CUSTOMER';
     let user = await User.findOne({ email: normalizedEmail });
 
     if (user) {
@@ -332,7 +332,7 @@ export const googleLogin = async (req, res) => {
         user.avatar = userAvatar;
       }
       if ((role === 'VENDOR' || role === 'BRAND') && (user.role === 'CUSTOMER' || user.role === 'USER')) {
-        user.role = 'BRAND';
+        user.role = 'VENDOR';
       }
       user.emailVerified = true;
       user.lastLogin = new Date();
@@ -356,7 +356,7 @@ export const googleLogin = async (req, res) => {
 
     // Register new user via Google
     const newUser = await User.create({
-      name: userName || (targetRole === 'BRAND' ? 'Vendor Partner' : 'Customer'),
+      name: userName || (targetRole === 'VENDOR' ? 'Vendor Partner' : 'Customer'),
       email: normalizedEmail,
       avatar: userAvatar || '',
       googleId: userGoogleId || `google_${Date.now()}`,
@@ -411,7 +411,7 @@ export const clerkLogin = async (req, res) => {
     const targetRole = normalizedRole === 'ADMIN'
       ? 'ADMIN'
       : (normalizedRole === 'VENDOR' || normalizedRole === 'BRAND')
-        ? 'BRAND'
+        ? 'VENDOR'
         : 'CUSTOMER';
 
     let user = await User.findOne({
@@ -441,8 +441,8 @@ export const clerkLogin = async (req, res) => {
       // Upgrade role or retain existing elevated privileges
       if (targetRole === 'ADMIN' && user.role !== 'ADMIN') {
         user.role = 'ADMIN';
-      } else if (targetRole === 'BRAND' && (user.role === 'CUSTOMER' || user.role === 'USER')) {
-        user.role = 'BRAND';
+      } else if (targetRole === 'VENDOR' && (user.role === 'CUSTOMER' || user.role === 'USER')) {
+        user.role = 'VENDOR';
       }
 
       user.emailVerified = true;

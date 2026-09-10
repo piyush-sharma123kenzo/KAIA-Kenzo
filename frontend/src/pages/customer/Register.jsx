@@ -296,7 +296,7 @@ const Register = () => {
               }`}
             >
               <Store className="w-4 h-4 mb-0.5" />
-              <div className="text-xs font-bold">Vendor / Brand</div>
+              <div className="text-xs font-bold">Vendor</div>
               <div className={`text-[9px] font-mono tracking-wider ${selectedRole === 'VENDOR' ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
                 SELLER PARTNER
               </div>
@@ -334,7 +334,7 @@ const Register = () => {
           {/* Full Name */}
           <div className="space-y-1.5">
             <label htmlFor="reg-name" className="text-xs font-semibold text-brand-gray-655">
-              {selectedRole === 'VENDOR' ? 'Vendor Representative Name:' : 'Full Name:'}
+              {selectedRole === 'VENDOR' ? 'Vendor Name:' : 'Full Name:'}
             </label>
             <div className="relative">
               <input
