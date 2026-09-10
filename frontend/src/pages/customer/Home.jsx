@@ -161,10 +161,6 @@ const Home = () => {
 
           {/* Left Text Block */}
           <div className="relative z-10 max-w-xl lg:max-w-2xl space-y-4 sm:space-y-5">
-            <span className="text-[#F5B400] font-black tracking-widest text-xs uppercase block">
-              NEXT LEVEL PERFORMANCE
-            </span>
-            
             <h1 className="text-3xl md:text-5xl lg:text-[54px] font-black text-white tracking-tight leading-[1.08] uppercase">
               BUILT FOR POWER.<br />
               DESIGNED TO <span className="text-[#F5B400]">WIN.</span>
