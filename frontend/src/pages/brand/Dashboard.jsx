@@ -3,11 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Package, CheckCircle2, AlertTriangle, Clock, Truck, CheckCheck, 
   IndianRupee, TrendingUp, Calendar, ArrowRight, Eye, PlusCircle, 
-  ShoppingBag, ShieldAlert, ArrowUpRight
+  ShoppingBag, ShieldAlert, ArrowUpRight, Boxes, BarChart3, ChevronRight,
+  Layers, RefreshCw
 } from 'lucide-react';
 import brandSellerService from '../../services/brandSellerService';
 import { Skeleton } from '../../components/feedback/Skeleton';
-import Badge from '../../components/ui/Badge';
 import StatusBadge from '../../components/ui/StatusBadge';
 import Button from '../../components/ui/Button';
 
@@ -18,127 +18,85 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await brandSellerService.getDashboard();
-        if (res.success) {
-          setData(res);
-        }
-      } catch (err) {
-        console.error('Error loading brand dashboard:', err);
-        setError('Unable to load dashboard data. Please verify your connection.');
-      } finally {
-        setLoading(false);
+  const fetchDashboard = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await brandSellerService.getDashboard();
+      if (res.success) {
+        setData(res);
       }
-    };
+    } catch (err) {
+      console.error('Error loading brand dashboard:', err);
+      setError('Unable to load dashboard data. Please verify connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDashboard();
   }, []);
 
   if (loading) {
     return (
-      <div className="space-y-8 animate-pulse text-left">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {Array(8).fill(0).map((_, i) => (
-            <div key={i} className="bg-white border border-brand-gray-200 p-5 rounded-sm shadow-premium space-y-3">
-              <Skeleton className="h-3 w-1/2" />
-              <Skeleton className="h-7 w-3/4" />
-            </div>
+      <div className="space-y-6 text-left max-w-7xl mx-auto">
+        <div className="h-28 bg-slate-900/60 border border-slate-800/80 rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {Array(3).fill(0).map((_, i) => (
+            <div key={i} className="h-32 bg-slate-900/60 border border-slate-800/80 rounded-2xl animate-pulse" />
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 bg-white border border-brand-gray-200 p-6 rounded-sm space-y-4">
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-          <div className="lg:col-span-4 bg-white border border-brand-gray-200 p-6 rounded-sm space-y-4">
-            <Skeleton className="h-6 w-1/3" />
-            <Skeleton className="h-64 w-full" />
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+          {Array(5).fill(0).map((_, i) => (
+            <div key={i} className="h-28 bg-slate-900/60 border border-slate-800/80 rounded-2xl animate-pulse" />
+          ))}
         </div>
+        <div className="h-64 bg-slate-900/60 border border-slate-800/80 rounded-2xl animate-pulse" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white border border-brand-gray-200 p-12 rounded-sm text-center max-w-lg mx-auto space-y-4 shadow-premium">
-        <ShieldAlert className="w-12 h-12 text-red-500 mx-auto" />
-        <h3 className="text-base font-black text-brand-gray-900 uppercase">Dashboard Unavailable</h3>
-        <p className="text-xs text-brand-gray-500">{error}</p>
-        <Button variant="primary" size="sm" onClick={() => window.location.reload()}>
-          Try Again
-        </Button>
+      <div className="bg-slate-900 border border-slate-800 p-10 rounded-2xl text-center max-w-md mx-auto space-y-4 shadow-xl">
+        <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-white">Dashboard Offline</h3>
+          <p className="text-xs text-slate-400 mt-1">{error}</p>
+        </div>
+        <button
+          onClick={fetchDashboard}
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition-colors inline-flex items-center space-x-1.5"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Reload Dashboard</span>
+        </button>
       </div>
     );
   }
 
   const metrics = data?.metrics || {};
-  const salesChart = data?.salesChart || [];
   const recentOrders = data?.recentOrders || [];
-
-  // 14 Real Statistics Cards categorized logically
-  const productAndInventoryCards = [
-    {
-      title: 'Total Products',
-      value: metrics.totalProducts || 0,
-      sub: `${metrics.activeProducts || metrics.publishedProducts || 0} active in catalog`,
-      icon: Package,
-      link: `${basePath}/products`,
-      color: 'text-brand-gray-900 bg-brand-light',
-    },
-    {
-      title: 'Active Products',
-      value: metrics.activeProducts || metrics.publishedProducts || 0,
-      sub: 'Approved & available to buyers',
-      icon: CheckCircle2,
-      link: `${basePath}/products?status=Approved`,
-      color: 'text-emerald-700 bg-emerald-50',
-    },
-    {
-      title: 'Draft Products',
-      value: metrics.draftProducts || 0,
-      sub: 'Unpublished work in progress',
-      icon: Clock,
-      link: `${basePath}/products?status=Draft`,
-      color: 'text-slate-700 bg-slate-100',
-    },
-    {
-      title: 'Out of Stock Products',
-      value: metrics.outOfStockProducts || 0,
-      sub: metrics.outOfStockProducts > 0 ? 'Requires immediate restock' : 'Zero inventory shortages',
-      icon: ShieldAlert,
-      link: `${basePath}/inventory?outOfStock=true`,
-      color: metrics.outOfStockProducts > 0 ? 'text-red-700 bg-red-50 border-red-200' : 'text-brand-gray-700 bg-brand-light',
-    },
-    {
-      title: 'Low Stock Products',
-      value: metrics.lowStockProducts || 0,
-      sub: metrics.lowStockProducts > 0 ? 'Near minimum threshold' : 'Optimal buffer stock',
-      icon: AlertTriangle,
-      link: `${basePath}/inventory?lowStockOnly=true`,
-      color: metrics.lowStockProducts > 0 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-brand-gray-700 bg-brand-light',
-    },
-  ];
 
   const financialCards = [
     {
       title: 'Total Revenue',
       value: `₹${(metrics.totalRevenue || metrics.totalSales || 0).toLocaleString('en-IN')}`,
-      sub: `${metrics.totalUnitsSold || 0} total hardware units`,
+      sub: `${metrics.totalUnitsSold || 0} units sold`,
       icon: IndianRupee,
       link: `${basePath}/earnings`,
-      color: 'text-brand-accent bg-brand-accent/5',
+      accentBg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
     },
     {
       title: 'Pending Settlement',
       value: `₹${(metrics.pendingSettlement || 0).toLocaleString('en-IN')}`,
-      sub: 'Eligible for next payout cycle',
+      sub: 'Next payout cycle',
       icon: Calendar,
       link: `${basePath}/settlements`,
-      color: 'text-amber-700 bg-amber-50',
+      accentBg: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
     },
     {
       title: 'Available Balance',
@@ -146,17 +104,60 @@ const Dashboard = () => {
       sub: `Paid to date: ₹${(metrics.paidSettlements || 0).toLocaleString('en-IN')}`,
       icon: TrendingUp,
       link: `${basePath}/settlements`,
-      color: 'text-emerald-700 bg-emerald-50',
+      accentBg: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
     },
   ];
 
-  const orderCards = [
-    { title: 'Total Orders', value: metrics.totalOrders || 0, icon: ShoppingBag, link: `${basePath}/orders`, color: 'text-blue-700 bg-blue-50' },
-    { title: 'Pending Orders', value: metrics.pendingOrders || 0, icon: Clock, link: `${basePath}/orders?status=Pending`, color: 'text-amber-700 bg-amber-50' },
-    { title: 'Processing Orders', value: metrics.processingOrders || 0, icon: Package, link: `${basePath}/fulfillment`, color: 'text-purple-700 bg-purple-50' },
-    { title: 'Shipped Orders', value: metrics.shippedOrders || 0, icon: Truck, link: `${basePath}/shipments`, color: 'text-indigo-700 bg-indigo-50' },
-    { title: 'Delivered Orders', value: metrics.deliveredOrders || 0, icon: CheckCheck, link: `${basePath}/orders?status=Delivered`, color: 'text-emerald-700 bg-emerald-50' },
-    { title: 'Returned Orders', value: metrics.returnedOrders || 0, icon: AlertTriangle, link: `${basePath}/returns`, color: 'text-rose-700 bg-rose-50' },
+  const inventoryCards = [
+    {
+      title: 'Total Products',
+      value: metrics.totalProducts || 0,
+      sub: 'All listed items',
+      icon: Package,
+      link: `${basePath}/products`,
+      badgeColor: 'text-slate-300 bg-slate-800/80',
+    },
+    {
+      title: 'Active in Store',
+      value: metrics.activeProducts || metrics.publishedProducts || 0,
+      sub: 'Live on marketplace',
+      icon: CheckCircle2,
+      link: `${basePath}/products?status=Approved`,
+      badgeColor: 'text-emerald-400 bg-emerald-500/10',
+    },
+    {
+      title: 'Drafts',
+      value: metrics.draftProducts || 0,
+      sub: 'Unpublished',
+      icon: Clock,
+      link: `${basePath}/products?status=Draft`,
+      badgeColor: 'text-amber-400 bg-amber-500/10',
+    },
+    {
+      title: 'Low Stock',
+      value: metrics.lowStockProducts || 0,
+      sub: 'Needs attention',
+      icon: AlertTriangle,
+      link: `${basePath}/inventory?lowStockOnly=true`,
+      badgeColor: metrics.lowStockProducts > 0 ? 'text-amber-400 bg-amber-500/10' : 'text-slate-400 bg-slate-800/60',
+    },
+    {
+      title: 'Out of Stock',
+      value: metrics.outOfStockProducts || 0,
+      sub: 'Restock required',
+      icon: ShieldAlert,
+      link: `${basePath}/inventory?outOfStock=true`,
+      badgeColor: metrics.outOfStockProducts > 0 ? 'text-rose-400 bg-rose-500/10' : 'text-slate-400 bg-slate-800/60',
+    },
+  ];
+
+  const orderPipeline = [
+    { title: 'Total Orders', value: metrics.totalOrders || 0, icon: ShoppingBag, link: `${basePath}/orders`, color: 'text-slate-200' },
+    { title: 'Pending', value: metrics.pendingOrders || 0, icon: Clock, link: `${basePath}/orders?status=Pending`, color: 'text-amber-400' },
+    { title: 'Processing', value: metrics.processingOrders || 0, icon: Package, link: `${basePath}/fulfillment`, color: 'text-purple-400' },
+    { title: 'Shipped', value: metrics.shippedOrders || 0, icon: Truck, link: `${basePath}/shipments`, color: 'text-blue-400' },
+    { title: 'Delivered', value: metrics.deliveredOrders || 0, icon: CheckCheck, link: `${basePath}/orders?status=Delivered`, color: 'text-emerald-400' },
+    { title: 'Returned', value: metrics.returnedOrders || 0, icon: AlertTriangle, link: `${basePath}/returns`, color: 'text-rose-400' },
   ];
 
   const salesPeriods = [
@@ -167,98 +168,97 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-8 text-left max-w-7xl mx-auto">
+    <div className="space-y-6 text-left max-w-7xl mx-auto pb-12">
       
-      {/* 1. Welcome & Quick Action Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-brand-dark text-white p-6 rounded-sm border border-brand-gray-850 shadow-premiumDark">
-        <div className="space-y-1">
-          <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-black uppercase tracking-tight">
-              {data?.brand?.name || 'Authorized Partner'} Operations Hub
-            </h2>
-            <Badge variant="success" className="text-[9px] uppercase font-bold tracking-wider">
-              {data?.brand?.status || 'Approved'}
-            </Badge>
+      {/* 1. Header Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-850 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-full bg-radial from-amber-500/5 to-transparent pointer-events-none" />
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2.5">
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                {data?.brand?.name || 'Partner'} Dashboard
+              </h2>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                {data?.brand?.status || 'Active'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              Live inventory synchronization, order fulfillment, and settlement tracking
+            </p>
           </div>
-          <p className="text-xs text-brand-gray-400">
-            Real-time fulfillment telemetry, live inventory synchronization, and verified order settlement pipeline.
-          </p>
-        </div>
 
-        <div className="flex items-center space-x-3">
-          <Link to={`${basePath}/products/new`}>
-            <Button variant="primary" size="sm" className="text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5">
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>Add New Product</span>
-            </Button>
-          </Link>
-          <Link to={`${basePath}/orders`}>
-            <Button variant="outline" size="sm" className="text-xs font-bold uppercase tracking-wider text-white border-brand-gray-700 hover:bg-brand-surface">
-              Manage Orders
-            </Button>
-          </Link>
+          <div className="flex items-center space-x-2.5 w-full sm:w-auto">
+            <Link to={`${basePath}/products/new`} className="flex-1 sm:flex-initial">
+              <button className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-2.5 px-4 rounded-xl shadow-md shadow-amber-500/15 transition-all flex items-center justify-center space-x-1.5">
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Add Product</span>
+              </button>
+            </Link>
+            <Link to={`${basePath}/orders`} className="flex-1 sm:flex-initial">
+              <button className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs py-2.5 px-4 rounded-xl border border-slate-700 transition-colors">
+                Manage Orders
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* 2. Primary Financial & Catalog Performance */}
+      {/* 2. Primary Financials */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {financialCards.map((card, i) => {
+          const Icon = card.icon;
+          return (
+            <Link
+              key={i}
+              to={card.link}
+              className="bg-slate-900 border border-slate-800/90 hover:border-slate-700 p-5 rounded-2xl shadow-lg hover:shadow-xl transition-all group flex flex-col justify-between"
+            >
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-slate-400">{card.title}</span>
+                  <h3 className="text-2xl font-bold text-white tracking-tight">{card.value}</h3>
+                </div>
+                <div className={`p-2.5 rounded-xl border ${card.accentBg}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs">
+                <span className="text-slate-400 font-medium">{card.sub}</span>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* 3. Catalog & Inventory Status */}
       <div className="space-y-3">
-        <h3 className="text-xs font-black text-brand-gray-800 uppercase tracking-wider">
-          Financial Settlements & Earnings
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {financialCards.map((card, i) => {
+        <div className="flex justify-between items-center px-1">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Catalog & Inventory</h3>
+          <Link to={`${basePath}/inventory`} className="text-xs text-amber-400 hover:underline font-medium">
+            Manage Inventory
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          {inventoryCards.map((card, i) => {
             const Icon = card.icon;
             return (
               <Link
                 key={i}
                 to={card.link}
-                className="bg-white border border-brand-gray-200 hover:border-brand-accent p-5 rounded-sm shadow-premium flex flex-col justify-between transition-all group"
+                className="bg-slate-900 border border-slate-800/80 hover:border-slate-700 p-4 rounded-2xl shadow-md transition-all group flex flex-col justify-between"
               >
                 <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-bold text-brand-gray-500 uppercase tracking-wider">{card.title}</p>
-                    <h3 className="text-2xl font-black text-brand-gray-900 tracking-tight">{card.value}</h3>
-                  </div>
-                  <div className={`p-2.5 rounded-sm ${card.color}`}>
-                    <Icon className="w-5 h-5" />
+                  <span className="text-xs font-medium text-slate-400">{card.title}</span>
+                  <div className={`p-1.5 rounded-lg ${card.badgeColor}`}>
+                    <Icon className="w-3.5 h-3.5" />
                   </div>
                 </div>
-                <div className="mt-4 pt-3 border-t border-brand-gray-100 flex justify-between items-center text-[10px]">
-                  <span className="font-semibold text-brand-gray-500">{card.sub}</span>
-                  <ArrowRight className="w-3 h-3 text-brand-gray-400 group-hover:text-brand-accent transition-colors" />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. Catalog & Warehouse Inventory Metrics */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-black text-brand-gray-800 uppercase tracking-wider">
-          Catalog & Warehouse Inventory
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {productAndInventoryCards.map((card, i) => {
-            const Icon = card.icon;
-            return (
-              <Link
-                key={i}
-                to={card.link}
-                className="bg-white border border-brand-gray-200 hover:border-brand-accent p-4 rounded-sm shadow-premium flex flex-col justify-between transition-all group"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-brand-gray-500 uppercase tracking-wider">{card.title}</p>
-                    <h3 className="text-xl font-black text-brand-gray-900 tracking-tight">{card.value}</h3>
-                  </div>
-                  <div className={`p-2 rounded-sm ${card.color}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="mt-3 pt-2 border-t border-brand-gray-100 flex justify-between items-center text-[9px]">
-                  <span className="font-medium text-brand-gray-500 truncate mr-1">{card.sub}</span>
-                  <ArrowRight className="w-2.5 h-2.5 text-brand-gray-400 group-hover:text-brand-accent shrink-0" />
+                <div className="mt-3">
+                  <p className="text-2xl font-bold text-white tracking-tight">{card.value}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{card.sub}</p>
                 </div>
               </Link>
             );
@@ -268,73 +268,75 @@ const Dashboard = () => {
 
       {/* 4. Orders & Fulfillment Pipeline */}
       <div className="space-y-3">
-        <h3 className="text-xs font-black text-brand-gray-800 uppercase tracking-wider">
-          Orders & Fulfillment Pipeline
-        </h3>
+        <div className="flex justify-between items-center px-1">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Fulfillment Pipeline</h3>
+          <Link to={`${basePath}/orders`} className="text-xs text-amber-400 hover:underline font-medium">
+            All Orders
+          </Link>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {orderCards.map((card, i) => {
+          {orderPipeline.map((card, i) => {
             const Icon = card.icon;
             return (
               <Link
                 key={i}
                 to={card.link}
-                className="bg-white border border-brand-gray-200 hover:border-brand-accent p-3.5 rounded-sm shadow-premium flex flex-col justify-between transition-all group"
+                className="bg-slate-900 border border-slate-800/80 hover:border-slate-700 p-3.5 rounded-2xl shadow-md transition-all group text-left"
               >
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-brand-gray-500 uppercase tracking-wider">{card.title}</span>
-                  <div className={`p-1.5 rounded-sm ${card.color}`}>
-                    <Icon className="w-3.5 h-3.5" />
-                  </div>
+                  <span className="text-xs font-medium text-slate-400">{card.title}</span>
+                  <Icon className={`w-3.5 h-3.5 ${card.color}`} />
                 </div>
-                <div className="mt-2 text-xl font-black text-brand-gray-900">{card.value}</div>
+                <div className="mt-2 text-xl font-bold text-white">{card.value}</div>
               </Link>
             );
           })}
         </div>
       </div>
 
-      {/* 3. Sales Breakdown Strip */}
-      <div className="bg-white border border-brand-gray-200 rounded-sm p-5 shadow-premium">
-        <h4 className="text-xs font-black text-brand-gray-900 uppercase tracking-wider mb-4 flex items-center space-x-2">
-          <TrendingUp className="w-4 h-4 text-brand-accent" />
-          <span>Sales Velocity & Performance</span>
-        </h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 divide-y md:divide-y-0 md:divide-x divide-brand-gray-200">
+      {/* 5. Sales Performance Strip */}
+      <div className="bg-slate-900 border border-slate-800/90 rounded-2xl p-5 shadow-lg">
+        <div className="flex items-center space-x-2 mb-4 pb-3 border-b border-slate-800/80">
+          <BarChart3 className="w-4 h-4 text-amber-400" />
+          <h4 className="text-xs font-bold text-white uppercase tracking-wider">Sales Velocity</h4>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-800">
           {salesPeriods.map((period, i) => (
             <div key={i} className={`space-y-1 ${i > 0 ? 'md:pl-6 pt-3 md:pt-0' : ''}`}>
-              <p className="text-[10px] font-bold text-brand-gray-400 uppercase tracking-wider">{period.label}</p>
-              <p className="text-lg font-black text-brand-gray-900">{period.value}</p>
+              <p className="text-[11px] font-medium text-slate-400">{period.label}</p>
+              <p className="text-lg font-bold text-white">{period.value}</p>
             </div>
           ))}
         </div>
       </div>
 
-
-      {/* 5. Recent Orders Table */}
-      <div className="bg-white border border-brand-gray-200 rounded-sm shadow-premium overflow-hidden">
-        <div className="p-5 border-b border-brand-gray-200 flex justify-between items-center">
+      {/* 6. Recent Orders Table */}
+      <div className="bg-slate-900 border border-slate-800/90 rounded-2xl shadow-xl overflow-hidden">
+        <div className="p-5 border-b border-slate-800/90 flex justify-between items-center">
           <div>
-            <h3 className="text-sm font-black text-brand-gray-900 uppercase tracking-tight">Recent Fulfillment Orders</h3>
-            <p className="text-[11px] text-brand-gray-500 mt-0.5">Private dispatch items destined for customer deliveries.</p>
+            <h3 className="text-sm font-bold text-white">Recent Orders</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Latest customer orders for fulfillment</p>
           </div>
-          <Link to={`${basePath}/orders`} className="text-xs font-bold text-brand-accent hover:underline flex items-center space-x-1 uppercase tracking-wider">
-            <span>View All Orders</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+          <Link to={`${basePath}/orders`} className="text-xs font-semibold text-amber-400 hover:underline flex items-center space-x-1">
+            <span>View All</span>
+            <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {recentOrders.length === 0 ? (
-          <div className="p-12 text-center text-xs text-brand-gray-400 italic space-y-3">
-            <ShoppingBag className="w-10 h-10 mx-auto text-brand-gray-300" />
-            <p>No customer orders received yet for this partner.</p>
+          <div className="py-12 px-4 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center mx-auto text-slate-500">
+              <ShoppingBag className="w-6 h-6" />
+            </div>
+            <p className="text-xs text-slate-400 font-medium">No recent orders received yet.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-brand-gray-50 border-b border-brand-gray-200 text-brand-gray-500 font-bold uppercase tracking-wider text-[10px]">
+              <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 font-semibold text-[11px]">
                 <tr>
                   <th className="px-5 py-3">Order ID</th>
-                  <th className="px-5 py-3">Products</th>
+                  <th className="px-5 py-3">Product</th>
                   <th className="px-5 py-3">Destination</th>
                   <th className="px-5 py-3 text-right">Amount</th>
                   <th className="px-5 py-3">Payment</th>
@@ -343,42 +345,42 @@ const Dashboard = () => {
                   <th className="px-5 py-3 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-brand-gray-200 text-brand-gray-800">
+              <tbody className="divide-y divide-slate-800/80 text-slate-300">
                 {recentOrders.map((order) => (
-                  <tr key={order._id} className="hover:bg-brand-gray-50/80 transition-colors">
-                    <td className="px-5 py-3.5 font-mono font-bold text-brand-accent">
+                  <tr key={order._id} className="hover:bg-slate-850/50 transition-colors">
+                    <td className="px-5 py-3.5 font-mono font-semibold text-amber-400">
                       {order.orderId}
                     </td>
-                    <td className="px-5 py-3.5 max-w-[220px]">
-                      <p className="font-bold text-brand-gray-900 truncate">
-                        {order.items[0]?.name || 'Technology Item'}
+                    <td className="px-5 py-3.5 max-w-[200px]">
+                      <p className="font-medium text-white truncate">
+                        {order.items[0]?.name || 'Item'}
                       </p>
                       {order.items.length > 1 && (
-                        <span className="text-[10px] text-brand-gray-400 font-medium">
-                          +{order.items.length - 1} more item(s)
+                        <span className="text-[10px] text-slate-400">
+                          +{order.items.length - 1} more
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 font-medium text-brand-gray-600">
-                      {order.customerCity}
+                    <td className="px-5 py-3.5 text-slate-300">
+                      {order.customerCity || 'India'}
                     </td>
-                    <td className="px-5 py-3.5 font-black text-right text-brand-gray-900">
+                    <td className="px-5 py-3.5 font-bold text-right text-white">
                       ₹{order.amount.toLocaleString('en-IN')}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="inline-flex items-center text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                         {order.paymentStatus}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
                       <StatusBadge status={order.fulfillmentStatus} />
                     </td>
-                    <td className="px-5 py-3.5 text-brand-gray-500 font-medium text-[11px]">
+                    <td className="px-5 py-3.5 text-slate-400 text-[11px]">
                       {new Date(order.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
                     <td className="px-5 py-3.5 text-center">
                       <Link to={`${basePath}/orders/${order._id}`}>
-                        <button className="text-brand-accent hover:text-brand-dark font-bold text-xs p-1">
+                        <button className="text-amber-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors" title="View Order">
                           <Eye className="w-4 h-4" />
                         </button>
                       </Link>
