@@ -19,17 +19,17 @@ const settingSchema = new mongoose.Schema(
     },
     supportEmail: {
       type: String,
-      default: 'support@kaiatech.com',
+      default: 'kenzoinfosystemsprivatelimited@gmail.com',
     },
     supportPhone: {
       type: String,
-      default: '+91 80000 12345',
+      default: '+91 9811207024',
     },
     businessAddress: {
-      street: { type: String, default: 'Electronic City Phase 1' },
-      city: { type: String, default: 'Bengaluru' },
-      state: { type: String, default: 'Karnataka' },
-      postalCode: { type: String, default: '560100' },
+      street: { type: String, default: '32-C, Unit No 107, B.R. Complex, Mayur Vihar, Phase 1' },
+      city: { type: String, default: 'East Delhi' },
+      state: { type: String, default: 'Delhi' },
+      postalCode: { type: String, default: '110091' },
       country: { type: String, default: 'India' },
     },
     deliverySettings: {

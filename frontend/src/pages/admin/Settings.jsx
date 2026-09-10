@@ -16,8 +16,8 @@ const Settings = () => {
 
   const [config, setConfig] = useState({
     siteName: 'KAIA Technologies Marketplace',
-    supportEmail: 'support@kaia.tech',
-    supportPhone: '+91 99999 99999',
+    supportEmail: 'kenzoinfosystemsprivatelimited@gmail.com',
+    supportPhone: '+91 9811207024',
     currency: 'INR (₹)',
     taxSettings: {
       defaultGstRate: 18,
@@ -43,8 +43,8 @@ const Settings = () => {
           const s = res.settings;
           setConfig({
             siteName: s.siteName || 'KAIA Technologies Marketplace',
-            supportEmail: s.supportEmail || 'support@kaia.tech',
-            supportPhone: s.supportPhone || '+91 99999 99999',
+            supportEmail: s.supportEmail || 'kenzoinfosystemsprivatelimited@gmail.com',
+            supportPhone: s.supportPhone || '+91 9811207024',
             currency: 'INR (₹)',
             taxSettings: {
               defaultGstRate: s.taxSettings?.defaultGstRate ?? 18,

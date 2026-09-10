@@ -341,7 +341,7 @@ export class InvoiceService {
       .font('Helvetica')
       .fillColor('#565959')
       .text('Technology from Every Brand. One Powerful Marketplace.', 40, 65)
-      .text('www.kaia.tech | support@kaia.tech', 40, 78);
+      .text('www.kaia.tech | kenzoinfosystemsprivatelimited@gmail.com | +91 9811207024', 40, 78);
 
     // Tax Invoice Badge
     doc
@@ -486,8 +486,9 @@ export class InvoiceService {
       .fontSize(7)
       .font('Helvetica')
       .fillColor('#9CA3AF')
-      .text('This is a computer-generated tax invoice issued in accordance with GST Rules. Does not require physical signature.', 40, 740, { align: 'center' })
-      .text('KAIA Technologies Private Limited • Marketplace Platform Provider • www.kaia.tech', 40, 752, { align: 'center' });
+      .text('This is a computer-generated tax invoice issued in accordance with GST Rules. Does not require physical signature.', 40, 735, { align: 'center' })
+      .text('KENZO INFOSYSTEMS PRIVATE LIMITED (CIN: U62099DL2026PTC466403) • Marketplace Platform Provider', 40, 747, { align: 'center' })
+      .text('Registered Office: 32-C, Unit No 107, B.R. Complex, Mayur Vihar, Phase 1, East Delhi, Delhi-110091', 40, 759, { align: 'center' });
   }
 
   /**

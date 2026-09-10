@@ -48,16 +48,9 @@ const Footer = ({ mode = 'full' }) => {
           </div>
 
           <p className="text-[11px] text-slate-400">
-            © 2026 KAIA Technologies Pvt. Ltd. | Powered by{' '}
-            <a 
-              href="https://www.kenzoinfosystems.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-amber-400 hover:underline font-semibold"
-            >
-              Kenzo Info Systems
-            </a>
-            . Verified Office: Mayur Vihar Phase 1, Delhi, India.
+            © 2026 Kenzo Infosystems Private Limited (KAIA Technologies). All rights reserved.
+            <br />
+            Registered Office: 32-C, Unit No 107, B.R. Complex, Mayur Vihar, Phase 1, East Delhi, Delhi-110091 • CIN: U62099DL2026PTC466403
           </p>
         </div>
       </footer>
@@ -194,31 +187,24 @@ const Footer = ({ mode = 'full' }) => {
             </ul>
           </div>
 
-          {/* Col 5: KAIA TECHNOLOGIES OFFICE & VERIFIED MAP LOCATION */}
+          {/* Col 5: KENZO INFOSYSTEMS PRIVATE LIMITED OFFICE & VERIFIED MAP LOCATION */}
           <div className="lg:col-span-1 space-y-3.5 bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
             <div className="flex items-center space-x-2">
               <Building2 className="w-4 h-4 text-amz-orange shrink-0" />
-              <h4 className="font-extrabold text-xs text-white uppercase tracking-wider">Corporate Hub</h4>
+              <h4 className="font-extrabold text-xs text-white uppercase tracking-wider">Corporate Office</h4>
             </div>
 
             <div className="text-[11px] text-brand-gray-300 leading-relaxed space-y-1">
-              <strong className="text-white block font-bold">KAIA Technologies Pvt. Ltd.</strong>
-              <p>Mayur Vihar Phase 1, Near Unna Enclave<br />Delhi, India</p>
-              
-              <a
-                href="https://www.kenzoinfosystems.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-1.5 text-xs text-amber-400 hover:text-amber-300 font-bold hover:underline pt-1"
-              >
-                <span>www.kenzoinfosystems.com</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              <strong className="text-white block font-bold">KENZO INFOSYSTEMS PRIVATE LIMITED</strong>
+              <p className="text-[10px] text-slate-400 font-mono">CIN: U62099DL2026PTC466403</p>
+              <p>32-C, Unit No 107, B.R. Complex, Mayur Vihar, Phase 1, East Delhi, Delhi-110091</p>
+              <p className="text-[10px] text-amber-400 font-mono">Phone: +91 9811207024</p>
+              <p className="text-[10px] text-slate-300">kenzoinfosystemsprivatelimited@gmail.com</p>
             </div>
 
             <div className="h-24 w-full rounded-lg overflow-hidden border border-slate-700 relative bg-slate-800">
               <iframe
-                title="KAIA Technologies Verified Location"
+                title="Kenzo Infosystems Private Limited Verified Location"
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14013.298064971274!2d77.2917!3d28.6056!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390ce4c16a1ebc5d%3A0x8e57849156488d5e!2sMayur%20Vihar%20Phase%201%2C%20Delhi!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
                 width="100%"
                 height="100%"
@@ -230,7 +216,7 @@ const Footer = ({ mode = 'full' }) => {
             </div>
 
             <a
-              href="https://www.google.com/maps/search/?api=1&query=Mayur+Vihar+Phase+1+near+Unna+Enclave+Delhi+India"
+              href="https://www.google.com/maps/search/?api=1&query=32-C+Unit+No+107+B.R.+Complex+Mayur+Vihar+Phase+1+East+Delhi+110091"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center space-x-1.5 text-[11px] text-amber-400 hover:text-amber-300 font-bold group"
@@ -275,17 +261,10 @@ const Footer = ({ mode = 'full' }) => {
           <Link to="/warranty-policy" className="hover:underline hover:text-white">Warranty Policy</Link>
           <Link to="/shipping-policy" className="hover:underline hover:text-white">Shipping & Logistics</Link>
         </div>
-        <p className="text-brand-gray-400">
-          © 2026, KAIA Technologies Pvt. Ltd. | Powered by{' '}
-          <a 
-            href="https://www.kenzoinfosystems.com" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-amber-400 hover:text-amber-300 hover:underline font-bold"
-          >
-            Kenzo Info Systems Pvt. Ltd.
-          </a>
-          . Mayur Vihar Phase 1, Delhi. All rights reserved.
+        <p className="text-brand-gray-400 text-[11px] leading-relaxed">
+          © 2026 Kenzo Infosystems Private Limited. All rights reserved.
+          <br />
+          Registered Address: 32-C, Unit No 107, B.R. Complex, Mayur Vihar, Phase 1, East Delhi, Delhi-110091 | CIN: U62099DL2026PTC466403 | Phone: +91 9811207024
         </p>
       </div>
 

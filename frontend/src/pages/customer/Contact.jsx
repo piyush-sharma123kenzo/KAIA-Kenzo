@@ -46,25 +46,30 @@ const Contact = () => {
               <div className="flex items-start space-x-3 text-amz-secText">
                 <MapPin className="w-4 h-4 text-amz-orange shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-amz-bodyInk">KAIA Technologies Pvt. Ltd.</p>
-                  <p>Mayur Vihar Phase 1, Near Unna Enclave</p>
-                  <p>Delhi, India</p>
+                  <p className="font-bold text-amz-bodyInk">KENZO INFOSYSTEMS PRIVATE LIMITED</p>
+                  <p className="text-[11px] text-slate-500 font-mono">CIN: U62099DL2026PTC466403</p>
+                  <p>32-C, Unit No 107, B.R. Complex, Mayur Vihar, Phase 1</p>
+                  <p>East Delhi, Delhi-110091, India</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3 text-amz-secText">
                 <Mail className="w-4 h-4 text-amz-orange shrink-0" />
                 <div>
-                  <p className="font-bold text-amz-bodyInk">Email Support</p>
-                  <a href="mailto:support@kaia.tech" className="text-amz-linkBlue hover:underline">support@kaia.tech</a>
+                  <p className="font-bold text-amz-bodyInk">Official Email</p>
+                  <a href="mailto:kenzoinfosystemsprivatelimited@gmail.com" className="text-amz-linkBlue hover:underline break-all">
+                    kenzoinfosystemsprivatelimited@gmail.com
+                  </a>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3 text-amz-secText">
                 <Phone className="w-4 h-4 text-amz-orange shrink-0" />
                 <div>
-                  <p className="font-bold text-amz-bodyInk">Helpline (Toll-Free)</p>
-                  <p className="font-mono text-amz-bodyInk">1800-202-KAIA (9 AM – 7 PM IST)</p>
+                  <p className="font-bold text-amz-bodyInk">Contact Phone</p>
+                  <a href="tel:+919811207024" className="font-mono text-amz-bodyInk hover:underline">
+                    +91 9811207024
+                  </a>
                 </div>
               </div>
 
@@ -72,7 +77,7 @@ const Contact = () => {
                 <Clock className="w-4 h-4 text-amz-orange shrink-0" />
                 <div>
                   <p className="font-bold text-amz-bodyInk">Support Hours</p>
-                  <p>Monday through Saturday</p>
+                  <p>Monday through Saturday (9:00 AM – 7:00 PM IST)</p>
                 </div>
               </div>
             </div>

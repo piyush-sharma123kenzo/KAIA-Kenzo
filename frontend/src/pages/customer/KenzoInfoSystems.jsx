@@ -85,9 +85,11 @@ const KenzoInfoSystems = () => {
         {/* 3. CORPORATE HEADQUARTERS */}
         <div className="bg-slate-900 text-white p-8 rounded-3xl space-y-4">
           <h3 className="text-lg font-black text-white">Registered Corporate Office</h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            <strong>{KAIA_OFFICE_LOCATION.companyName}</strong> (A Kenzo Info Systems Enterprise)<br />
-            {KAIA_OFFICE_LOCATION.fullAddress}
+          <p className="text-xs text-slate-300 leading-relaxed space-y-1">
+            <strong className="text-white font-bold block text-sm">{KAIA_OFFICE_LOCATION.companyName}</strong>
+            <span className="font-mono text-slate-400 block">CIN: {KAIA_OFFICE_LOCATION.cin}</span>
+            <span className="block">{KAIA_OFFICE_LOCATION.fullAddress}</span>
+            <span className="font-mono text-amber-400 block pt-1">Phone: {KAIA_OFFICE_LOCATION.phone}</span>
           </p>
           <div className="pt-2 flex flex-wrap gap-4 text-xs font-bold">
             <a href="https://www.kenzoinfosystems.com" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline flex items-center space-x-1">

@@ -1,20 +1,33 @@
 /**
- * KAIA Technologies — Centralized Company & Verified Office Location
+ * KAIA Technologies — Centralized Company & Verified Corporate Office Details
+ * Kenzo Infosystems Private Limited
  */
 
 export const KAIA_OFFICE_LOCATION = {
-  companyName: 'KAIA Technologies Pvt. Ltd.',
+  companyName: 'Kenzo Infosystems Private Limited',
   brandName: 'KAIA Technologies',
-  addressLine1: 'Mayur Vihar Phase 1',
-  landmark: 'Near Unna Enclave',
+  parentCompany: 'Kenzo Infosystems Private Limited',
+  cin: 'U62099DL2026PTC466403',
+  companyWebsite: 'https://www.kenzoinfosystems.com',
+  registeredAddress: '32-C, Unit No 107, B.R. Complex, Mayur Vihar, Phase 1, East Delhi, Delhi-110091',
+  unitNumber: 'Unit No 107',
+  complex: 'B.R. Complex',
+  addressLine1: '32-C, Unit No 107, B.R. Complex',
+  addressLine2: 'Mayur Vihar, Phase 1',
+  area: 'Mayur Vihar, Phase 1',
+  district: 'East Delhi',
   city: 'Delhi',
   state: 'Delhi',
+  postalCode: '110091',
+  pincode: '110091',
   country: 'India',
-  fullAddress: 'Mayur Vihar Phase 1, Near Unna Enclave, Delhi, India',
-  googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Mayur+Vihar+Phase+1+near+Unna+Enclave+Delhi+India',
-  supportEmail: 'support@kaia.tech',
-  businessEmail: 'enterprise@kaia.tech',
-  supportPhone: '+91 (011) 4890-KAIA',
+  fullAddress: '32-C, Unit No 107, B.R. Complex, Mayur Vihar, Phase 1, East Delhi, Delhi-110091',
+  googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=32-C+Unit+No+107+B.R.+Complex+Mayur+Vihar+Phase+1+East+Delhi+110091',
+  email: 'kenzoinfosystemsprivatelimited@gmail.com',
+  supportEmail: 'kenzoinfosystemsprivatelimited@gmail.com',
+  businessEmail: 'kenzoinfosystemsprivatelimited@gmail.com',
+  phone: '+91 9811207024',
+  supportPhone: '+91 9811207024',
 };
 
 export default KAIA_OFFICE_LOCATION;
