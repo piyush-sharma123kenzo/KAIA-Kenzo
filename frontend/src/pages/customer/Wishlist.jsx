@@ -192,11 +192,14 @@ const Wishlist = () => {
               const product = item.product || {};
               const pId = product._id || product.id || item._id;
               const name = product.name || 'Hardware Product';
-              const brandName = typeof product.brand === 'string' ? product.brand : product.brand?.name || 'Authorized Brand';
+              const rawBrand = typeof product.brand === 'string' ? product.brand : product.brand?.name || '';
+              const brandName = (rawBrand && rawBrand.trim().toUpperCase() !== 'KAIA') ? rawBrand.trim() : '';
               
               const sellingPrice = Number(item.unitPrice ?? product.sellingPrice ?? product.price ?? 0);
               const mrp = Number(item.mrp ?? product.mrp ?? sellingPrice);
-              const discount = Number(item.discount ?? (mrp > sellingPrice ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0));
+              const hasOffer = Boolean(product.offer?.isActive && (Number(product.offer?.discountPercent) > 0 || product.offer?.label));
+              const offerPercent = hasOffer ? Number(product.offer?.discountPercent || 0) : 0;
+              const offerLabel = product.offer?.label || (offerPercent > 0 ? `${offerPercent}% OFF` : '');
               
               const isAvailable = item.isAvailable !== false && (item.availableStock > 0 || (product.stock?.quantity ?? 10) > 0);
               const statusText = item.statusText || (isAvailable ? 'In Stock' : 'Out of Stock');
@@ -226,9 +229,9 @@ const Wishlist = () => {
                           e.target.src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=700&auto=format&fit=crop&q=80';
                         }}
                       />
-                      {discount > 0 && (
+                      {hasOffer && offerLabel && (
                         <div className="absolute bottom-2 left-2 bg-emerald-600 text-white font-black text-[10px] px-2 py-0.5 rounded shadow-xs">
-                          {discount}% OFF
+                          {offerLabel}
                         </div>
                       )}
                     </Link>
@@ -236,9 +239,11 @@ const Wishlist = () => {
                     {/* Middle: Content & Specs */}
                     <div className="flex-1 space-y-2 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">
-                          {brandName}
-                        </span>
+                        {brandName && (
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">
+                            {brandName}
+                          </span>
+                        )}
                         <span className={`text-[10px] font-bold ${
                           isInactive
                             ? 'text-slate-500 bg-slate-100 px-2 py-0.5 rounded'
@@ -357,9 +362,9 @@ const Wishlist = () => {
                           e.target.src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=700&auto=format&fit=crop&q=80';
                         }}
                       />
-                      {discount > 0 && (
+                      {hasOffer && offerLabel && (
                         <div className="absolute bottom-2 left-2 bg-emerald-600 text-white font-black text-[10px] px-1.5 py-0.5 rounded shadow-xs">
-                          {discount}% OFF
+                          {offerLabel}
                         </div>
                       )}
                     </Link>
@@ -381,7 +386,7 @@ const Wishlist = () => {
                         <span className="text-base font-black text-slate-950 font-mono">
                           ₹{sellingPrice.toLocaleString('en-IN')}
                         </span>
-                        {discount > 0 && (
+                        {hasOffer && mrp > sellingPrice && (
                           <span className="text-xs text-slate-400 line-through font-mono">
                             ₹{mrp.toLocaleString('en-IN')}
                           </span>

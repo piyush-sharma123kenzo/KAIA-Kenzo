@@ -352,7 +352,9 @@ const ProductDetails = () => {
 
   const availableStock = product.availableQuantity ?? (product.stock?.quantity - (product.stock?.reservedQuantity || 0)) ?? 0;
   const isOutOfStock = availableStock <= 0;
-  const discountPct = product.discountPercentage || (product.mrp && product.mrp > product.sellingPrice ? Math.round(((product.mrp - product.sellingPrice) / product.mrp) * 100) : 0);
+  const hasOffer = Boolean(product.offer?.isActive && (Number(product.offer?.discountPercent) > 0 || product.offer?.label));
+  const offerPercent = hasOffer ? Number(product.offer?.discountPercent || 0) : 0;
+  const offerLabel = product.offer?.label || (offerPercent > 0 ? `${offerPercent}% OFF` : '');
   const images = product.images && product.images.length > 0 ? product.images : [{ url: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800' }];
 
   return (
@@ -390,9 +392,9 @@ const ProductDetails = () => {
             onClick={() => setShowLightbox(true)}
             className="aspect-square bg-[#F8FAFC] border border-slate-200/80 p-8 rounded-2xl flex items-center justify-center relative overflow-hidden shadow-sm cursor-zoom-in group"
           >
-            {discountPct > 0 && (
+            {hasOffer && offerLabel && (
               <span className="absolute top-4 left-4 bg-red-600 text-white text-[11px] font-black px-2.5 py-1 rounded-md uppercase tracking-tight shadow-sm">
-                {discountPct}% OFF
+                {offerLabel}
               </span>
             )}
 
@@ -494,13 +496,13 @@ const ProductDetails = () => {
               <span className="text-3xl font-black text-brand-gray-950 font-mono">
                 ₹{product.sellingPrice?.toLocaleString('en-IN')}
               </span>
-              {product.mrp && product.mrp > product.sellingPrice && (
+              {hasOffer && product.mrp && product.mrp > product.sellingPrice && (
                 <>
                   <span className="text-sm font-semibold text-brand-gray-400 line-through font-mono">
                     ₹{product.mrp?.toLocaleString('en-IN')}
                   </span>
                   <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                    Save ₹{(product.mrp - product.sellingPrice).toLocaleString('en-IN')} ({discountPct}% OFF)
+                    Save ₹{(product.mrp - product.sellingPrice).toLocaleString('en-IN')} ({offerLabel})
                   </span>
                 </>
               )}

@@ -320,6 +320,11 @@ export const createAdminProduct = async (req, res) => {
       isBestSeller: Boolean(isBestSeller),
       isNewArrival: Boolean(isNewArrival),
       isBestDeal: Boolean(isBestDeal),
+      offer: {
+        isActive: Boolean(req.body.offer?.isActive || req.body.offerActive || false),
+        discountPercent: Number(req.body.offer?.discountPercent || req.body.offerDiscountPercent || 0),
+        label: req.body.offer?.label || req.body.offerLabel || '',
+      },
       warrantySummary: warrantySummary || '1 Year Manufacturer Limited Warranty',
     });
 
@@ -503,6 +508,14 @@ export const updateAdminProduct = async (req, res) => {
     if (isBestSeller !== undefined) product.isBestSeller = Boolean(isBestSeller);
     if (isNewArrival !== undefined) product.isNewArrival = Boolean(isNewArrival);
     if (isBestDeal !== undefined) product.isBestDeal = Boolean(isBestDeal);
+    if (offer !== undefined || req.body.offerActive !== undefined || req.body.offerDiscountPercent !== undefined) {
+      product.offer = {
+        isActive: Boolean(req.body.offer?.isActive ?? req.body.offerActive ?? false),
+        discountPercent: Number(req.body.offer?.discountPercent ?? req.body.offerDiscountPercent ?? 0),
+        label: req.body.offer?.label ?? req.body.offerLabel ?? '',
+      };
+      product.markModified('offer');
+    }
     if (warrantySummary !== undefined) product.warrantySummary = warrantySummary;
 
     await product.save();

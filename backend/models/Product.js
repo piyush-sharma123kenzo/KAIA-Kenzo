@@ -93,6 +93,30 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: '1 Year Manufacturer Limited Warranty',
     },
+    offer: {
+      isActive: {
+        type: Boolean,
+        default: false,
+        index: true,
+      },
+      discountPercent: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0,
+      },
+      label: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      startDate: {
+        type: Date,
+      },
+      endDate: {
+        type: Date,
+      },
+    },
     isFeatured: {
       type: Boolean,
       default: false,

@@ -31,6 +31,9 @@ const AddProduct = () => {
     isFeatured: false,
     isBestSeller: false,
     isNewArrival: true,
+    offerActive: false,
+    offerDiscountPercent: '',
+    offerLabel: '',
   });
 
   // Images state (array of URL strings or image objects)
@@ -198,6 +201,11 @@ const AddProduct = () => {
       })),
       specifications: specsMap,
       status: formData.isActive ? 'Approved' : 'Inactive',
+      offer: {
+        isActive: Boolean(formData.offerActive),
+        discountPercent: Number(formData.offerDiscountPercent || 0),
+        label: formData.offerLabel?.trim() || '',
+      },
     };
 
     setSaving(true);
@@ -529,11 +537,6 @@ const AddProduct = () => {
                 placeholder="e.g. 219990"
                 className="w-full bg-[#F8FAFC] border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500"
               />
-              {calculateDiscount() > 0 && (
-                <span className="text-[10px] font-extrabold text-emerald-700 block">
-                  {calculateDiscount()}% Customer Markdown
-                </span>
-              )}
             </div>
 
             {/* Stock Quantity */}
@@ -667,6 +670,65 @@ const AddProduct = () => {
               </div>
             </label>
           </div>
+        </div>
+
+        {/* Section 6: Promotional Offer Settings */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900">
+                6. Promotional Offer & Discount Badge (Optional)
+              </h2>
+              <p className="text-xs text-slate-500">
+                Keep disabled by default. If enabled in future, you can configure a specific % OFF offer badge for this product.
+              </p>
+            </div>
+            <label className="flex items-center space-x-2.5 cursor-pointer bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl hover:border-amber-400 transition-colors shrink-0">
+              <input
+                type="checkbox"
+                name="offerActive"
+                checked={formData.offerActive}
+                onChange={handleChange}
+                className="w-4 h-4 rounded text-amber-500 focus:ring-0 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-slate-800">
+                {formData.offerActive ? 'Offer Active (Show Badge)' : 'No Offer (No Badge)'}
+              </span>
+            </label>
+          </div>
+
+          {formData.offerActive && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Offer Discount Percentage (%) *
+                </label>
+                <input
+                  type="number"
+                  name="offerDiscountPercent"
+                  value={formData.offerDiscountPercent}
+                  onChange={handleChange}
+                  placeholder="e.g. 15"
+                  min="1"
+                  max="99"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Offer Badge Label (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="offerLabel"
+                  value={formData.offerLabel}
+                  onChange={handleChange}
+                  placeholder="e.g. 15% OFF or DIWALI SPECIAL"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Submit Actions */}

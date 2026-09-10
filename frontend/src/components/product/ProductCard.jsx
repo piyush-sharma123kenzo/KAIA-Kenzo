@@ -36,7 +36,9 @@ const ProductCard = ({
   
   const sellingPrice = Number(product.sellingPrice ?? product.price ?? 0);
   const mrp = Number(product.mrp ?? sellingPrice);
-  const discountPercent = mrp > sellingPrice ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
+  const hasOffer = Boolean(product.offer?.isActive && (Number(product.offer?.discountPercent) > 0 || product.offer?.label));
+  const offerPercent = hasOffer ? Number(product.offer?.discountPercent || 0) : 0;
+  const offerLabel = product.offer?.label || (offerPercent > 0 ? `${offerPercent}% OFF` : '');
   const numRating = Number(product.ratings?.average || product.ratingsAverage || 0);
   const rating = numRating > 0 ? numRating.toFixed(1) : null;
   const reviewCount = Number(product.ratings?.count || product.reviewCount || 0);
@@ -129,9 +131,9 @@ const ProductCard = ({
               e.target.src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=700&auto=format&fit=crop&q=80';
             }}
           />
-          {discountPercent > 0 && (
+          {hasOffer && offerLabel && (
             <div className="absolute bottom-2 left-2 bg-emerald-600 text-white font-black text-[10px] px-2 py-0.5 rounded shadow-xs">
-              {discountPercent}% OFF
+              {offerLabel}
             </div>
           )}
         </div>
@@ -182,7 +184,7 @@ const ProductCard = ({
               <span className="text-lg md:text-xl font-black text-slate-950 block tracking-tight">
                 {formattedPrice}
               </span>
-              {discountPercent > 0 && (
+              {hasOffer && mrp > sellingPrice && (
                 <span className="text-xs text-slate-400 line-through">
                   {formattedMrp}
                 </span>
@@ -315,9 +317,9 @@ const ProductCard = ({
           />
 
           {/* Floating Discount Tag */}
-          {discountPercent > 0 && (
+          {hasOffer && offerLabel && (
             <div className="absolute bottom-2 left-2 bg-emerald-600 text-white font-black text-[10px] px-1.5 py-0.5 rounded shadow-xs">
-              {discountPercent}% OFF
+              {offerLabel}
             </div>
           )}
         </div>
@@ -359,7 +361,7 @@ const ProductCard = ({
             <span className="text-sm md:text-base font-black text-slate-950 block tracking-tight">
               {formattedPrice}
             </span>
-            {discountPercent > 0 && (
+            {hasOffer && mrp > sellingPrice && (
               <span className="text-[11px] text-slate-400 line-through">
                 {formattedMrp}
               </span>

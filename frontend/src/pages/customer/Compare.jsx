@@ -176,21 +176,25 @@ const Compare = () => {
                     const prodId = prod._id || prod.id;
                     const sellingPrice = Number(prod.sellingPrice ?? prod.price ?? 0);
                     const mrp = Number(prod.mrp ?? sellingPrice);
-                    const discount = mrp > sellingPrice ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
+                    const hasOffer = Boolean(prod.offer?.isActive && (Number(prod.offer?.discountPercent) > 0 || prod.offer?.label));
+                    const offerPercent = hasOffer ? Number(prod.offer?.discountPercent || 0) : 0;
+                    const offerLabel = prod.offer?.label || (offerPercent > 0 ? `${offerPercent}% OFF` : '');
                     return (
                       <td key={prodId} className="p-4 md:p-5">
                         <div className="space-y-1">
                           <span className="text-base md:text-lg font-black text-slate-950 block">
                             {formatPrice(sellingPrice)}
                           </span>
-                          {discount > 0 && (
+                          {hasOffer && mrp > sellingPrice && (
                             <div className="flex items-center space-x-2">
                               <span className="text-xs text-slate-400 line-through">
                                 {formatPrice(mrp)}
                               </span>
-                              <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                {discount}% OFF
-                              </span>
+                              {offerLabel && (
+                                <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                  {offerLabel}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
