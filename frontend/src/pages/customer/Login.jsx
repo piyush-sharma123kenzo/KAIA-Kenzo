@@ -67,18 +67,18 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full bg-white p-8 rounded-sm shadow-premium border border-brand-gray-250 text-left space-y-7">
+    <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[#F8FAFC]">
+      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg border border-slate-200/90 text-left space-y-6">
         
         {/* Header */}
-        <div className="text-center space-y-3 flex flex-col items-center">
+        <div className="text-center space-y-2 flex flex-col items-center">
           <KaiaLogo to="/" variant="full" theme="light" size="lg" />
-          <h2 className="text-xl font-extrabold text-brand-gray-950 tracking-tight pt-2">Sign In to Your Workspace</h2>
-          <p className="text-xs text-brand-gray-500">Select your account role to continue</p>
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight pt-1">Sign In to Your Workspace</h2>
+          <p className="text-xs text-slate-500">Choose your account type to proceed</p>
         </div>
 
         {/* Role Selector Tabs */}
-        <div className="grid grid-cols-3 gap-1 bg-brand-light p-1 rounded-sm border border-brand-gray-200">
+        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80">
           {[
             { id: 'USER', label: 'Customer', badge: 'USER' },
             { id: 'VENDOR', label: 'Vendor', badge: 'BRAND' },
@@ -93,14 +93,14 @@ const Login = () => {
                   setSelectedRole(r.id);
                   if (error) clearError();
                 }}
-                className={`py-2 px-1 text-center rounded-sm text-xs font-bold transition-all ${
+                className={`py-2 px-1 text-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-brand-dark text-white shadow-sm'
-                    : 'text-brand-gray-600 hover:text-brand-gray-900 hover:bg-white/60'
+                    ? 'bg-white text-slate-950 font-bold shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <div>{r.label}</div>
-                <div className={`text-[9px] font-mono tracking-wider opacity-80 ${isSelected ? 'text-brand-accent' : 'text-brand-gray-400'}`}>
+                <div className={`text-[9px] font-mono tracking-wider ${isSelected ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
                   {r.badge}
                 </div>
               </button>
@@ -110,14 +110,14 @@ const Login = () => {
 
         {/* Error notification */}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-sm flex items-start space-x-2">
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start space-x-2">
             <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
             <span className="font-semibold">{error}</span>
           </div>
         )}
 
-        {/* Social / SSO Auth Options (for Admin, Vendor, and Customer) */}
-        <div className="space-y-3">
+        {/* Single Sign-On / SSO Options (Clerk & Google) */}
+        <div className="space-y-2.5">
           <ClerkAuthButton
             mode="signIn"
             role={selectedRole}
@@ -138,34 +138,35 @@ const Login = () => {
 
           <div className="relative flex py-1 items-center">
             <div className="flex-grow border-t border-slate-200" />
-            <span className="flex-shrink mx-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Or with email & password
             </span>
             <div className="flex-grow border-t border-slate-200" />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-brand-gray-650">Email Address:</label>
+        {/* Email & Password Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-3.5">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">Email Address</label>
               <div className="relative">
                 <input
                   type="email"
                   required
-                  placeholder={selectedRole === 'ADMIN' ? 'admin@kaia.tech' : selectedRole === 'VENDOR' ? 'brand@company.com' : 'name@company.com'}
+                  placeholder={selectedRole === 'ADMIN' ? 'admin@kaia.tech' : selectedRole === 'VENDOR' ? 'partner@company.com' : 'you@example.com'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-4 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
+                  className="w-full bg-slate-50 border border-slate-200 pl-10 pr-4 py-2.5 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                 />
-                <Mail className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+                <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-semibold text-brand-gray-650">Security Password:</label>
-                <Link to="/forgot-password" className="text-xs text-brand-accent hover:underline">Forgot?</Link>
+                <label className="text-xs font-semibold text-slate-700">Password</label>
+                <Link to="/forgot-password" className="text-xs text-amber-700 hover:underline font-semibold">Forgot?</Link>
               </div>
               <div className="relative">
                 <input
@@ -174,14 +175,14 @@ const Login = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-brand-light border border-brand-gray-250 pl-10 pr-10 py-2.5 rounded-sm text-sm focus:outline-none focus:border-brand-accent"
+                  className="w-full bg-slate-50 border border-slate-200 pl-10 pr-10 py-2.5 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                 />
-                <Lock className="absolute left-3.5 top-3 w-4 h-4 text-brand-gray-450" />
+                <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-2.5 text-brand-gray-400 hover:text-brand-gray-700 focus:outline-none"
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 focus:outline-none cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -192,23 +193,23 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-dark hover:bg-brand-gray-850 text-white font-semibold py-3 rounded-sm text-sm transition-colors flex items-center justify-center space-x-2"
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center space-x-2 cursor-pointer shadow-sm"
           >
-            <span>{loading ? 'Authenticating...' : `Sign In as ${selectedRole}`}</span>
+            <span>{loading ? 'Authenticating...' : `Sign In as ${selectedRole === 'USER' ? 'Customer' : selectedRole === 'VENDOR' ? 'Vendor' : 'Admin'}`}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <div className="text-center pt-2 border-t border-brand-gray-100 flex flex-col space-y-2 text-xs text-brand-gray-500">
+        <div className="text-center pt-2 border-t border-slate-100 flex flex-col space-y-1.5 text-xs text-slate-500">
           <p>
             New customer?{' '}
-            <Link to="/register" className="text-brand-accent font-semibold hover:underline">
+            <Link to="/register" className="text-amber-700 font-semibold hover:underline">
               Create customer account
             </Link>
           </p>
           <p>
             Brand Operator?{' '}
-            <Link to="/brand/register" className="text-brand-accent font-semibold hover:underline">
+            <Link to="/brand/register" className="text-amber-700 font-semibold hover:underline">
               Register as Vendor
             </Link>
           </p>
