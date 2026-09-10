@@ -411,13 +411,10 @@ const Header = () => {
                         {/* If user not signed in */}
                         {!user ? (
                           <div className="p-5 space-y-4">
-                            <div className="text-center space-y-2">
+                            <div className="text-center">
                               <h4 className="font-black text-sm text-slate-900 tracking-tight">
                                 Welcome to KAIA Technologies
                               </h4>
-                              <p className="text-xs text-slate-500">
-                                Sign in to manage technology orders, compare hardware, and access verified invoices.
-                              </p>
                             </div>
 
                             <div className="pt-1">
