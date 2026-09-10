@@ -181,9 +181,7 @@ const Register = () => {
             Create Account
           </h1>
           <p className="text-xs text-brand-gray-500">
-            {selectedRole === 'VENDOR'
-              ? 'Join as an authorized brand partner to sell and manage hardware.'
-              : 'A 6-digit verification code will be sent to your email.'}
+            A 6-digit verification code will be sent to your email.
           </p>
         </div>
 
